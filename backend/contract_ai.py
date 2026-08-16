@@ -1,5 +1,33 @@
+import os
+
 from pydantic import BaseModel
-from ollama import chat
+
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+
+AI_PROVIDER = os.getenv(
+    "AI_PROVIDER",
+    "ollama",
+).lower()
+
+
+OLLAMA_MODEL = os.getenv(
+    "OLLAMA_MODEL",
+    "qwen3:8b",
+)
+
+
+GROQ_API_KEY = os.getenv(
+    "GROQ_API_KEY",
+)
+
+GROQ_MODEL = os.getenv(
+    "GROQ_MODEL",
+    "openai/gpt-oss-20b",
+)
 
 
 class ContractData(BaseModel):
@@ -23,8 +51,10 @@ class ContractData(BaseModel):
     payment_terms: str | None
 
 
-def extract_contract_data(contract_text: str) -> ContractData:
-    prompt = f"""
+def build_prompt(
+    contract_text: str
+) -> str:
+    return f"""
 You are a contract extraction system for RenewAI,
 an AI-powered SaaS renewal management platform.
 
@@ -55,22 +85,148 @@ IMPORTANT RULES:
 CONTRACT TEXT:
 
 {contract_text}
-"""
+""".strip()
+
+
+def extract_with_ollama(
+    prompt: str
+) -> ContractData:
+    from ollama import chat
 
     response = chat(
-        model="qwen3:8b",
+        model=OLLAMA_MODEL,
         messages=[
             {
                 "role": "user",
                 "content": prompt,
             }
         ],
-        format=ContractData.model_json_schema(),
+        format=(
+            ContractData
+            .model_json_schema()
+        ),
         options={
             "temperature": 0,
         },
     )
 
-    return ContractData.model_validate_json(
-        response.message.content
+    return (
+        ContractData
+        .model_validate_json(
+            response.message.content
+        )
+    )
+
+
+def extract_with_groq(
+    prompt: str
+) -> ContractData:
+    if not GROQ_API_KEY:
+        raise RuntimeError(
+            "GROQ_API_KEY is missing."
+        )
+
+    from groq import Groq
+
+    client = Groq(
+        api_key=GROQ_API_KEY
+    )
+
+    schema = (
+        ContractData
+        .model_json_schema()
+    )
+
+    response = (
+        client
+        .chat
+        .completions
+        .create(
+            model=GROQ_MODEL,
+
+            messages=[
+                {
+                    "role":
+                        "system",
+
+                    "content":
+                        (
+                            "You extract structured "
+                            "contract data. "
+                            "Return only information "
+                            "supported by the contract."
+                        ),
+                },
+                {
+                    "role":
+                        "user",
+
+                    "content":
+                        prompt,
+                },
+            ],
+
+            temperature=0,
+
+            response_format={
+                "type":
+                    "json_schema",
+
+                "json_schema": {
+                    "name":
+                        "contract_data",
+
+                    "strict":
+                        True,
+
+                    "schema":
+                        schema,
+                },
+            },
+        )
+    )
+
+    content = (
+        response
+        .choices[0]
+        .message
+        .content
+    )
+
+    if not content:
+        raise RuntimeError(
+            "Groq returned an empty response."
+        )
+
+    return (
+        ContractData
+        .model_validate_json(
+            content
+        )
+    )
+
+
+def extract_contract_data(
+    contract_text: str
+) -> ContractData:
+    prompt = build_prompt(
+        contract_text
+    )
+
+    if AI_PROVIDER == "ollama":
+        return extract_with_ollama(
+            prompt
+        )
+
+    if AI_PROVIDER == "groq":
+        return extract_with_groq(
+            prompt
+        )
+
+    raise RuntimeError(
+        (
+            "Unsupported AI_PROVIDER: "
+            f"{AI_PROVIDER}. "
+            "Use 'ollama' or 'groq'."
+        )
     )
