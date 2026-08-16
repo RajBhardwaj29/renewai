@@ -1,6 +1,6 @@
 import hashlib
 import os
-
+import hmac
 import pymupdf
 
 from fastapi import (
@@ -14,6 +14,7 @@ from fastapi import (
 from contextlib import asynccontextmanager
 
 from reminder_scheduler import (
+    process_due_reminders,
     start_reminder_scheduler,
     stop_reminder_scheduler,
 )
@@ -188,6 +189,50 @@ def health():
         "status":
             "healthy"
     }
+
+
+@app.post("/internal/process-reminders")
+def process_reminders_from_cron(
+    x_cron_secret: str | None = Header(
+        default=None,
+        alias="X-Cron-Secret",
+    )
+):
+    configured_secret = os.getenv(
+        "CRON_SECRET"
+    )
+
+    if not configured_secret:
+        raise HTTPException(
+            status_code=503,
+            detail="Cron processing is not configured.",
+        )
+
+    if (
+        not x_cron_secret
+        or not hmac.compare_digest(
+            x_cron_secret,
+            configured_secret,
+        )
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid cron credentials.",
+        )
+
+    try:
+        process_due_reminders()
+
+        return {
+            "status": "success",
+            "message": "Due reminder processing completed.",
+        }
+
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Reminder processing failed.",
+        )
 
 
 @app.get("/me")
