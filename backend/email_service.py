@@ -1,5 +1,6 @@
 import os
 import smtplib
+import logging
 
 from email.message import EmailMessage
 
@@ -7,6 +8,10 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
+
+logger = logging.getLogger(
+    "renewai.email"
+)
 
 
 SMTP_HOST = os.getenv(
@@ -147,6 +152,15 @@ Contract Renewal Intelligence
             )
 
     except Exception as exc:
-        raise RuntimeError(
-            f"Email send failed: {str(exc)}"
-        )
+    logger.exception(
+        "Email send failed. "
+        "Host=%s Port=%s Recipient=%s Error=%s",
+        SMTP_HOST,
+        SMTP_PORT,
+        recipient_email,
+        exc,
+    )
+
+    raise RuntimeError(
+        f"Email send failed: {str(exc)}"
+    )
