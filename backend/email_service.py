@@ -152,15 +152,15 @@ Contract Renewal Intelligence
             )
 
     except Exception as exc:
-    logger.exception(
-        "Email send failed. "
-        "Host=%s Port=%s Recipient=%s Error=%s",
-        SMTP_HOST,
-        SMTP_PORT,
-        recipient_email,
-        exc,
-    )
+        logger.exception(
+            "Email send failed. "
+            "Host=%s Port=%s Recipient=%s Error=%s",
+            SMTP_HOST,
+            SMTP_PORT,
+            recipient_email,
+            exc,
+        )
 
-    raise RuntimeError(
-        f"Email send failed: {str(exc)}"
-    )
+        raise RuntimeError(
+            f"Email send failed: {str(exc)}"
+        )
