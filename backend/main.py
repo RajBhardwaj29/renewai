@@ -44,11 +44,21 @@ from database import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    start_reminder_scheduler()
+    scheduler_enabled = (
+        os.getenv(
+            "ENABLE_REMINDER_SCHEDULER",
+            "true",
+        ).lower()
+        == "true"
+    )
+
+    if scheduler_enabled:
+        start_reminder_scheduler()
 
     yield
 
-    stop_reminder_scheduler()
+    if scheduler_enabled:
+        stop_reminder_scheduler()
 
 
 app = FastAPI(
