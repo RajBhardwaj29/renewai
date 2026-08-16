@@ -18,15 +18,6 @@ EMAIL_FROM = os.getenv(
 )
 
 
-if not RESEND_API_KEY:
-    raise RuntimeError(
-        "RESEND_API_KEY is missing."
-    )
-
-
-resend.api_key = RESEND_API_KEY
-
-
 def format_reminder_type(
     reminder_type: str
 ):
@@ -62,6 +53,15 @@ def send_renewal_reminder_email(
     cancellation_deadline: str | None,
     renewal_date: str | None,
 ):
+    if not RESEND_API_KEY:
+        raise RuntimeError(
+            "RESEND_API_KEY is missing."
+        )
+
+    resend.api_key = (
+        RESEND_API_KEY
+    )
+
     subject = (
         f"RenewAI: "
         f"{format_reminder_type(reminder_type)} "
@@ -98,20 +98,22 @@ Contract Renewal Intelligence
 """.strip()
 
     try:
-        response = resend.Emails.send({
-            "from":
-                EMAIL_FROM,
+        response = resend.Emails.send(
+            {
+                "from":
+                    EMAIL_FROM,
 
-            "to": [
-                recipient_email
-            ],
+                "to": [
+                    recipient_email
+                ],
 
-            "subject":
-                subject,
+                "subject":
+                    subject,
 
-            "text":
-                body,
-        })
+                "text":
+                    body,
+            }
+        )
 
         return response
 
