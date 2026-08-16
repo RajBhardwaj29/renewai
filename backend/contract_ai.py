@@ -30,7 +30,14 @@ GROQ_MODEL = os.getenv(
 )
 
 
+from pydantic import BaseModel, ConfigDict
+
+
 class ContractData(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid"
+    )
+
     vendor_name: str | None
     contract_title: str | None
     contract_value: float | None
