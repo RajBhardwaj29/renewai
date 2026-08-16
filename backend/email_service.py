@@ -1,51 +1,30 @@
 import os
-import smtplib
-import logging
 
-from email.message import EmailMessage
+import resend
 
 from dotenv import load_dotenv
 
 
 load_dotenv()
 
-logger = logging.getLogger(
-    "renewai.email"
-)
 
-
-SMTP_HOST = os.getenv(
-    "SMTP_HOST",
-    "localhost",
-)
-
-SMTP_PORT = int(
-    os.getenv(
-        "SMTP_PORT",
-        "1025",
-    )
-)
-
-SMTP_USERNAME = os.getenv(
-    "SMTP_USERNAME"
-)
-
-SMTP_PASSWORD = os.getenv(
-    "SMTP_PASSWORD"
-)
-
-SMTP_USE_TLS = (
-    os.getenv(
-        "SMTP_USE_TLS",
-        "false",
-    ).lower()
-    == "true"
+RESEND_API_KEY = os.getenv(
+    "RESEND_API_KEY"
 )
 
 EMAIL_FROM = os.getenv(
     "EMAIL_FROM",
-    "renewai@localhost",
+    "RenewAI <onboarding@resend.dev>",
 )
+
+
+if not RESEND_API_KEY:
+    raise RuntimeError(
+        "RESEND_API_KEY is missing."
+    )
+
+
+resend.api_key = RESEND_API_KEY
 
 
 def format_reminder_type(
@@ -89,12 +68,6 @@ def send_renewal_reminder_email(
         f"for {vendor_name}"
     )
 
-    message = EmailMessage()
-
-    message["From"] = EMAIL_FROM
-    message["To"] = recipient_email
-    message["Subject"] = subject
-
     body = f"""
 RenewAI Renewal Alert
 
@@ -124,43 +97,25 @@ RenewAI
 Contract Renewal Intelligence
 """.strip()
 
-    message.set_content(
-        body
-    )
-
     try:
-        with smtplib.SMTP(
-            SMTP_HOST,
-            SMTP_PORT,
-            timeout=15,
-        ) as smtp:
+        response = resend.Emails.send({
+            "from":
+                EMAIL_FROM,
 
-            if SMTP_USE_TLS:
-                smtp.starttls()
+            "to": [
+                recipient_email
+            ],
 
-            if (
-                SMTP_USERNAME
-                and SMTP_PASSWORD
-            ):
-                smtp.login(
-                    SMTP_USERNAME,
-                    SMTP_PASSWORD,
-                )
+            "subject":
+                subject,
 
-            smtp.send_message(
-                message
-            )
+            "text":
+                body,
+        })
+
+        return response
 
     except Exception as exc:
-        logger.exception(
-            "Email send failed. "
-            "Host=%s Port=%s Recipient=%s Error=%s",
-            SMTP_HOST,
-            SMTP_PORT,
-            recipient_email,
-            exc,
-        )
-
         raise RuntimeError(
             f"Email send failed: {str(exc)}"
         )

@@ -4,6 +4,7 @@ anyio==4.14.2
 APScheduler==3.11.3
 certifi==2026.7.22
 cffi==2.1.1
+charset-normalizer==3.5.1
 click==8.4.2
 cryptography==50.0.0
 deprecation==2.1.0
@@ -50,6 +51,8 @@ python-dotenv==1.2.2
 python-multipart==0.0.32
 PyYAML==6.0.3
 realtime==2.31.0
+requests==2.34.2
+resend==2.36.0
 rich==15.0.0
 rich-toolkit==0.20.3
 rignore==0.8.1
