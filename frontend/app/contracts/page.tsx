@@ -1,6 +1,7 @@
 "use client";
 
 import AuthGuard from "@/components/AuthGuard";
+import AppNavbar from "@/components/AppNavbar";
 
 import {
   useEffect,
@@ -8,7 +9,9 @@ import {
   useState,
 } from "react";
 
-import { useRouter } from "next/navigation"; 
+import {
+  useRouter,
+} from "next/navigation";
 
 import Link from "next/link";
 
@@ -48,921 +51,1096 @@ type ContractsResponse = {
 
 
 export default function ContractsPage() {
-  const router = useRouter();
 
-  const [contracts, setContracts] =
+  const router =
+    useRouter();
+
+
+  const [
+    contracts,
+    setContracts,
+  ] =
     useState<Contract[]>([]);
 
-  const [loading, setLoading] =
+
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(true);
 
-  const [error, setError] =
+
+  const [
+    error,
+    setError,
+  ] =
     useState("");
 
-  const [search, setSearch] =
+
+  const [
+    search,
+    setSearch,
+  ] =
     useState("");
 
 
-    useEffect(() => {
-      async function loadContracts() {
-        try {
-          const response =
-            await authFetch(
-              "/contracts"
-            );
-    
-          if (response.status === 401) {
-            router.replace("/login");
-            return;
-          }
-    
-          if (response.status === 403) {
-            router.replace("/onboarding");
-            return;
-          }
-    
-          const data =
-            await response.json();
-    
-          if (!response.ok) {
-            throw new Error(
-              data.detail ||
-              "Could not load contracts."
-            );
-          }
-    
-          const typedData =
-            data as ContractsResponse;
-    
-          setContracts(
-            typedData.contracts || []
+  useEffect(() => {
+
+    async function loadContracts() {
+
+      try {
+
+        const response =
+          await authFetch(
+            "/contracts"
           );
-    
-        } catch (err) {
-          if (
-            err instanceof Error &&
-            err.message === "AUTH_REQUIRED"
-          ) {
-            router.replace("/login");
-            return;
-          }
-    
-          console.error(err);
-    
-          setError(
-            "Could not load contracts."
+
+
+        if (
+          response.status === 401
+        ) {
+
+          router.replace(
+            "/login"
           );
-    
-        } finally {
-          setLoading(false);
+
+          return;
         }
+
+
+        if (
+          response.status === 403
+        ) {
+
+          router.replace(
+            "/onboarding"
+          );
+
+          return;
+        }
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok
+        ) {
+
+          throw new Error(
+            typeof data.detail ===
+            "string"
+              ? data.detail
+              : "Could not load contracts."
+          );
+        }
+
+
+        const typedData =
+          data as ContractsResponse;
+
+
+        setContracts(
+          typedData.contracts || []
+        );
+
+
+      } catch (
+        err
+      ) {
+
+        if (
+          err instanceof Error
+          &&
+          err.message ===
+          "AUTH_REQUIRED"
+        ) {
+
+          router.replace(
+            "/login"
+          );
+
+          return;
+        }
+
+
+        console.error(
+          err
+        );
+
+
+        setError(
+          "Could not load contracts."
+        );
+
+
+      } finally {
+
+        setLoading(
+          false
+        );
       }
-    
-      loadContracts();
-    
-    }, [router]);
+    }
+
+
+    loadContracts();
+
+  }, [
+    router,
+  ]);
 
 
   const filteredContracts =
-    useMemo(() => {
-      const query =
-        search
-          .toLowerCase()
-          .trim();
+    useMemo(
+      () => {
 
-      if (!query) {
-        return contracts;
-      }
+        const query =
+          search
+            .toLowerCase()
+            .trim();
 
-      return contracts.filter(
-        (contract) => {
-          return (
-            contract.vendor_name
-              ?.toLowerCase()
-              .includes(query)
-            ||
-            contract.contract_title
-              ?.toLowerCase()
-              .includes(query)
-            ||
-            contract.filename
-              ?.toLowerCase()
-              .includes(query)
-          );
+
+        if (
+          !query
+        ) {
+
+          return contracts;
         }
-      );
 
-    }, [
-      contracts,
-      search,
-    ]);
+
+        return contracts.filter(
+          (
+            contract
+          ) => {
+
+            return (
+              contract.vendor_name
+                ?.toLowerCase()
+                .includes(
+                  query
+                )
+              ||
+              contract.contract_title
+                ?.toLowerCase()
+                .includes(
+                  query
+                )
+              ||
+              contract.filename
+                ?.toLowerCase()
+                .includes(
+                  query
+                )
+            );
+          }
+        );
+
+      },
+      [
+        contracts,
+        search,
+      ]
+    );
 
 
   const totalValue =
-    useMemo(() => {
-      return contracts.reduce(
-        (total, contract) =>
-          total +
+    useMemo(
+      () => {
+
+        return contracts.reduce(
           (
-            contract.contract_value ||
-            0
-          ),
-        0
-      );
-    }, [contracts]);
+            total,
+            contract
+          ) =>
+            total +
+            (
+              contract.contract_value
+              ||
+              0
+            ),
+
+          0
+        );
+
+      },
+      [
+        contracts,
+      ]
+    );
 
 
   const attentionCount =
-    useMemo(() => {
-      return contracts.filter(
-        (contract) =>
-          contract.risk_level === "attention"
-          ||
-          contract.risk_level === "urgent"
-          ||
-          contract.risk_level === "critical"
-      ).length;
-    }, [contracts]);
+    useMemo(
+      () => {
+
+        return contracts.filter(
+          (
+            contract
+          ) =>
+            contract.risk_level ===
+              "attention"
+            ||
+            contract.risk_level ===
+              "urgent"
+            ||
+            contract.risk_level ===
+              "critical"
+        ).length;
+
+      },
+      [
+        contracts,
+      ]
+    );
 
 
   const autoRenewCount =
-    useMemo(() => {
-      return contracts.filter(
-        (contract) =>
-          contract.auto_renewal === true
-      ).length;
-    }, [contracts]);
+    useMemo(
+      () => {
+
+        return contracts.filter(
+          (
+            contract
+          ) =>
+            contract.auto_renewal ===
+            true
+        ).length;
+
+      },
+      [
+        contracts,
+      ]
+    );
 
 
   const deadlineSoonCount =
-    useMemo(() => {
-      return contracts.filter(
-        (contract) => {
-          const days =
-            contract.days_until_cancellation_deadline;
+    useMemo(
+      () => {
 
-          return (
-            days !== null &&
-            days >= 0 &&
-            days <= 30
-          );
-        }
-      ).length;
-    }, [contracts]);
+        return contracts.filter(
+          (
+            contract
+          ) => {
+
+            const days =
+              contract
+                .days_until_cancellation_deadline;
+
+
+            return (
+              days !== null
+              &&
+              days >= 0
+              &&
+              days <= 30
+            );
+          }
+        ).length;
+
+      },
+      [
+        contracts,
+      ]
+    );
 
 
   const overdueCount =
-    useMemo(() => {
-      return contracts.filter(
-        (contract) => {
-          const days =
-            contract.days_until_cancellation_deadline;
+    useMemo(
+      () => {
 
-          return (
-            days !== null &&
-            days < 0
-          );
-        }
-      ).length;
-    }, [contracts]);
+        return contracts.filter(
+          (
+            contract
+          ) => {
+
+            const days =
+              contract
+                .days_until_cancellation_deadline;
 
 
-  function formatCurrency(
-    value: number | null,
-    currency: string | null
-  ) {
-    if (value === null) {
-      return "—";
-    }
+            return (
+              days !== null
+              &&
+              days < 0
+            );
+          }
+        ).length;
 
-    try {
-      return new Intl.NumberFormat(
-        "en-IN",
-        {
-          style: "currency",
-          currency:
-            currency || "INR",
-          maximumFractionDigits: 0,
-        }
-      ).format(value);
-
-    } catch {
-      return (
-        `${currency || ""} ` +
-        value.toLocaleString(
-          "en-IN"
-        )
-      );
-    }
-  }
-
-
-  function formatDate(
-    value: string | null
-  ) {
-    if (!value) {
-      return "—";
-    }
-
-    const date =
-      new Date(
-        `${value}T00:00:00`
-      );
-
-    if (
-      Number.isNaN(
-        date.getTime()
-      )
-    ) {
-      return value;
-    }
-
-    return date.toLocaleDateString(
-      "en-IN",
-      {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }
+      },
+      [
+        contracts,
+      ]
     );
-  }
-
-
-  function riskClasses(
-    risk: string | null
-  ) {
-    switch (risk) {
-      case "critical":
-        return "bg-red-100 text-red-700";
-
-      case "urgent":
-        return "bg-orange-100 text-orange-700";
-
-      case "attention":
-        return "bg-yellow-100 text-yellow-800";
-
-      case "safe":
-        return "bg-green-100 text-green-700";
-
-      default:
-        return "bg-slate-100 text-slate-600";
-    }
-  }
-
-
-  function deadlineClasses(
-    days: number | null
-  ) {
-    if (days === null) {
-      return "text-slate-500";
-    }
-
-    if (days < 0) {
-      return "text-red-600";
-    }
-
-    if (days <= 30) {
-      return "text-orange-600";
-    }
-
-    if (days <= 90) {
-      return "text-yellow-700";
-    }
-
-    return "text-slate-900";
-  }
-
-
-  function deadlineLabel(
-    days: number | null
-  ) {
-    if (days === null) {
-      return "—";
-    }
-
-    if (days < 0) {
-      const absolute =
-        Math.abs(days);
-
-      return (
-        `${absolute} day${
-          absolute === 1
-            ? ""
-            : "s"
-        } overdue`
-      );
-    }
-
-    if (days === 0) {
-      return "Due today";
-    }
-
-    return (
-      `${days} day${
-        days === 1
-          ? ""
-          : "s"
-      }`
-    );
-  }
 
 
   return (
+
     <AuthGuard>
-    <main className="min-h-screen bg-slate-50 text-slate-900">
 
-      <div className="mx-auto max-w-7xl px-6 py-10">
+      <main className="min-h-screen bg-slate-50 text-slate-950">
 
-        {/* ============================================= */}
-        {/* HEADER */}
-        {/* ============================================= */}
-
-        <header className="mb-8 flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
-
-          <div>
-
-            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-              RenewAI
-            </p>
-
-            <h1 className="text-4xl font-bold tracking-tight">
-              Contract Workspace
-            </h1>
-
-            <p className="mt-3 max-w-2xl text-slate-600">
-              Monitor your contract portfolio,
-              renewal exposure and upcoming
-              cancellation deadlines.
-            </p>
-
-          </div>
+        <AppNavbar />
 
 
-          <div className="flex flex-wrap gap-3">
-
-  <Link
-    href="/reminders"
-    className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium transition hover:bg-slate-100"
-  >
-    Renewal Alerts
-
-    {(
-      deadlineSoonCount +
-      overdueCount
-    ) > 0 && (
-
-      <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-        {
-          deadlineSoonCount +
-          overdueCount
-        }
-      </span>
-
-    )}
-
-  </Link>
+        <div className="mx-auto max-w-7xl px-6 py-10 lg:py-12">
 
 
-  <Link
-    href="/settings"
-    className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium transition hover:bg-slate-100"
-  >
-    Settings
-  </Link>
+          {/* PAGE HEADER */}
 
-
-  <Link
-    href="/"
-    className="inline-flex w-fit rounded-xl bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
-  >
-    + Analyze Contract
-  </Link>
-
-</div>
-
-        </header>
-
-
-        {/* ============================================= */}
-        {/* PORTFOLIO STATS */}
-        {/* ============================================= */}
-
-        <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-
-          <StatCard
-            label="Total Contracts"
-            value={
-              contracts.length.toString()
-            }
-            description="Active contracts"
-          />
-
-
-          <StatCard
-            label="Portfolio Value"
-            value={
-              formatCurrency(
-                totalValue,
-                "INR"
-              )
-            }
-            description="Tracked contract value"
-          />
-
-
-          <StatCard
-            label="Need Attention"
-            value={
-              attentionCount.toString()
-            }
-            description="Risk flagged"
-          />
-
-
-          <StatCard
-            label="Auto Renewing"
-            value={
-              autoRenewCount.toString()
-            }
-            description="Automatic renewals"
-          />
-
-
-          <StatCard
-            label="Deadline ≤ 30d"
-            value={
-              deadlineSoonCount.toString()
-            }
-            description={
-              overdueCount > 0
-                ? `${overdueCount} already overdue`
-                : "Cancellation windows"
-            }
-            urgent={
-              deadlineSoonCount > 0 ||
-              overdueCount > 0
-            }
-          />
-
-        </section>
-
-
-        {/* ============================================= */}
-        {/* QUICK ACTIONS */}
-        {/* ============================================= */}
-
-        <section className="mb-8 grid gap-4 md:grid-cols-3">
-
-          <QuickAction
-            title="Analyze Contract"
-            description="Upload a PDF and let RenewAI extract renewal terms and deadlines."
-            href="/"
-            action="Upload contract"
-          />
-
-
-          <QuickAction
-            title="Renewal Alerts"
-            description="Review upcoming cancellation deadlines and automated reminder activity."
-            href="/reminders"
-            action="View alerts"
-          />
-
-
-          <QuickAction
-            title="Portfolio Review"
-            description={
-              attentionCount > 0
-                ? `${attentionCount} contract${
-                    attentionCount === 1
-                      ? ""
-                      : "s"
-                  } currently need attention.`
-                : "No contracts are currently flagged for attention."
-            }
-            href="#portfolio"
-            action="Review portfolio"
-          />
-
-        </section>
-
-
-        {/* ============================================= */}
-        {/* CONTRACT PORTFOLIO */}
-        {/* ============================================= */}
-
-        <section
-          id="portfolio"
-          className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
-        >
-
-          <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-6 md:flex-row md:items-center">
+          <header className="mb-8 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
 
             <div>
 
-              <h2 className="text-xl font-semibold">
-                Contract Portfolio
-              </h2>
+              <p className="renewai-eyebrow">
+                Contract portfolio
+              </p>
 
-              <p className="mt-1 text-sm text-slate-500">
+
+              <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+                Contracts
+              </h1>
+
+
+              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+                Monitor every agreement, renewal date,
+                cancellation window and contract risk
+                across your workspace.
+              </p>
+
+            </div>
+
+
+            <div className="flex flex-wrap gap-3">
+
+              <Link
+                href="/reminders"
+                className="renewai-button-secondary"
+              >
+                Renewal Alerts
+
                 {
-                  contracts.length
-                } active contract{
-                  contracts.length === 1
-                    ? ""
-                    : "s"
+                  (
+                    deadlineSoonCount
+                    +
+                    overdueCount
+                  ) > 0
+                  &&
+                  (
+
+                    <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
+                      {
+                        deadlineSoonCount
+                        +
+                        overdueCount
+                      }
+                    </span>
+
+                  )
                 }
-              </p>
+
+              </Link>
+
+
+              <Link
+                href="/analyze"
+                className="renewai-button-primary"
+              >
+                + Analyze Contract
+              </Link>
 
             </div>
 
+          </header>
 
-            <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
 
-              <input
-                type="text"
-                placeholder="Search vendor, contract..."
-                value={search}
-                onChange={
-                  (event) =>
-                    setSearch(
-                      event.target.value
-                    )
-                }
-                className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-slate-500 md:w-72"
-              />
+          {/* PORTFOLIO SUMMARY */}
 
-              {search && (
+          <section className="mb-6 overflow-hidden rounded-[1.75rem] bg-slate-950 text-white shadow-sm">
 
-                <button
-                  onClick={
-                    () =>
-                      setSearch("")
+            <div className="grid gap-8 p-7 lg:grid-cols-[1.4fr_1fr] lg:items-center lg:p-8">
+
+              <div>
+
+                <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5">
+
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+
+                  <span className="text-xs font-semibold text-slate-300">
+                    Portfolio intelligence
+                  </span>
+
+                </div>
+
+
+                <h2 className="mt-5 max-w-xl text-2xl font-bold tracking-tight !text-white sm:text-3xl">
+
+                  {
+                    contracts.length === 0
+                      ? "Your contract portfolio is ready to grow."
+                      : attentionCount > 0
+                      ? `${attentionCount} contract${
+                          attentionCount === 1
+                            ? ""
+                            : "s"
+                        } currently need attention.`
+                      : "Your active contract portfolio is under control."
                   }
-                  className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium transition hover:bg-slate-100"
-                >
-                  Clear
-                </button>
 
-              )}
-
-            </div>
-
-          </div>
+                </h2>
 
 
-          {/* LOADING */}
+                <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
 
-          {loading && (
+                  {
+                    contracts.length === 0
+                      ? "Analyze your first agreement to begin tracking renewal exposure."
+                      : `${contracts.length} active contract${
+                          contracts.length === 1
+                            ? ""
+                            : "s"
+                        } monitored with ${autoRenewCount} automatic renewal${
+                          autoRenewCount === 1
+                            ? ""
+                            : "s"
+                        }.`
+                  }
 
-            <div className="p-12 text-center">
+                </p>
 
-              <div className="mx-auto mb-4 h-7 w-7 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900" />
-
-              <p className="text-sm text-slate-500">
-                Loading contracts...
-              </p>
-
-            </div>
-
-          )}
-
-
-          {/* ERROR */}
-
-          {error && (
-
-            <div className="m-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-              {error}
-            </div>
-
-          )}
+              </div>
 
 
-          {/* EMPTY PORTFOLIO */}
+              <div className="grid grid-cols-2 gap-3">
 
-          {!loading &&
-            !error &&
-            contracts.length === 0 && (
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
-              <div className="p-14 text-center">
-
-                <div className="mx-auto max-w-md">
-
-                  <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-xl">
-                    📄
-                  </div>
-
-                  <h3 className="text-lg font-semibold">
-                    No contracts yet
-                  </h3>
-
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    Analyze your first contract
-                    and RenewAI will automatically
-                    extract its renewal terms,
-                    cancellation deadline and
-                    reminder schedule.
+                  <p className="text-xs font-medium text-slate-400">
+                    Portfolio value
                   </p>
 
-                  <Link
-                    href="/"
-                    className="mt-6 inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
-                  >
-                    Analyze First Contract
-                  </Link>
+                  <p className="mt-2 text-2xl font-bold tracking-tight text-white">
+                    {
+                      formatCurrency(
+                        totalValue,
+                        "INR"
+                      )
+                    }
+                  </p>
+
+                </div>
+
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+
+                  <p className="text-xs font-medium text-slate-400">
+                    Auto renewing
+                  </p>
+
+                  <p className="mt-2 text-2xl font-bold tracking-tight text-white">
+                    {autoRenewCount}
+                  </p>
 
                 </div>
 
               </div>
 
-            )}
+            </div>
+
+          </section>
 
 
-          {/* SEARCH EMPTY */}
+          {/* STATS */}
 
-          {!loading &&
-            !error &&
-            contracts.length > 0 &&
-            filteredContracts.length === 0 && (
+          <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 
-              <div className="p-12 text-center">
+            <StatCard
+              label="Contracts"
+              value={
+                contracts.length.toString()
+              }
+              description="Active portfolio"
+            />
 
-                <h3 className="font-semibold">
-                  No matching contracts
-                </h3>
 
-                <p className="mt-2 text-sm text-slate-500">
-                  Try another vendor,
-                  contract name or filename.
+            <StatCard
+              label="Portfolio Value"
+              value={
+                formatCurrency(
+                  totalValue,
+                  "INR"
+                )
+              }
+              description="Tracked value"
+            />
+
+
+            <StatCard
+              label="Need Attention"
+              value={
+                attentionCount.toString()
+              }
+              description="Risk flagged"
+              urgent={
+                attentionCount > 0
+              }
+            />
+
+
+            <StatCard
+              label="Auto Renewing"
+              value={
+                autoRenewCount.toString()
+              }
+              description="Automatic renewals"
+            />
+
+
+            <StatCard
+              label="Deadline ≤ 30d"
+              value={
+                deadlineSoonCount.toString()
+              }
+              description={
+                overdueCount > 0
+                  ? `${overdueCount} already overdue`
+                  : "Cancellation windows"
+              }
+              urgent={
+                deadlineSoonCount > 0
+                ||
+                overdueCount > 0
+              }
+            />
+
+          </section>
+
+
+          {/* PORTFOLIO TABLE */}
+
+          <section
+            id="portfolio"
+            className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm"
+          >
+
+            <div className="flex flex-col justify-between gap-5 border-b border-slate-200 px-6 py-6 md:flex-row md:items-center">
+
+              <div>
+
+                <p className="renewai-eyebrow">
+                  Workspace contracts
                 </p>
 
-                <button
-                  onClick={
-                    () =>
-                      setSearch("")
-                  }
-                  className="mt-5 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium transition hover:bg-slate-100"
-                >
-                  Clear Search
-                </button>
+
+                <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
+                  Contract Portfolio
+                </h2>
+
+
+                <p className="mt-1.5 text-sm text-slate-500">
+                  {
+                    contracts.length
+                  } active contract{
+                    contracts.length === 1
+                      ? ""
+                      : "s"
+                  } currently being monitored
+                </p>
 
               </div>
 
-            )}
 
-
-          {/* TABLE */}
-
-          {!loading &&
-            !error &&
-            filteredContracts.length > 0 && (
-
-              <div className="overflow-x-auto">
-
-                <table className="w-full text-left">
-
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-
-                    <tr>
-
-                      <th className="px-6 py-4">
-                        Contract
-                      </th>
-
-                      <th className="px-6 py-4">
-                        Value
-                      </th>
-
-                      <th className="px-6 py-4">
-                        Renewal
-                      </th>
-
-                      <th className="px-6 py-4">
-                        Cancel By
-                      </th>
-
-                      <th className="px-6 py-4">
-                        Deadline
-                      </th>
-
-                      <th className="px-6 py-4">
-                        Auto Renew
-                      </th>
-
-                      <th className="px-6 py-4">
-                        Risk
-                      </th>
-
-                      <th className="px-6 py-4 text-right">
-                        Action
-                      </th>
-
-                    </tr>
-
-                  </thead>
-
-
-                  <tbody>
-
-                    {filteredContracts.map(
-                      (contract) => (
-
-                        <tr
-                          key={
-                            contract.id
-                          }
-                          className="border-t border-slate-100 transition hover:bg-slate-50"
-                        >
-
-                          {/* CONTRACT */}
-
-                          <td className="px-6 py-5">
-
-                            <Link
-                              href={
-                                `/contracts/${contract.id}`
-                              }
-                              className="block"
-                            >
-
-                              <div className="font-semibold hover:underline">
-                                {
-                                  contract.vendor_name ||
-                                  "Unknown Vendor"
-                                }
-                              </div>
-
-                              <div className="mt-1 max-w-xs truncate text-sm text-slate-500">
-                                {
-                                  contract.contract_title ||
-                                  contract.filename
-                                }
-                              </div>
-
-                            </Link>
-
-                          </td>
-
-
-                          {/* VALUE */}
-
-                          <td className="px-6 py-5 font-medium">
-                            {
-                              formatCurrency(
-                                contract.contract_value,
-                                contract.currency
-                              )
-                            }
-                          </td>
-
-
-                          {/* RENEWAL */}
-
-                          <td className="px-6 py-5 text-sm">
-                            {
-                              formatDate(
-                                contract.effective_renewal_date
-                              )
-                            }
-                          </td>
-
-
-                          {/* CANCELLATION */}
-
-                          <td className="px-6 py-5 text-sm">
-                            {
-                              formatDate(
-                                contract.cancellation_deadline
-                              )
-                            }
-                          </td>
-
-
-                          {/* DEADLINE */}
-
-                          <td className="px-6 py-5">
-
-                            <span
-                              className={`text-sm font-semibold ${deadlineClasses(
-                                contract.days_until_cancellation_deadline
-                              )}`}
-                            >
-                              {
-                                deadlineLabel(
-                                  contract.days_until_cancellation_deadline
-                                )
-                              }
-                            </span>
-
-                          </td>
-
-
-                          {/* AUTO RENEW */}
-
-                          <td className="px-6 py-5">
-
-                            {contract.auto_renewal === true ? (
-
-                              <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                                Yes
-                              </span>
-
-                            ) : contract.auto_renewal === false ? (
-
-                              <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                                No
-                              </span>
-
-                            ) : (
-
-                              <span className="text-slate-400">
-                                —
-                              </span>
-
-                            )}
-
-                          </td>
-
-
-                          {/* RISK */}
-
-                          <td className="px-6 py-5">
-
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${riskClasses(
-                                contract.risk_level
-                              )}`}
-                            >
-                              {
-                                contract.risk_level ||
-                                "unknown"
-                              }
-                            </span>
-
-                          </td>
-
-
-                          {/* ACTION */}
-
-                          <td className="px-6 py-5 text-right">
-
-                            <Link
-                              href={
-                                `/contracts/${contract.id}`
-                              }
-                              className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold transition hover:bg-slate-100"
-                            >
-                              View
-                            </Link>
-
-                          </td>
-
-                        </tr>
-
-                      )
-                    )}
-
-                  </tbody>
-
-                </table>
+              <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
+
+                <div className="relative">
+
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="8"
+                    />
+
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+
+
+                  <input
+                    type="text"
+                    placeholder="Search contracts..."
+                    value={
+                      search
+                    }
+                    onChange={
+                      (
+                        event
+                      ) =>
+                        setSearch(
+                          event.target.value
+                        )
+                    }
+                    className="renewai-input pl-11 md:w-80"
+                  />
+
+                </div>
+
+
+                {
+                  search
+                  &&
+                  (
+
+                    <button
+                      type="button"
+                      onClick={
+                        () =>
+                          setSearch(
+                            ""
+                          )
+                      }
+                      className="renewai-button-secondary"
+                    >
+                      Clear
+                    </button>
+
+                  )
+                }
 
               </div>
-
-            )}
-
-        </section>
-
-
-        {/* ============================================= */}
-        {/* FOOTER STATUS */}
-        {/* ============================================= */}
-
-        {!loading &&
-          contracts.length > 0 && (
-
-            <div className="mt-6 flex flex-col justify-between gap-2 text-xs text-slate-500 sm:flex-row">
-
-              <p>
-                Showing {
-                  filteredContracts.length
-                } of {
-                  contracts.length
-                } contracts
-              </p>
-
-              <p>
-                RenewAI monitors cancellation
-                deadlines automatically.
-              </p>
 
             </div>
 
-          )}
 
-      </div>
+            {loading && (
 
-    </main>
+              <div className="p-16 text-center">
+
+                <div className="mx-auto mb-4 h-7 w-7 animate-spin rounded-full border-4 border-slate-200 border-t-slate-950" />
+
+                <p className="text-sm font-medium text-slate-600">
+                  Loading contract portfolio...
+                </p>
+
+              </div>
+
+            )}
+
+
+            {error && (
+
+              <div className="m-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+
+                <p className="font-semibold text-red-800">
+                  Portfolio unavailable
+                </p>
+
+                <p className="mt-1 text-sm text-red-700">
+                  {error}
+                </p>
+
+              </div>
+
+            )}
+
+
+            {
+              !loading
+              &&
+              !error
+              &&
+              contracts.length === 0
+              &&
+              (
+
+                <div className="px-6 py-16 text-center">
+
+                  <div className="mx-auto max-w-md">
+
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-xl font-bold text-white">
+                      +
+                    </div>
+
+
+                    <h3 className="mt-5 text-xl font-bold text-slate-950">
+                      Build your contract portfolio
+                    </h3>
+
+
+                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                      Analyze your first PDF and RenewAI will extract
+                      its terms, calculate renewal dates, identify
+                      cancellation deadlines and create reminders.
+                    </p>
+
+
+                    <Link
+                      href="/analyze"
+                      className="renewai-button-primary mt-6"
+                    >
+                      + Analyze First Contract
+                    </Link>
+
+                  </div>
+
+                </div>
+
+              )
+            }
+
+
+            {
+              !loading
+              &&
+              !error
+              &&
+              contracts.length > 0
+              &&
+              filteredContracts.length === 0
+              &&
+              (
+
+                <div className="px-6 py-14 text-center">
+
+                  <div className="mx-auto max-w-sm">
+
+                    <h3 className="text-lg font-bold text-slate-950">
+                      No matching contracts
+                    </h3>
+
+
+                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                      We couldn&apos;t find a vendor, contract title
+                      or filename matching &quot;{search}&quot;.
+                    </p>
+
+
+                    <button
+                      type="button"
+                      onClick={
+                        () =>
+                          setSearch(
+                            ""
+                          )
+                      }
+                      className="renewai-button-secondary mt-5"
+                    >
+                      Clear Search
+                    </button>
+
+                  </div>
+
+                </div>
+
+              )
+            }
+
+
+            {
+              !loading
+              &&
+              !error
+              &&
+              filteredContracts.length > 0
+              &&
+              (
+
+                <div className="overflow-x-auto">
+
+                  <table className="w-full min-w-[1120px] text-left">
+
+                    <thead>
+
+                      <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+
+                        <th className="px-6 py-4">
+                          Contract
+                        </th>
+
+                        <th className="px-6 py-4">
+                          Value
+                        </th>
+
+                        <th className="px-6 py-4">
+                          Renewal
+                        </th>
+
+                        <th className="px-6 py-4">
+                          Cancel By
+                        </th>
+
+                        <th className="px-6 py-4">
+                          Deadline
+                        </th>
+
+                        <th className="px-6 py-4">
+                          Renewal Type
+                        </th>
+
+                        <th className="px-6 py-4">
+                          Risk
+                        </th>
+
+                        <th className="px-6 py-4 text-right">
+                          Action
+                        </th>
+
+                      </tr>
+
+                    </thead>
+
+
+                    <tbody className="divide-y divide-slate-100">
+
+                      {
+                        filteredContracts.map(
+                          (
+                            contract
+                          ) => (
+
+                            <tr
+                              key={
+                                contract.id
+                              }
+                              className="group transition-colors hover:bg-slate-50/80"
+                            >
+
+                              <td className="px-6 py-5">
+
+                                <Link
+                                  href={
+                                    `/contracts/${contract.id}`
+                                  }
+                                  className="block"
+                                >
+
+                                  <div className="flex items-center gap-3">
+
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-sm font-bold text-white">
+                                      {
+                                        (
+                                          contract.vendor_name
+                                          ||
+                                          contract.contract_title
+                                          ||
+                                          "C"
+                                        )
+                                          .charAt(0)
+                                          .toUpperCase()
+                                      }
+                                    </div>
+
+
+                                    <div className="min-w-0">
+
+                                      <div className="font-bold text-slate-950 transition group-hover:text-blue-600">
+                                        {
+                                          contract.vendor_name
+                                          ||
+                                          "Unknown Vendor"
+                                        }
+                                      </div>
+
+
+                                      <div className="mt-1 max-w-[240px] truncate text-sm text-slate-500">
+                                        {
+                                          contract.contract_title
+                                          ||
+                                          contract.filename
+                                        }
+                                      </div>
+
+                                    </div>
+
+                                  </div>
+
+                                </Link>
+
+                              </td>
+
+
+                              <td className="px-6 py-5">
+
+                                <div className="font-bold text-slate-900">
+                                  {
+                                    formatCurrency(
+                                      contract.contract_value,
+                                      contract.currency
+                                    )
+                                  }
+                                </div>
+
+                              </td>
+
+
+                              <td className="px-6 py-5">
+
+                                <div className="text-sm font-semibold text-slate-800">
+                                  {
+                                    formatDate(
+                                      contract.effective_renewal_date
+                                    )
+                                  }
+                                </div>
+
+                              </td>
+
+
+                              <td className="px-6 py-5">
+
+                                <div className="text-sm font-semibold text-slate-800">
+                                  {
+                                    formatDate(
+                                      contract.cancellation_deadline
+                                    )
+                                  }
+                                </div>
+
+                              </td>
+
+
+                              <td className="px-6 py-5">
+
+                                <span
+                                  className={`text-sm font-bold ${deadlineClasses(
+                                    contract.days_until_cancellation_deadline
+                                  )}`}
+                                >
+                                  {
+                                    deadlineLabel(
+                                      contract.days_until_cancellation_deadline
+                                    )
+                                  }
+                                </span>
+
+                              </td>
+
+
+                              <td className="px-6 py-5">
+
+                                {
+                                  contract.auto_renewal === true
+                                    ? (
+
+                                      <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+
+                                        <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+
+                                        Auto renew
+
+                                      </span>
+
+                                    )
+                                    : contract.auto_renewal === false
+                                    ? (
+
+                                      <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                                        Manual
+                                      </span>
+
+                                    )
+                                    : (
+
+                                      <span className="text-slate-400">
+                                        —
+                                      </span>
+
+                                    )
+                                }
+
+                              </td>
+
+
+                              <td className="px-6 py-5">
+
+                                <span
+                                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${riskClasses(
+                                    contract.risk_level
+                                  )}`}
+                                >
+                                  {
+                                    contract.risk_level
+                                    ||
+                                    "unknown"
+                                  }
+                                </span>
+
+                              </td>
+
+
+                              <td className="px-6 py-5 text-right">
+
+                                <Link
+                                  href={
+                                    `/contracts/${contract.id}`
+                                  }
+                                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-800 transition hover:border-slate-950 hover:bg-slate-950 hover:text-white"
+                                >
+                                  Open
+
+                                  <span aria-hidden="true">
+                                    →
+                                  </span>
+
+                                </Link>
+
+                              </td>
+
+                            </tr>
+
+                          )
+                        )
+                      }
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
+              )
+            }
+
+          </section>
+
+
+          {
+            !loading
+            &&
+            contracts.length > 0
+            &&
+            (
+
+              <div className="mt-5 flex flex-col justify-between gap-2 px-1 text-xs font-medium text-slate-500 sm:flex-row">
+
+                <p>
+                  Showing {
+                    filteredContracts.length
+                  } of {
+                    contracts.length
+                  } contracts
+                </p>
+
+
+                <p>
+                  RenewAI monitors cancellation deadlines automatically.
+                </p>
+
+              </div>
+
+            )
+          }
+
+        </div>
+
+      </main>
+
     </AuthGuard>
   );
 }
@@ -979,7 +1157,9 @@ function StatCard({
   description: string;
   urgent?: boolean;
 }) {
+
   return (
+
     <div
       className={
         urgent
@@ -991,28 +1171,30 @@ function StatCard({
       <p
         className={
           urgent
-            ? "text-sm font-medium text-orange-700"
-            : "text-sm text-slate-500"
+            ? "text-sm font-semibold text-orange-700"
+            : "text-sm font-semibold text-slate-600"
         }
       >
         {label}
       </p>
 
+
       <p
         className={
           urgent
-            ? "mt-2 text-2xl font-bold text-orange-900"
-            : "mt-2 text-2xl font-bold"
+            ? "mt-2 text-2xl font-bold tracking-tight text-orange-950"
+            : "mt-2 text-2xl font-bold tracking-tight text-slate-950"
         }
       >
         {value}
       </p>
 
+
       <p
         className={
           urgent
-            ? "mt-1 text-xs text-orange-700"
-            : "mt-1 text-xs text-slate-400"
+            ? "mt-1 text-xs font-medium text-orange-700"
+            : "mt-1 text-xs font-medium text-slate-500"
         }
       >
         {description}
@@ -1023,38 +1205,212 @@ function StatCard({
 }
 
 
-function QuickAction({
-  title,
-  description,
-  href,
-  action,
-}: {
-  title: string;
-  description: string;
-  href: string;
-  action: string;
-}) {
+function formatCurrency(
+  value: number | null,
+  currency: string | null
+) {
+
+  if (
+    value === null
+  ) {
+
+    return "—";
+  }
+
+
+  try {
+
+    return new Intl.NumberFormat(
+      "en-IN",
+      {
+        style:
+          "currency",
+
+        currency:
+          currency
+          ||
+          "INR",
+
+        maximumFractionDigits:
+          0,
+      }
+    ).format(
+      value
+    );
+
+
+  } catch {
+
+    return (
+      `${currency || ""} `
+      +
+      value.toLocaleString(
+        "en-IN"
+      )
+    );
+  }
+}
+
+
+function formatDate(
+  value: string | null
+) {
+
+  if (
+    !value
+  ) {
+
+    return "—";
+  }
+
+
+  const date =
+    new Date(
+      `${value}T00:00:00`
+    );
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return value;
+  }
+
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      day:
+        "numeric",
+
+      month:
+        "short",
+
+      year:
+        "numeric",
+    }
+  );
+}
+
+
+function riskClasses(
+  risk: string | null
+) {
+
+  switch (
+    risk
+  ) {
+
+    case "critical":
+      return "border border-red-200 bg-red-50 text-red-700";
+
+
+    case "urgent":
+      return "border border-orange-200 bg-orange-50 text-orange-700";
+
+
+    case "attention":
+      return "border border-amber-200 bg-amber-50 text-amber-700";
+
+
+    case "safe":
+      return "border border-emerald-200 bg-emerald-50 text-emerald-700";
+
+
+    default:
+      return "border border-slate-200 bg-slate-100 text-slate-600";
+  }
+}
+
+
+function deadlineClasses(
+  days: number | null
+) {
+
+  if (
+    days === null
+  ) {
+
+    return "text-slate-500";
+  }
+
+
+  if (
+    days < 0
+  ) {
+
+    return "text-red-600";
+  }
+
+
+  if (
+    days <= 30
+  ) {
+
+    return "text-orange-600";
+  }
+
+
+  if (
+    days <= 90
+  ) {
+
+    return "text-amber-700";
+  }
+
+
+  return "text-slate-700";
+}
+
+
+function deadlineLabel(
+  days: number | null
+) {
+
+  if (
+    days === null
+  ) {
+
+    return "—";
+  }
+
+
+  if (
+    days < 0
+  ) {
+
+    const absolute =
+      Math.abs(
+        days
+      );
+
+
+    return (
+      `${absolute} day${
+        absolute === 1
+          ? ""
+          : "s"
+      } overdue`
+    );
+  }
+
+
+  if (
+    days === 0
+  ) {
+
+    return "Due today";
+  }
+
+
   return (
-    <Link
-      href={href}
-      className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow-md"
-    >
-
-      <h3 className="font-semibold">
-        {title}
-      </h3>
-
-      <p className="mt-2 min-h-10 text-sm leading-5 text-slate-500">
-        {description}
-      </p>
-
-      <p className="mt-4 text-sm font-semibold text-slate-900">
-        {action}
-        <span className="ml-1 inline-block transition-transform group-hover:translate-x-1">
-          →
-        </span>
-      </p>
-
-    </Link>
+    `${days} day${
+      days === 1
+        ? ""
+        : "s"
+    } remaining`
   );
 }

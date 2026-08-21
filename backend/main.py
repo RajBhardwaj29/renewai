@@ -7,6 +7,7 @@ from fastapi import (
     FastAPI,
     UploadFile,
     File,
+    Form,
     HTTPException,
     Header,
 )
@@ -21,7 +22,12 @@ from reminder_scheduler import (
 
 from fastapi.middleware.cors import CORSMiddleware
 
-from contract_ai import extract_contract_data
+from contract_ai import (
+    ContractData,
+    extract_contract_data,
+    generate_renewal_ai_insight,
+)
+
 from renewal_engine import calculate_renewal_intelligence
 from email_service import send_renewal_reminder_email
 
@@ -739,85 +745,9 @@ def list_contract_reminders(
         )
 
 
-@app.post("/contracts/upload")
-async def upload_contract(
-    file: UploadFile = File(...),
-    authorization: str | None = Header(
-        default=None
-    ),
+def extract_pdf_text(
+    content: bytes,
 ):
-    context = get_authenticated_context(
-        authorization
-    )
-
-    organization_id = (
-        context["organization_id"]
-    )
-
-    if file.content_type != "application/pdf":
-        raise HTTPException(
-            status_code=400,
-            detail="Only PDF files are supported.",
-        )
-
-    content = await file.read()
-
-    if not content:
-        raise HTTPException(
-            status_code=400,
-            detail="Uploaded PDF is empty.",
-        )
-
-    if not content.startswith(b"%PDF"):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "The uploaded file does not "
-                "appear to be a valid PDF."
-            ),
-        )
-
-    file_hash = (
-        hashlib
-        .sha256(content)
-        .hexdigest()
-    )
-
-    try:
-        existing_contract = (
-            find_contract_by_hash(
-                organization_id,
-                file_hash,
-            )
-        )
-
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "Duplicate check failed: "
-                f"{str(exc)}"
-            ),
-        )
-
-    if existing_contract:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "message":
-                    (
-                        "This contract has "
-                        "already been analyzed."
-                    ),
-                "existing_contract_id":
-                    existing_contract["id"],
-                "vendor_name":
-                    existing_contract.get(
-                        "vendor_name"
-                    ),
-            },
-        )
-
     try:
         document = pymupdf.open(
             stream=content
@@ -826,7 +756,9 @@ async def upload_contract(
         extracted_pages = []
 
         for page in document:
-            page_text = page.get_text()
+            page_text = (
+                page.get_text()
+            )
 
             if page_text:
                 extracted_pages.append(
@@ -857,9 +789,137 @@ async def upload_contract(
             ),
         )
 
+    return extracted_text
+
+
+def validate_pdf_content(
+    file: UploadFile,
+    content: bytes,
+):
+    if (
+        file.content_type
+        != "application/pdf"
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Only PDF files are supported."
+            ),
+        )
+
+    if not content:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded PDF is empty.",
+        )
+
+    if not content.startswith(
+        b"%PDF"
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "The uploaded file does not "
+                "appear to be a valid PDF."
+            ),
+        )
+
+
+def get_file_hash(
+    content: bytes,
+):
+    return (
+        hashlib
+        .sha256(content)
+        .hexdigest()
+    )
+
+
+def ensure_contract_not_duplicate(
+    organization_id: str,
+    file_hash: str,
+):
     try:
-        contract_data = extract_contract_data(
-            extracted_text
+        existing_contract = (
+            find_contract_by_hash(
+                organization_id,
+                file_hash,
+            )
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Duplicate check failed: "
+                f"{str(exc)}"
+            ),
+        )
+
+    if existing_contract:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message":
+                    (
+                        "This contract has "
+                        "already been saved."
+                    ),
+
+                "existing_contract_id":
+                    existing_contract["id"],
+
+                "vendor_name":
+                    existing_contract.get(
+                        "vendor_name"
+                    ),
+            },
+        )
+
+
+@app.post("/contracts/analyze")
+async def analyze_contract(
+    file: UploadFile = File(...),
+
+    authorization: str | None = Header(
+        default=None
+    ),
+):
+    context = (
+        get_authenticated_context(
+            authorization
+        )
+    )
+
+    organization_id = (
+        context["organization_id"]
+    )
+
+    content = await file.read()
+
+    validate_pdf_content(
+        file,
+        content,
+    )
+
+    file_hash = get_file_hash(
+        content
+    )
+
+    ensure_contract_not_duplicate(
+        organization_id,
+        file_hash,
+    )
+
+    extracted_text = extract_pdf_text(
+        content
+    )
+
+    try:
+        contract_data = (
+            extract_contract_data(
+                extracted_text
+            )
         )
 
     except Exception as exc:
@@ -887,6 +947,136 @@ async def upload_contract(
             ),
         )
 
+    return {
+        "filename":
+            file.filename,
+
+        "character_count":
+            len(extracted_text),
+
+        "contract":
+            contract_data.model_dump(),
+
+        "renewal_intelligence":
+            renewal_intelligence,
+
+        "message":
+            (
+                "Contract analyzed successfully. "
+                "Review the extracted information "
+                "before saving."
+            ),
+    }
+
+
+@app.post("/contracts/save")
+async def save_reviewed_contract(
+    file: UploadFile = File(...),
+
+    contract_json: str = Form(...),
+
+    authorization: str | None = Header(
+        default=None
+    ),
+):
+    context = (
+        get_authenticated_context(
+            authorization
+        )
+    )
+
+    organization_id = (
+        context["organization_id"]
+    )
+
+    content = await file.read()
+
+    validate_pdf_content(
+        file,
+        content,
+    )
+
+    file_hash = get_file_hash(
+        content
+    )
+
+    # Repeat the duplicate check here.
+    #
+    # The analysis and save steps are separate,
+    # so another copy of the contract could
+    # theoretically be saved between them.
+    ensure_contract_not_duplicate(
+        organization_id,
+        file_hash,
+    )
+
+    extracted_text = extract_pdf_text(
+        content
+    )
+
+    try:
+        reviewed_contract = (
+            ContractData
+            .model_validate_json(
+                contract_json
+            )
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Invalid reviewed contract data: "
+                f"{str(exc)}"
+            ),
+        )
+
+        # Important:
+    # always recalculate renewal intelligence
+    # after the user edits the AI result.
+    try:
+        renewal_intelligence = (
+            calculate_renewal_intelligence(
+                reviewed_contract
+            )
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Could not calculate renewal "
+                "intelligence from the reviewed "
+                "contract: "
+                f"{str(exc)}"
+            ),
+        )
+
+    # --------------------------------------------------
+    # Generate AI renewal intelligence
+    # --------------------------------------------------
+
+    try:
+        ai_insight = (
+            generate_renewal_ai_insight(
+                reviewed_contract,
+                renewal_intelligence,
+            )
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "AI renewal intelligence failed: "
+                f"{str(exc)}"
+            ),
+        )
+
+    # --------------------------------------------------
+    # Save reviewed contract + intelligence
+    # --------------------------------------------------
+
     try:
         saved_contract = save_contract(
             organization_id=
@@ -902,10 +1092,13 @@ async def upload_contract(
                 len(extracted_text),
 
             contract=
-                contract_data,
+                reviewed_contract,
 
             renewal_intelligence=
                 renewal_intelligence,
+
+            ai_insight=
+                ai_insight,
         )
 
     except Exception as exc:
@@ -917,14 +1110,24 @@ async def upload_contract(
             ),
         )
 
+    # --------------------------------------------------
+    # Load automatically created reminders
+    # --------------------------------------------------
+
     try:
-        reminders = get_contract_reminders(
-            organization_id,
-            saved_contract["id"],
+        reminders = (
+            get_contract_reminders(
+                organization_id,
+                saved_contract["id"],
+            )
         )
 
     except Exception:
         reminders = []
+
+    # --------------------------------------------------
+    # Response
+    # --------------------------------------------------
 
     return {
         "filename":
@@ -934,10 +1137,13 @@ async def upload_contract(
             len(extracted_text),
 
         "contract":
-            contract_data.model_dump(),
+            reviewed_contract.model_dump(),
 
         "renewal_intelligence":
             renewal_intelligence,
+
+        "ai_insight":
+            ai_insight.model_dump(),
 
         "database_id":
             saved_contract["id"],
@@ -953,7 +1159,7 @@ async def upload_contract(
 
         "message":
             (
-                "Contract analyzed, saved "
-                "and reminders created successfully"
+                "Contract reviewed, saved "
+                "and reminders created successfully."
             ),
     }

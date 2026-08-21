@@ -158,6 +158,7 @@ def save_contract(
     character_count: int,
     contract,
     renewal_intelligence: dict,
+    ai_insight,
 ):
     record = {
         "organization_id":
@@ -211,6 +212,15 @@ def save_contract(
         "payment_terms":
             contract.payment_terms,
 
+        "pricing_clause":
+            contract.pricing_clause,
+
+        "minimum_commitment":
+            contract.minimum_commitment,
+
+        "refund_clause":
+            contract.refund_clause,
+
         "effective_start_date":
             renewal_intelligence.get(
                 "effective_start_date"
@@ -255,6 +265,21 @@ def save_contract(
             renewal_intelligence.get(
                 "recommendation"
             ),
+
+        "ai_action":
+            ai_insight.action,
+
+        "ai_confidence":
+            ai_insight.confidence,
+
+        "ai_summary":
+            ai_insight.summary,
+
+        "ai_key_findings":
+            ai_insight.key_findings,
+
+        "ai_commercial_flags":
+            ai_insight.commercial_flags,
 
         "character_count":
             character_count,

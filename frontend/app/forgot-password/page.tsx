@@ -4,10 +4,6 @@ import {
   useState,
 } from "react";
 
-import {
-  useRouter,
-} from "next/navigation";
-
 import Link from "next/link";
 
 import {
@@ -15,22 +11,11 @@ import {
 } from "@/lib/supabase";
 
 
-export default function SignupPage() {
-
-  const router =
-    useRouter();
-
+export default function ForgotPasswordPage() {
 
   const [
     email,
     setEmail,
-  ] =
-    useState("");
-
-
-  const [
-    password,
-    setPassword,
   ] =
     useState("");
 
@@ -56,7 +41,7 @@ export default function SignupPage() {
     useState("");
 
 
-  async function handleSignup(
+  async function handleReset(
     event: React.FormEvent
   ) {
 
@@ -69,86 +54,43 @@ export default function SignupPage() {
 
     try {
 
-      const {
-        data,
-        error:
-          signUpError,
-      } =
-        await supabase.auth.signUp({
-          email:
-            email.trim(),
+      const redirectTo =
+        `${window.location.origin}/reset-password`;
 
-          password,
-        });
+
+      const {
+        error:
+          resetError,
+      } =
+        await supabase.auth.resetPasswordForEmail(
+          email.trim(),
+          {
+            redirectTo,
+          }
+        );
 
 
       if (
-        signUpError
+        resetError
       ) {
-
-        const message =
-          signUpError.message.toLowerCase();
-
-
-        if (
-          message.includes(
-            "user already registered"
-          )
-        ) {
-
-          setError(
-            "An account with this email already exists. Please sign in instead."
-          );
-
-          return;
-        }
-
-
-        if (
-          message.includes(
-            "password"
-          )
-        ) {
-
-          setError(
-            signUpError.message
-          );
-
-          return;
-        }
-
 
         setError(
-          signUpError.message
+          resetError.message
         );
-
-        return;
-      }
-
-
-      if (
-        data.session
-      ) {
-
-        router.replace(
-          "/onboarding"
-        );
-
-        router.refresh();
 
         return;
       }
 
 
       setSuccess(
-        "Account created. Please check your email to confirm your account."
+        "Password reset link sent. Check your email."
       );
 
 
     } catch {
 
       setError(
-        "Could not create your account. Please try again."
+        "Could not send password reset email. Please try again."
       );
 
 
@@ -242,13 +184,10 @@ export default function SignupPage() {
               items-center
               justify-center
               rounded-xl
-              border
-              border-white/10
               bg-white
               text-sm
               font-bold
               text-slate-950
-              shadow-sm
             "
           >
             R
@@ -259,7 +198,6 @@ export default function SignupPage() {
             className="
               text-lg
               font-bold
-              tracking-tight
               text-white
             "
           >
@@ -304,7 +242,7 @@ export default function SignupPage() {
               "
             />
 
-            Start your contract workspace
+            Secure account recovery
 
           </div>
 
@@ -320,7 +258,7 @@ export default function SignupPage() {
               xl:text-5xl
             "
           >
-            Turn renewal risk into a system you can actually manage.
+            Get back to your contract workspace securely.
           </h1>
 
 
@@ -335,10 +273,9 @@ export default function SignupPage() {
               xl:leading-8
             "
           >
-            Upload contracts, review extracted terms,
-            track cancellation windows, and receive
-            renewal reminders before deadlines become
-            expensive.
+            Request a secure password reset link and
+            regain access to your renewal intelligence,
+            deadlines, and alerts.
           </p>
 
 
@@ -363,40 +300,32 @@ export default function SignupPage() {
                 text-slate-400
               "
             >
-              What RenewAI tracks
+              Account security
             </p>
 
 
             <div
               className="
                 mt-5
-                grid
-                gap-4
-                sm:grid-cols-2
+                space-y-4
               "
             >
 
-              <MiniFeature
-                title="Renewal dates"
-                description="Know exactly when contracts renew."
+              <SecurityRow
+                title="Secure reset link"
+                description="A reset link is sent only to the email on your RenewAI account."
               />
 
 
-              <MiniFeature
-                title="Cancellation windows"
-                description="See when notice must be given."
+              <SecurityRow
+                title="No password sharing"
+                description="RenewAI never asks you to send your password by email."
               />
 
 
-              <MiniFeature
-                title="Contract terms"
-                description="Review extracted clauses and values."
-              />
-
-
-              <MiniFeature
-                title="Reminder timeline"
-                description="Get alerts before key deadlines."
+              <SecurityRow
+                title="Return to your workspace"
+                description="Once updated, sign back in and continue where you left off."
               />
 
             </div>
@@ -414,7 +343,7 @@ export default function SignupPage() {
             text-slate-500
           "
         >
-          Build renewal awareness into your contract workflow.
+          Secure access to your renewal workspace.
         </p>
 
       </section>
@@ -475,7 +404,6 @@ export default function SignupPage() {
               className="
                 text-lg
                 font-bold
-                tracking-tight
                 text-slate-950
               "
             >
@@ -496,7 +424,7 @@ export default function SignupPage() {
                 renewai-eyebrow
               "
             >
-              Create workspace
+              Password recovery
             </p>
 
 
@@ -510,7 +438,7 @@ export default function SignupPage() {
                 sm:text-4xl
               "
             >
-              Create your RenewAI account
+              Reset your password
             </h2>
 
 
@@ -522,8 +450,8 @@ export default function SignupPage() {
                 text-slate-600
               "
             >
-              Start monitoring renewal dates, notice periods,
-              and cancellation windows in one place.
+              Enter the email connected to your RenewAI
+              account and we&apos;ll send you a secure reset link.
             </p>
 
           </div>
@@ -531,7 +459,7 @@ export default function SignupPage() {
 
           <form
             onSubmit={
-              handleSignup
+              handleReset
             }
             className="
               space-y-5
@@ -546,15 +474,15 @@ export default function SignupPage() {
                   renewai-label
                 "
               >
-                Work email
+                Email address
               </label>
 
 
               <input
                 id="email"
                 type="email"
-                autoComplete="email"
                 required
+                autoComplete="email"
                 value={
                   email
                 }
@@ -569,54 +497,6 @@ export default function SignupPage() {
                   renewai-input
                 "
               />
-
-            </div>
-
-
-            <div>
-
-              <label
-                htmlFor="password"
-                className="
-                  renewai-label
-                "
-              >
-                Password
-              </label>
-
-
-              <input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={6}
-                value={
-                  password
-                }
-                onChange={
-                  (event) =>
-                    setPassword(
-                      event.target.value
-                    )
-                }
-                placeholder="Minimum 6 characters"
-                className="
-                  renewai-input
-                "
-              />
-
-
-              <p
-                className="
-                  mt-2
-                  text-xs
-                  leading-5
-                  text-slate-500
-                "
-              >
-                Use at least 6 characters.
-              </p>
 
             </div>
 
@@ -638,36 +518,7 @@ export default function SignupPage() {
                   text-red-800
                 "
               >
-
                 {error}
-
-
-                {error.includes(
-                  "already exists"
-                ) && (
-
-                  <div
-                    className="
-                      mt-3
-                    "
-                  >
-
-                    <Link
-                      href="/login"
-                      className="
-                        font-semibold
-                        text-red-900
-                        underline
-                        underline-offset-4
-                      "
-                    >
-                      Go to sign in
-                    </Link>
-
-                  </div>
-
-                )}
-
               </div>
 
             )}
@@ -709,8 +560,8 @@ export default function SignupPage() {
 
               {
                 loading
-                  ? "Creating account..."
-                  : "Create account"
+                  ? "Sending reset link..."
+                  : "Send reset link"
               }
 
             </button>
@@ -735,7 +586,7 @@ export default function SignupPage() {
               "
             >
 
-              Already using RenewAI?{" "}
+              Remembered your password?{" "}
 
               <Link
                 href="/login"
@@ -749,25 +600,12 @@ export default function SignupPage() {
                   hover:decoration-slate-950
                 "
               >
-                Sign in
+                Back to sign in
               </Link>
 
             </p>
 
           </div>
-
-
-          <p
-            className="
-              mt-10
-              text-center
-              text-xs
-              leading-5
-              text-slate-500
-            "
-          >
-            Your first workspace is created during onboarding.
-          </p>
 
         </div>
 
@@ -778,7 +616,7 @@ export default function SignupPage() {
 }
 
 
-function MiniFeature({
+function SecurityRow({
   title,
   description,
 }: {
@@ -790,35 +628,56 @@ function MiniFeature({
 
     <div
       className="
-        rounded-xl
-        border
-        border-white/10
-        bg-white/[0.04]
-        p-4
+        flex
+        gap-3
       "
     >
 
-      <p
+      <div
         className="
-          text-sm
-          font-semibold
-          text-white
-        "
-      >
-        {title}
-      </p>
-
-
-      <p
-        className="
-          mt-2
+          mt-1
+          flex
+          h-7
+          w-7
+          shrink-0
+          items-center
+          justify-center
+          rounded-full
+          bg-emerald-400/10
           text-xs
-          leading-5
-          text-slate-400
+          font-bold
+          text-emerald-300
         "
       >
-        {description}
-      </p>
+        ✓
+      </div>
+
+
+      <div>
+
+        <p
+          className="
+            text-sm
+            font-semibold
+            text-white
+          "
+        >
+          {title}
+        </p>
+
+
+        <p
+          className="
+            mt-1
+            text-xs
+            leading-5
+            text-slate-400
+          "
+        >
+          {description}
+        </p>
+
+      </div>
 
     </div>
   );

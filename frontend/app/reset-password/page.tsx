@@ -15,22 +15,22 @@ import {
 } from "@/lib/supabase";
 
 
-export default function SignupPage() {
+export default function ResetPasswordPage() {
 
   const router =
     useRouter();
 
 
   const [
-    email,
-    setEmail,
+    password,
+    setPassword,
   ] =
     useState("");
 
 
   const [
-    password,
-    setPassword,
+    confirmPassword,
+    setConfirmPassword,
   ] =
     useState("");
 
@@ -56,99 +56,90 @@ export default function SignupPage() {
     useState("");
 
 
-  async function handleSignup(
+  async function handleUpdatePassword(
     event: React.FormEvent
   ) {
 
     event.preventDefault();
 
-    setLoading(true);
     setError("");
     setSuccess("");
+
+
+    if (
+      password.length < 6
+    ) {
+
+      setError(
+        "Password must be at least 6 characters."
+      );
+
+      return;
+    }
+
+
+    if (
+      password !==
+      confirmPassword
+    ) {
+
+      setError(
+        "Passwords do not match."
+      );
+
+      return;
+    }
+
+
+    setLoading(
+      true
+    );
 
 
     try {
 
       const {
-        data,
         error:
-          signUpError,
+          updateError,
       } =
-        await supabase.auth.signUp({
-          email:
-            email.trim(),
-
+        await supabase.auth.updateUser({
           password,
         });
 
 
       if (
-        signUpError
+        updateError
       ) {
-
-        const message =
-          signUpError.message.toLowerCase();
-
-
-        if (
-          message.includes(
-            "user already registered"
-          )
-        ) {
-
-          setError(
-            "An account with this email already exists. Please sign in instead."
-          );
-
-          return;
-        }
-
-
-        if (
-          message.includes(
-            "password"
-          )
-        ) {
-
-          setError(
-            signUpError.message
-          );
-
-          return;
-        }
-
 
         setError(
-          signUpError.message
+          updateError.message
         );
-
-        return;
-      }
-
-
-      if (
-        data.session
-      ) {
-
-        router.replace(
-          "/onboarding"
-        );
-
-        router.refresh();
 
         return;
       }
 
 
       setSuccess(
-        "Account created. Please check your email to confirm your account."
+        "Password updated successfully. Redirecting you to login..."
+      );
+
+
+      setTimeout(
+        () => {
+
+          router.replace(
+            "/login"
+          );
+
+        },
+        1500
       );
 
 
     } catch {
 
       setError(
-        "Could not create your account. Please try again."
+        "Could not update password. Please request a new reset link."
       );
 
 
@@ -242,13 +233,10 @@ export default function SignupPage() {
               items-center
               justify-center
               rounded-xl
-              border
-              border-white/10
               bg-white
               text-sm
               font-bold
               text-slate-950
-              shadow-sm
             "
           >
             R
@@ -259,7 +247,6 @@ export default function SignupPage() {
             className="
               text-lg
               font-bold
-              tracking-tight
               text-white
             "
           >
@@ -300,11 +287,11 @@ export default function SignupPage() {
                 h-2
                 w-2
                 rounded-full
-                bg-blue-400
+                bg-emerald-400
               "
             />
 
-            Start your contract workspace
+            Secure password update
 
           </div>
 
@@ -320,7 +307,7 @@ export default function SignupPage() {
               xl:text-5xl
             "
           >
-            Turn renewal risk into a system you can actually manage.
+            Set a new password and return to your workspace.
           </h1>
 
 
@@ -335,10 +322,9 @@ export default function SignupPage() {
               xl:leading-8
             "
           >
-            Upload contracts, review extracted terms,
-            track cancellation windows, and receive
-            renewal reminders before deadlines become
-            expensive.
+            Choose a new password for your RenewAI account.
+            Once updated, you&apos;ll be able to sign back in
+            and continue managing your contracts.
           </p>
 
 
@@ -363,40 +349,32 @@ export default function SignupPage() {
                 text-slate-400
               "
             >
-              What RenewAI tracks
+              Password checklist
             </p>
 
 
             <div
               className="
                 mt-5
-                grid
-                gap-4
-                sm:grid-cols-2
+                space-y-4
               "
             >
 
-              <MiniFeature
-                title="Renewal dates"
-                description="Know exactly when contracts renew."
+              <SecurityRow
+                title="At least 6 characters"
+                description="Use a password long enough to meet the current RenewAI minimum."
               />
 
 
-              <MiniFeature
-                title="Cancellation windows"
-                description="See when notice must be given."
+              <SecurityRow
+                title="Confirm before saving"
+                description="Both password fields must match before your account is updated."
               />
 
 
-              <MiniFeature
-                title="Contract terms"
-                description="Review extracted clauses and values."
-              />
-
-
-              <MiniFeature
-                title="Reminder timeline"
-                description="Get alerts before key deadlines."
+              <SecurityRow
+                title="Sign in again"
+                description="After the update, RenewAI will return you to the login page."
               />
 
             </div>
@@ -414,7 +392,7 @@ export default function SignupPage() {
             text-slate-500
           "
         >
-          Build renewal awareness into your contract workflow.
+          Secure access to your contract workspace.
         </p>
 
       </section>
@@ -475,7 +453,6 @@ export default function SignupPage() {
               className="
                 text-lg
                 font-bold
-                tracking-tight
                 text-slate-950
               "
             >
@@ -496,7 +473,7 @@ export default function SignupPage() {
                 renewai-eyebrow
               "
             >
-              Create workspace
+              Account security
             </p>
 
 
@@ -510,7 +487,7 @@ export default function SignupPage() {
                 sm:text-4xl
               "
             >
-              Create your RenewAI account
+              Create a new password
             </h2>
 
 
@@ -522,8 +499,8 @@ export default function SignupPage() {
                 text-slate-600
               "
             >
-              Start monitoring renewal dates, notice periods,
-              and cancellation windows in one place.
+              Choose and confirm a new password for your
+              RenewAI account.
             </p>
 
           </div>
@@ -531,7 +508,7 @@ export default function SignupPage() {
 
           <form
             onSubmit={
-              handleSignup
+              handleUpdatePassword
             }
             className="
               space-y-5
@@ -541,47 +518,12 @@ export default function SignupPage() {
             <div>
 
               <label
-                htmlFor="email"
-                className="
-                  renewai-label
-                "
-              >
-                Work email
-              </label>
-
-
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={
-                  email
-                }
-                onChange={
-                  (event) =>
-                    setEmail(
-                      event.target.value
-                    )
-                }
-                placeholder="you@company.com"
-                className="
-                  renewai-input
-                "
-              />
-
-            </div>
-
-
-            <div>
-
-              <label
                 htmlFor="password"
                 className="
                   renewai-label
                 "
               >
-                Password
+                New password
               </label>
 
 
@@ -621,6 +563,42 @@ export default function SignupPage() {
             </div>
 
 
+            <div>
+
+              <label
+                htmlFor="confirmPassword"
+                className="
+                  renewai-label
+                "
+              >
+                Confirm password
+              </label>
+
+
+              <input
+                id="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+                value={
+                  confirmPassword
+                }
+                onChange={
+                  (event) =>
+                    setConfirmPassword(
+                      event.target.value
+                    )
+                }
+                placeholder="Enter the same password again"
+                className="
+                  renewai-input
+                "
+              />
+
+            </div>
+
+
             {error && (
 
               <div
@@ -638,36 +616,7 @@ export default function SignupPage() {
                   text-red-800
                 "
               >
-
                 {error}
-
-
-                {error.includes(
-                  "already exists"
-                ) && (
-
-                  <div
-                    className="
-                      mt-3
-                    "
-                  >
-
-                    <Link
-                      href="/login"
-                      className="
-                        font-semibold
-                        text-red-900
-                        underline
-                        underline-offset-4
-                      "
-                    >
-                      Go to sign in
-                    </Link>
-
-                  </div>
-
-                )}
-
               </div>
 
             )}
@@ -709,8 +658,8 @@ export default function SignupPage() {
 
               {
                 loading
-                  ? "Creating account..."
-                  : "Create account"
+                  ? "Updating password..."
+                  : "Update password"
               }
 
             </button>
@@ -735,7 +684,7 @@ export default function SignupPage() {
               "
             >
 
-              Already using RenewAI?{" "}
+              Return to{" "}
 
               <Link
                 href="/login"
@@ -749,25 +698,12 @@ export default function SignupPage() {
                   hover:decoration-slate-950
                 "
               >
-                Sign in
+                sign in
               </Link>
 
             </p>
 
           </div>
-
-
-          <p
-            className="
-              mt-10
-              text-center
-              text-xs
-              leading-5
-              text-slate-500
-            "
-          >
-            Your first workspace is created during onboarding.
-          </p>
 
         </div>
 
@@ -778,7 +714,7 @@ export default function SignupPage() {
 }
 
 
-function MiniFeature({
+function SecurityRow({
   title,
   description,
 }: {
@@ -790,35 +726,56 @@ function MiniFeature({
 
     <div
       className="
-        rounded-xl
-        border
-        border-white/10
-        bg-white/[0.04]
-        p-4
+        flex
+        gap-3
       "
     >
 
-      <p
+      <div
         className="
-          text-sm
-          font-semibold
-          text-white
-        "
-      >
-        {title}
-      </p>
-
-
-      <p
-        className="
-          mt-2
+          mt-1
+          flex
+          h-7
+          w-7
+          shrink-0
+          items-center
+          justify-center
+          rounded-full
+          bg-emerald-400/10
           text-xs
-          leading-5
-          text-slate-400
+          font-bold
+          text-emerald-300
         "
       >
-        {description}
-      </p>
+        ✓
+      </div>
+
+
+      <div>
+
+        <p
+          className="
+            text-sm
+            font-semibold
+            text-white
+          "
+        >
+          {title}
+        </p>
+
+
+        <p
+          className="
+            mt-1
+            text-xs
+            leading-5
+            text-slate-400
+          "
+        >
+          {description}
+        </p>
+
+      </div>
 
     </div>
   );

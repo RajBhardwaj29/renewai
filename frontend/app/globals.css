@@ -1,26 +1,1012 @@
 @import "tailwindcss";
 
+
+/* =========================================================
+   RENEWAI DESIGN SYSTEM
+   ========================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+
+  /* Surfaces */
+
+  --background:
+    #f6f8fb;
+
+  --surface:
+    #ffffff;
+
+  --surface-subtle:
+    #f8fafc;
+
+  --surface-muted:
+    #f1f5f9;
+
+
+  /* Typography */
+
+  --foreground:
+    #0f172a;
+
+  --text-primary:
+    #0f172a;
+
+  --text-secondary:
+    #475569;
+
+  --text-muted:
+    #64748b;
+
+  --text-soft:
+    #94a3b8;
+
+
+  /* Borders */
+
+  --border:
+    #cbd5e1;
+
+  --border-soft:
+    #e2e8f0;
+
+  --border-strong:
+    #94a3b8;
+
+
+  /* Brand */
+
+  --brand:
+    #0f172a;
+
+  --brand-hover:
+    #1e293b;
+
+  --brand-soft:
+    #f1f5f9;
+
+
+  /* Accent */
+
+  --accent:
+    #2563eb;
+
+  --accent-hover:
+    #1d4ed8;
+
+  --accent-soft:
+    #eff6ff;
+
+  --accent-border:
+    #bfdbfe;
+
+
+  /* Status */
+
+  --success:
+    #15803d;
+
+  --success-soft:
+    #f0fdf4;
+
+  --success-border:
+    #bbf7d0;
+
+
+  --warning:
+    #b45309;
+
+  --warning-soft:
+    #fffbeb;
+
+  --warning-border:
+    #fde68a;
+
+
+  --danger:
+    #b91c1c;
+
+  --danger-soft:
+    #fef2f2;
+
+  --danger-border:
+    #fecaca;
+
+
+  /* Shadows */
+
+  --shadow-card:
+    0 1px 2px
+      rgba(15, 23, 42, 0.04),
+    0 8px 24px
+      rgba(15, 23, 42, 0.05);
+
+  --shadow-card-hover:
+    0 4px 8px
+      rgba(15, 23, 42, 0.05),
+    0 16px 32px
+      rgba(15, 23, 42, 0.08);
+
+
+  /* Focus */
+
+  --focus-ring:
+    rgba(37, 99, 235, 0.16);
 }
+
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-background:
+    var(--background);
+
+  --color-foreground:
+    var(--foreground);
+
+  --font-sans:
+    var(--font-geist-sans),
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  --font-mono:
+    var(--font-geist-mono),
+    monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+
+/* =========================================================
+   GLOBAL RESET
+   ========================================================= */
+
+* {
+
+  box-sizing:
+    border-box;
+}
+
+
+html {
+
+  min-height:
+    100%;
+
+  background:
+    var(--background);
+
+  color-scheme:
+    light;
+
+  scroll-behavior:
+    smooth;
+}
+
+
+body {
+
+  margin:
+    0;
+
+  min-height:
+    100vh;
+
+  background:
+    var(--background);
+
+  color:
+    var(--text-primary);
+
+  font-family:
+    var(--font-geist-sans),
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  font-synthesis:
+    none;
+
+  text-rendering:
+    optimizeLegibility;
+
+  -webkit-font-smoothing:
+    antialiased;
+
+  -moz-osx-font-smoothing:
+    grayscale;
+}
+
+
+/*
+ * RenewAI intentionally uses a light
+ * enterprise interface.
+ *
+ * Do not automatically switch to dark
+ * mode based on the operating system.
+ */
+
+
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
+
+   h1,
+   h2,
+   h3,
+   h4,
+   h5,
+   h6 {
+     color: var(--text-primary);
+     font-weight: 700;
+   }
+   
+   p {
+     text-wrap: pretty;
+   }
+   
+   strong {
+     font-weight: 700;
+   }
+
+
+small {
+
+  color:
+    var(--text-secondary);
+}
+
+
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+a {
+
+  color:
+    inherit;
+
+  text-decoration:
+    none;
+}
+
+
+a,
+button {
+
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+
+/* =========================================================
+   FORMS
+   ========================================================= */
+
+input,
+textarea,
+select,
+button {
+
+  font:
+    inherit;
+}
+
+
+input,
+textarea,
+select {
+
+  color:
+    var(--text-primary);
+
+  background-color:
+    var(--surface);
+}
+
+
+input::placeholder,
+textarea::placeholder {
+
+  color:
+    #64748b;
+
+  opacity:
+    1;
+}
+
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+
+  cursor:
+    not-allowed;
+
+  background-color:
+    var(--surface-muted);
+
+  color:
+    var(--text-muted);
+}
+
+
+/*
+ * Prevent browser autofill from replacing
+ * RenewAI's form colors.
+ */
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+
+  -webkit-text-fill-color:
+    #0f172a;
+
+  -webkit-box-shadow:
+    0 0 0 1000px
+      #ffffff inset;
+
+  transition:
+    background-color
+      9999s ease-out;
+}
+
+
+/* =========================================================
+   FOCUS / ACCESSIBILITY
+   ========================================================= */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+
+  outline:
+    2px solid
+      var(--accent);
+
+  outline-offset:
+    2px;
+}
+
+
+/* =========================================================
+   TEXT SELECTION
+   ========================================================= */
+
+::selection {
+
+  background:
+    #dbeafe;
+
+  color:
+    #0f172a;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+::-webkit-scrollbar {
+
+  width:
+    10px;
+
+  height:
+    10px;
+}
+
+
+::-webkit-scrollbar-track {
+
+  background:
+    var(--background);
+}
+
+
+::-webkit-scrollbar-thumb {
+
+  background:
+    #cbd5e1;
+
+  border:
+    2px solid
+      var(--background);
+
+  border-radius:
+    999px;
+}
+
+
+::-webkit-scrollbar-thumb:hover {
+
+  background:
+    #94a3b8;
+}
+
+
+/* =========================================================
+   SHARED PAGE LAYOUT
+   ========================================================= */
+
+.renewai-page {
+
+  min-height:
+    100vh;
+
+  background:
+    var(--background);
+
+  color:
+    var(--text-primary);
+}
+
+
+.renewai-container {
+
+  width:
+    100%;
+
+  max-width:
+    1280px;
+
+  margin:
+    0 auto;
+
+  padding:
+    2.5rem 1.5rem;
+}
+
+
+/* =========================================================
+   CARDS
+   ========================================================= */
+
+.renewai-card {
+
+  border:
+    1px solid
+      var(--border-soft);
+
+  border-radius:
+    1.5rem;
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    var(--shadow-card);
+}
+
+
+.renewai-card-interactive {
+
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+
+.renewai-card-interactive:hover {
+
+  border-color:
+    var(--border);
+
+  box-shadow:
+    var(--shadow-card-hover);
+
+  transform:
+    translateY(-1px);
+}
+
+
+/* =========================================================
+   TYPOGRAPHY HELPERS
+   ========================================================= */
+
+.renewai-eyebrow {
+
+  color:
+    var(--text-secondary);
+
+  font-size:
+    0.75rem;
+
+  font-weight:
+    750;
+
+  letter-spacing:
+    0.18em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.renewai-title {
+
+  color:
+    var(--text-primary);
+
+  font-weight:
+    750;
+
+  letter-spacing:
+    -0.035em;
+}
+
+
+.renewai-secondary {
+
+  color:
+    var(--text-secondary);
+}
+
+
+.renewai-muted {
+
+  color:
+    var(--text-muted);
+}
+
+
+/* =========================================================
+   FORM COMPONENTS
+   ========================================================= */
+
+.renewai-label {
+
+  display:
+    block;
+
+  margin-bottom:
+    0.5rem;
+
+  color:
+    #334155;
+
+  font-size:
+    0.875rem;
+
+  font-weight:
+    650;
+}
+
+
+.renewai-input {
+
+  width:
+    100%;
+
+  min-height:
+    46px;
+
+  border:
+    1px solid
+      var(--border);
+
+  border-radius:
+    0.875rem;
+
+  background:
+    var(--surface);
+
+  padding:
+    0.75rem 1rem;
+
+  color:
+    var(--text-primary);
+
+  font-size:
+    0.95rem;
+
+  outline:
+    none;
+
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+
+.renewai-input:hover {
+
+  border-color:
+    var(--border-strong);
+}
+
+
+.renewai-input:focus {
+
+  border-color:
+    var(--accent);
+
+  box-shadow:
+    0 0 0 4px
+      var(--focus-ring);
+}
+
+
+textarea.renewai-input {
+
+  min-height:
+    110px;
+
+  resize:
+    vertical;
+}
+
+
+select.renewai-input {
+
+  cursor:
+    pointer;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.renewai-button-primary {
+
+  display:
+    inline-flex;
+
+  min-height:
+    44px;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    0.5rem;
+
+  border:
+    1px solid
+      var(--brand);
+
+  border-radius:
+    0.875rem;
+
+  background:
+    var(--brand);
+
+  padding:
+    0.7rem 1.2rem;
+
+  color:
+    #ffffff;
+
+  font-size:
+    0.9rem;
+
+  font-weight:
+    650;
+
+  cursor:
+    pointer;
+
+  box-shadow:
+    0 1px 2px
+      rgba(15, 23, 42, 0.12);
+
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+
+.renewai-button-primary:hover {
+
+  border-color:
+    var(--brand-hover);
+
+  background:
+    var(--brand-hover);
+
+  box-shadow:
+    0 5px 14px
+      rgba(15, 23, 42, 0.16);
+}
+
+
+.renewai-button-primary:active {
+
+  transform:
+    translateY(1px);
+}
+
+
+.renewai-button-primary:disabled {
+
+  cursor:
+    not-allowed;
+
+  opacity:
+    0.5;
+
+  box-shadow:
+    none;
+
+  transform:
+    none;
+}
+
+
+.renewai-button-secondary {
+
+  display:
+    inline-flex;
+
+  min-height:
+    44px;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    0.5rem;
+
+  border:
+    1px solid
+      var(--border);
+
+  border-radius:
+    0.875rem;
+
+  background:
+    var(--surface);
+
+  padding:
+    0.7rem 1.2rem;
+
+  color:
+    var(--text-primary);
+
+  font-size:
+    0.9rem;
+
+  font-weight:
+    650;
+
+  cursor:
+    pointer;
+
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+
+.renewai-button-secondary:hover {
+
+  border-color:
+    var(--border-strong);
+
+  background:
+    var(--surface-subtle);
+
+  box-shadow:
+    0 2px 6px
+      rgba(15, 23, 42, 0.05);
+}
+
+
+.renewai-button-danger {
+
+  display:
+    inline-flex;
+
+  min-height:
+    44px;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  border:
+    1px solid
+      var(--danger-border);
+
+  border-radius:
+    0.875rem;
+
+  background:
+    var(--danger-soft);
+
+  padding:
+    0.7rem 1.2rem;
+
+  color:
+    var(--danger);
+
+  font-size:
+    0.9rem;
+
+  font-weight:
+    650;
+
+  cursor:
+    pointer;
+
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+
+.renewai-button-danger:hover {
+
+  border-color:
+    #fca5a5;
+
+  background:
+    #fee2e2;
+}
+
+
+/* =========================================================
+   STATUS COMPONENTS
+   ========================================================= */
+
+.renewai-status-success {
+
+  border:
+    1px solid
+      var(--success-border);
+
+  background:
+    var(--success-soft);
+
+  color:
+    var(--success);
+}
+
+
+.renewai-status-warning {
+
+  border:
+    1px solid
+      var(--warning-border);
+
+  background:
+    var(--warning-soft);
+
+  color:
+    var(--warning);
+}
+
+
+.renewai-status-danger {
+
+  border:
+    1px solid
+      var(--danger-border);
+
+  background:
+    var(--danger-soft);
+
+  color:
+    var(--danger);
+}
+
+
+.renewai-status-info {
+
+  border:
+    1px solid
+      var(--accent-border);
+
+  background:
+    var(--accent-soft);
+
+  color:
+    #1d4ed8;
+}
+
+
+/* =========================================================
+   DIVIDERS
+   ========================================================= */
+
+.renewai-divider {
+
+  width:
+    100%;
+
+  height:
+    1px;
+
+  border:
+    0;
+
+  background:
+    var(--border-soft);
+}
+
+
+/* =========================================================
+   RESPONSIVE POLISH
+   ========================================================= */
+
+@media (
+  max-width: 640px
+) {
+
+  body {
+
+    font-size:
+      15px;
+  }
+
+
+  .renewai-container {
+
+    padding:
+      1.5rem 1rem;
+  }
+
+
+  .renewai-card {
+
+    border-radius:
+      1.25rem;
+  }
+
+
+  .renewai-button-primary,
+  .renewai-button-secondary,
+  .renewai-button-danger {
+
+    min-height:
+      46px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (
+  prefers-reduced-motion:
+    reduce
+) {
+
+  html {
+
+    scroll-behavior:
+      auto;
+  }
+
+
+  *,
+  *::before,
+  *::after {
+
+    scroll-behavior:
+      auto !important;
+
+    transition-duration:
+      0.01ms !important;
+
+    animation-duration:
+      0.01ms !important;
+
+    animation-iteration-count:
+      1 !important;
+  }
 }
