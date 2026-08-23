@@ -45,6 +45,10 @@ type Contract = {
   termination_clause: string | null;
   payment_terms: string | null;
 
+  pricing_clause: string | null;
+  minimum_commitment: string | null;
+  refund_clause: string | null;
+
   effective_start_date: string | null;
   effective_end_date: string | null;
   effective_renewal_date: string | null;
@@ -1614,51 +1618,159 @@ export default function ContractDetailPage() {
           </section>
 
 
-          {/* EVIDENCE */}
+                    {/* EVIDENCE */}
 
-          <section className="mb-8 renewai-card p-6 sm:p-7">
+                    <section className="mb-8 renewai-card p-6 sm:p-7">
 
-            <p className="renewai-eyebrow">
-              Extracted evidence
-            </p>
+<div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
 
+  <div>
 
-            <h2 className="mt-2 text-xl font-bold text-slate-950">
-              Contract Clauses
-            </h2>
-
-
-            <p className="mt-2 text-sm text-slate-500">
-              Source language extracted from the uploaded agreement.
-            </p>
+    <p className="renewai-eyebrow">
+      Extracted evidence
+    </p>
 
 
-            <div className="mt-6 grid gap-6 lg:grid-cols-2">
-
-              <TextBlock
-                title="Renewal Clause"
-
-                value={
-                  contract.renewal_clause
-                  ||
-                  "No renewal clause extracted."
-                }
-              />
+    <h2 className="mt-2 text-xl font-bold text-slate-950">
+      Contract Evidence
+    </h2>
 
 
-              <TextBlock
-                title="Termination Clause"
+    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+      Source terms extracted from the agreement and used
+      by RenewAI to generate renewal and commercial intelligence.
+    </p>
 
-                value={
-                  contract.termination_clause
-                  ||
-                  "No termination clause extracted."
-                }
-              />
+  </div>
 
-            </div>
 
-          </section>
+  <span className="inline-flex w-fit rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
+    AI extracted
+  </span>
+
+</div>
+
+
+{/* CORE RENEWAL TERMS */}
+
+<div className="mt-7">
+
+  <p className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+    Renewal & termination
+  </p>
+
+
+  <div className="grid gap-6 lg:grid-cols-2">
+
+    <EvidenceBlock
+      title="Renewal Clause"
+      value={
+        contract.renewal_clause
+        ||
+        "No renewal clause extracted."
+      }
+      type="renewal"
+    />
+
+
+    <EvidenceBlock
+      title="Termination Clause"
+      value={
+        contract.termination_clause
+        ||
+        "No termination clause extracted."
+      }
+      type="termination"
+    />
+
+  </div>
+
+</div>
+
+
+{/* COMMERCIAL TERMS */}
+
+<div className="mt-8 border-t border-slate-100 pt-7">
+
+  <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+
+    <div>
+
+      <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">
+        Commercial intelligence
+      </p>
+
+
+      <h3 className="mt-2 text-lg font-bold text-slate-950">
+        Renewal Economics & Commitments
+      </h3>
+
+    </div>
+
+
+    <p className="text-xs text-slate-500">
+      Used by AI renewal analysis
+    </p>
+
+  </div>
+
+
+  <div className="grid gap-5 lg:grid-cols-3">
+
+    <EvidenceBlock
+      title="Pricing Clause"
+      value={
+        contract.pricing_clause
+        ||
+        "No renewal pricing or price adjustment clause extracted."
+      }
+      type="pricing"
+    />
+
+
+    <EvidenceBlock
+      title="Minimum Commitment"
+      value={
+        contract.minimum_commitment
+        ||
+        "No minimum licence, spend or volume commitment extracted."
+      }
+      type="commitment"
+    />
+
+
+    <EvidenceBlock
+      title="Refund Clause"
+      value={
+        contract.refund_clause
+        ||
+        "No refund or non-refundable payment clause extracted."
+      }
+      type="refund"
+    />
+
+  </div>
+
+</div>
+
+
+{/* PAYMENT TERMS */}
+
+<div className="mt-8 border-t border-slate-100 pt-7">
+
+  <EvidenceBlock
+    title="Payment Terms"
+    value={
+      contract.payment_terms
+      ||
+      "No payment terms extracted."
+    }
+    type="payment"
+  />
+
+</div>
+
+</section>
 
 
           {/* METADATA */}
@@ -1975,6 +2087,112 @@ function DetailRow({
       <span className="max-w-sm break-words text-right text-sm font-bold text-slate-800">
         {value}
       </span>
+
+    </div>
+  );
+}
+
+
+function EvidenceBlock({
+  title,
+  value,
+  type,
+}: {
+  title: string;
+  value: string;
+  type:
+    | "renewal"
+    | "termination"
+    | "pricing"
+    | "commitment"
+    | "refund"
+    | "payment";
+}) {
+
+  const styles = {
+    renewal: {
+      badge:
+        "border-blue-200 bg-blue-50 text-blue-700",
+
+      dot:
+        "bg-blue-500",
+    },
+
+    termination: {
+      badge:
+        "border-slate-200 bg-slate-100 text-slate-700",
+
+      dot:
+        "bg-slate-500",
+    },
+
+    pricing: {
+      badge:
+        "border-violet-200 bg-violet-50 text-violet-700",
+
+      dot:
+        "bg-violet-500",
+    },
+
+    commitment: {
+      badge:
+        "border-amber-200 bg-amber-50 text-amber-700",
+
+      dot:
+        "bg-amber-500",
+    },
+
+    refund: {
+      badge:
+        "border-orange-200 bg-orange-50 text-orange-700",
+
+      dot:
+        "bg-orange-500",
+    },
+
+    payment: {
+      badge:
+        "border-emerald-200 bg-emerald-50 text-emerald-700",
+
+      dot:
+        "bg-emerald-500",
+    },
+  };
+
+
+  const style =
+    styles[type];
+
+
+  return (
+
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
+
+      <div className="flex items-center justify-between gap-3">
+
+        <h3 className="font-bold text-slate-950">
+          {title}
+        </h3>
+
+
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${style.badge}`}
+        >
+
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${style.dot}`}
+          />
+
+          Extracted
+
+        </span>
+
+      </div>
+
+
+      <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+        {value}
+      </p>
 
     </div>
   );
