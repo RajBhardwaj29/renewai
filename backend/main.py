@@ -12,6 +12,8 @@ from fastapi import (
     Header,
 )
 
+from pydantic import BaseModel
+
 from contextlib import asynccontextmanager
 
 from reminder_scheduler import (
@@ -45,6 +47,7 @@ from database import (
     get_contract_reminders,
     backfill_contract_reminders,
     get_pending_due_reminders_for_delivery,
+    update_contract_decision,
     mark_reminder_sent,
 )
 
@@ -179,6 +182,15 @@ def get_authenticated_context(
         "organization": organization,
         "organization_id": organization["id"],
     }
+
+class RenewalDecisionRequest(
+    BaseModel
+):
+    renewal_decision: str
+    renewal_status: str
+
+    decision_owner: str | None = None
+    decision_notes: str | None = None
 
 
 @app.get("/")
@@ -395,6 +407,129 @@ def archive_single_contract(
             ),
         )
 
+
+@app.patch(
+    "/contracts/{contract_id}/decision"
+)
+def update_single_contract_decision(
+    contract_id: str,
+
+    payload: RenewalDecisionRequest,
+
+    authorization: str | None = Header(
+        default=None
+    ),
+):
+    context = (
+        get_authenticated_context(
+            authorization
+        )
+    )
+
+    organization_id = (
+        context["organization_id"]
+    )
+
+    existing = (
+        get_contract_by_id(
+            organization_id,
+            contract_id,
+        )
+    )
+
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail="Contract not found.",
+        )
+
+    allowed_decisions = {
+        "undecided",
+        "renew",
+        "renegotiate",
+        "cancel",
+    }
+
+    allowed_statuses = {
+        "under_review",
+        "decision_made",
+        "completed",
+    }
+
+    if (
+        payload.renewal_decision
+        not in allowed_decisions
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Invalid renewal decision."
+            ),
+        )
+
+    if (
+        payload.renewal_status
+        not in allowed_statuses
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Invalid renewal status."
+            ),
+        )
+
+    try:
+        updated_contract = (
+            update_contract_decision(
+                organization_id=
+                    organization_id,
+
+                contract_id=
+                    contract_id,
+
+                renewal_decision=
+                    payload.renewal_decision,
+
+                renewal_status=
+                    payload.renewal_status,
+
+                decision_owner=
+                    payload.decision_owner,
+
+                decision_notes=
+                    payload.decision_notes,
+            )
+        )
+
+        if not updated_contract:
+            raise HTTPException(
+                status_code=404,
+                detail="Contract not found.",
+            )
+
+        return {
+            "contract":
+                updated_contract,
+
+            "message":
+                (
+                    "Renewal decision "
+                    "updated successfully."
+                ),
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Could not update renewal "
+                "decision: "
+                f"{str(exc)}"
+            ),
+        )
 
 @app.get("/reminders")
 def list_reminders(

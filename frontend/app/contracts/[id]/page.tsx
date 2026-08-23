@@ -76,6 +76,17 @@ type Contract = {
   ai_key_findings: string[] | null;
   ai_commercial_flags: string[] | null;
 
+  /*
+   * Human renewal decision workflow.
+   *
+   * This remains separate from the AI recommendation.
+   */
+  renewal_decision: string | null;
+  renewal_status: string | null;
+  decision_owner: string | null;
+  decision_notes: string | null;
+  decision_updated_at: string | null;
+
   character_count: number | null;
 
   archived: boolean;
@@ -168,6 +179,55 @@ export default function ContractDetailPage() {
     useState("");
 
 
+  const [
+    renewalDecision,
+    setRenewalDecision,
+  ] =
+    useState("undecided");
+
+
+  const [
+    renewalStatus,
+    setRenewalStatus,
+  ] =
+    useState("under_review");
+
+
+  const [
+    decisionOwner,
+    setDecisionOwner,
+  ] =
+    useState("");
+
+
+  const [
+    decisionNotes,
+    setDecisionNotes,
+  ] =
+    useState("");
+
+
+  const [
+    savingDecision,
+    setSavingDecision,
+  ] =
+    useState(false);
+
+
+  const [
+    decisionSuccess,
+    setDecisionSuccess,
+  ] =
+    useState("");
+
+
+  const [
+    decisionError,
+    setDecisionError,
+  ] =
+    useState("");
+
+
   useEffect(() => {
 
     async function loadContract() {
@@ -242,8 +302,40 @@ export default function ContractDetailPage() {
         }
 
 
+        const loadedContract =
+          data.contract as Contract;
+
+
         setContract(
-          data.contract
+          loadedContract
+        );
+
+
+        setRenewalDecision(
+          loadedContract.renewal_decision
+          ||
+          "undecided"
+        );
+
+
+        setRenewalStatus(
+          loadedContract.renewal_status
+          ||
+          "under_review"
+        );
+
+
+        setDecisionOwner(
+          loadedContract.decision_owner
+          ||
+          ""
+        );
+
+
+        setDecisionNotes(
+          loadedContract.decision_notes
+          ||
+          ""
         );
 
 
@@ -522,6 +614,190 @@ export default function ContractDetailPage() {
         pendingReminders,
       ]
     );
+
+
+  async function handleSaveDecision() {
+
+    if (
+      !contract
+    ) {
+
+      return;
+    }
+
+
+    setSavingDecision(
+      true
+    );
+
+    setDecisionSuccess(
+      ""
+    );
+
+    setDecisionError(
+      ""
+    );
+
+
+    try {
+
+      const response =
+        await authFetch(
+          `/contracts/${contract.id}/decision`,
+          {
+            method:
+              "PATCH",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                renewal_decision:
+                  renewalDecision,
+
+                renewal_status:
+                  renewalStatus,
+
+                decision_owner:
+                  decisionOwner.trim()
+                  ||
+                  null,
+
+                decision_notes:
+                  decisionNotes.trim()
+                  ||
+                  null,
+              }),
+          }
+        );
+
+
+      if (
+        response.status === 401
+      ) {
+
+        router.replace(
+          "/login"
+        );
+
+        return;
+      }
+
+
+      if (
+        response.status === 403
+      ) {
+
+        router.replace(
+          "/onboarding"
+        );
+
+        return;
+      }
+
+
+      const data =
+        await response.json();
+
+
+      if (
+        !response.ok
+      ) {
+
+        throw new Error(
+          typeof data.detail ===
+          "string"
+
+            ? data.detail
+
+            : "Could not save renewal decision."
+        );
+      }
+
+
+      const updatedContract =
+        data.contract as Contract;
+
+
+      setContract(
+        updatedContract
+      );
+
+
+      setRenewalDecision(
+        updatedContract.renewal_decision
+        ||
+        "undecided"
+      );
+
+
+      setRenewalStatus(
+        updatedContract.renewal_status
+        ||
+        "under_review"
+      );
+
+
+      setDecisionOwner(
+        updatedContract.decision_owner
+        ||
+        ""
+      );
+
+
+      setDecisionNotes(
+        updatedContract.decision_notes
+        ||
+        ""
+      );
+
+
+      setDecisionSuccess(
+        "Renewal decision saved."
+      );
+
+
+    } catch (
+      err
+    ) {
+
+      console.error(
+        err
+      );
+
+
+      if (
+        err instanceof Error
+        &&
+        err.message ===
+          "AUTH_REQUIRED"
+      ) {
+
+        router.replace(
+          "/login"
+        );
+
+        return;
+      }
+
+
+      setDecisionError(
+        err instanceof Error
+          ? err.message
+          : "Could not save renewal decision."
+      );
+
+
+    } finally {
+
+      setSavingDecision(
+        false
+      );
+    }
+  }
 
 
   async function handleArchive() {
@@ -1248,6 +1524,420 @@ export default function ContractDetailPage() {
           }
 
 
+          {/* RENEWAL DECISION WORKSPACE */}
+
+          <section className="mb-8 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+
+            <div className="border-b border-slate-200 px-6 py-6 sm:px-7">
+
+              <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
+
+                <div>
+
+                  <p className="renewai-eyebrow">
+                    Human decision
+                  </p>
+
+
+                  <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                    Renewal Decision Workspace
+                  </h2>
+
+
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                    Record the organization&apos;s actual renewal decision,
+                    owner and working notes. The AI recommendation remains
+                    advisory and is never changed by this workflow.
+                  </p>
+
+                </div>
+
+
+                <div className="shrink-0">
+
+                  <DecisionStatusBadge
+                    status={
+                      renewalStatus
+                    }
+                  />
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div className="grid gap-0 lg:grid-cols-[0.8fr_1.2fr]">
+
+              {/* AI RECOMMENDATION CONTEXT */}
+
+              <div className="border-b border-slate-100 bg-slate-50 p-6 sm:p-7 lg:border-b-0 lg:border-r">
+
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">
+                  RenewAI recommendation
+                </p>
+
+
+                <h3 className="mt-3 text-xl font-bold text-slate-950">
+                  {
+                    formatAIAction(
+                      contract.ai_action
+                    )
+                  }
+                </h3>
+
+
+                <div className="mt-4 flex flex-wrap gap-2">
+
+                  <span
+                    className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${decisionActionClasses(
+                      contract.ai_action
+                    )}`}
+                  >
+                    AI suggestion
+                  </span>
+
+
+                  {
+                    contract.ai_confidence
+                    !==
+                    null
+                    &&
+                    (
+
+                      <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">
+                        {
+                          formatConfidence(
+                            contract.ai_confidence
+                          )
+                        } confidence
+                      </span>
+
+                    )
+                  }
+
+                </div>
+
+
+                <p className="mt-5 text-sm leading-7 text-slate-600">
+                  {
+                    contract.ai_summary
+                    ||
+                    "No AI renewal recommendation is available for this contract."
+                  }
+                </p>
+
+
+                <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Decision principle
+                  </p>
+
+
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    RenewAI recommends. Your organization decides.
+                    A human decision may intentionally differ from
+                    the AI suggestion.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              {/* HUMAN DECISION FORM */}
+
+              <div className="p-6 sm:p-7">
+
+                <div className="grid gap-5 sm:grid-cols-2">
+
+                  <div>
+
+                    <label
+                      htmlFor="renewalDecision"
+                      className="renewai-label"
+                    >
+                      Renewal decision
+                    </label>
+
+
+                    <select
+                      id="renewalDecision"
+
+                      value={
+                        renewalDecision
+                      }
+
+                      onChange={
+                        (
+                          event
+                        ) => {
+
+                          setRenewalDecision(
+                            event.target.value
+                          );
+
+                          setDecisionSuccess(
+                            ""
+                          );
+                        }
+                      }
+
+                      className="renewai-input"
+                    >
+                      <option value="undecided">
+                        Undecided
+                      </option>
+
+                      <option value="renew">
+                        Renew
+                      </option>
+
+                      <option value="renegotiate">
+                        Renegotiate
+                      </option>
+
+                      <option value="cancel">
+                        Cancel
+                      </option>
+                    </select>
+
+                  </div>
+
+
+                  <div>
+
+                    <label
+                      htmlFor="renewalStatus"
+                      className="renewai-label"
+                    >
+                      Workflow status
+                    </label>
+
+
+                    <select
+                      id="renewalStatus"
+
+                      value={
+                        renewalStatus
+                      }
+
+                      onChange={
+                        (
+                          event
+                        ) => {
+
+                          setRenewalStatus(
+                            event.target.value
+                          );
+
+                          setDecisionSuccess(
+                            ""
+                          );
+                        }
+                      }
+
+                      className="renewai-input"
+                    >
+                      <option value="under_review">
+                        Under review
+                      </option>
+
+                      <option value="decision_made">
+                        Decision made
+                      </option>
+
+                      <option value="completed">
+                        Completed
+                      </option>
+                    </select>
+
+                  </div>
+
+                </div>
+
+
+                <div className="mt-5">
+
+                  <label
+                    htmlFor="decisionOwner"
+                    className="renewai-label"
+                  >
+                    Decision owner
+                  </label>
+
+
+                  <input
+                    id="decisionOwner"
+
+                    type="text"
+
+                    value={
+                      decisionOwner
+                    }
+
+                    onChange={
+                      (
+                        event
+                      ) => {
+
+                        setDecisionOwner(
+                          event.target.value
+                        );
+
+                        setDecisionSuccess(
+                          ""
+                        );
+                      }
+                    }
+
+                    placeholder="e.g. Raj, Finance Team, Procurement"
+
+                    className="renewai-input"
+                  />
+
+                </div>
+
+
+                <div className="mt-5">
+
+                  <label
+                    htmlFor="decisionNotes"
+                    className="renewai-label"
+                  >
+                    Decision notes
+                  </label>
+
+
+                  <textarea
+                    id="decisionNotes"
+
+                    rows={5}
+
+                    value={
+                      decisionNotes
+                    }
+
+                    onChange={
+                      (
+                        event
+                      ) => {
+
+                        setDecisionNotes(
+                          event.target.value
+                        );
+
+                        setDecisionSuccess(
+                          ""
+                        );
+                      }
+                    }
+
+                    placeholder="Capture negotiation targets, internal context, next steps or the reason behind the decision."
+
+                    className="renewai-input resize-y"
+                  />
+
+                </div>
+
+
+                {
+                  contract.decision_updated_at
+                  &&
+                  (
+
+                    <p className="mt-4 text-xs text-slate-500">
+                      Last updated{" "}
+                      <span className="font-semibold text-slate-700">
+                        {
+                          formatDateTime(
+                            contract.decision_updated_at
+                          )
+                        }
+                      </span>
+                    </p>
+
+                  )
+                }
+
+
+                {
+                  decisionSuccess
+                  &&
+                  (
+
+                    <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
+                      {decisionSuccess}
+                    </div>
+
+                  )
+                }
+
+
+                {
+                  decisionError
+                  &&
+                  (
+
+                    <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                      {decisionError}
+                    </div>
+
+                  )
+                }
+
+
+                <div className="mt-6 flex flex-col justify-between gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center">
+
+                  <div>
+
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Current human decision
+                    </p>
+
+
+                    <p className="mt-1 text-sm font-bold text-slate-950">
+                      {
+                        formatHumanDecision(
+                          renewalDecision
+                        )
+                      }
+                    </p>
+
+                  </div>
+
+
+                  <button
+                    type="button"
+
+                    onClick={
+                      handleSaveDecision
+                    }
+
+                    disabled={
+                      savingDecision
+                    }
+
+                    className="renewai-button-primary"
+                  >
+                    {
+                      savingDecision
+                        ? "Saving Decision..."
+                        : "Save Decision"
+                    }
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </section>
+
+
           {/* MAIN GRID */}
 
           <section className="mb-8 grid gap-6 lg:grid-cols-2">
@@ -1849,6 +2539,39 @@ export default function ContractDetailPage() {
 /* =========================================================
    COMPONENTS
    ========================================================= */
+
+
+function DecisionStatusBadge({
+  status,
+}: {
+  status: string;
+}) {
+
+  const label =
+    status === "decision_made"
+      ? "Decision made"
+      : status === "completed"
+      ? "Completed"
+      : "Under review";
+
+
+  const classes =
+    status === "completed"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : status === "decision_made"
+      ? "border-blue-200 bg-blue-50 text-blue-700"
+      : "border-amber-200 bg-amber-50 text-amber-700";
+
+
+  return (
+
+    <span
+      className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold ${classes}`}
+    >
+      {label}
+    </span>
+  );
+}
 
 
 function AIInsightList({
@@ -2884,6 +3607,55 @@ function recommendationHeading(
       return (
         "Review renewal position"
       );
+  }
+}
+
+
+function formatHumanDecision(
+  decision: string | null
+) {
+
+  switch (
+    decision
+  ) {
+
+    case "renew":
+      return "Renew";
+
+    case "renegotiate":
+      return "Renegotiate";
+
+    case "cancel":
+      return "Cancel";
+
+    default:
+      return "Undecided";
+  }
+}
+
+
+function decisionActionClasses(
+  action: string | null
+) {
+
+  switch (
+    action
+  ) {
+
+    case "renegotiate":
+      return "border-violet-200 bg-violet-50 text-violet-700";
+
+    case "consider_cancellation":
+      return "border-red-200 bg-red-50 text-red-700";
+
+    case "review":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+
+    case "monitor":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-600";
   }
 }
 

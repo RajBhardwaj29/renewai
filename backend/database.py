@@ -444,6 +444,70 @@ def archive_contract(
 
 
 # =========================================================
+# UPDATE RENEWAL DECISION
+# =========================================================
+
+
+def update_contract_decision(
+    organization_id: str,
+    contract_id: str,
+    renewal_decision: str,
+    renewal_status: str,
+    decision_owner: str | None,
+    decision_notes: str | None,
+):
+    from datetime import (
+        datetime,
+        timezone,
+    )
+
+    update_data = {
+        "renewal_decision":
+            renewal_decision,
+
+        "renewal_status":
+            renewal_status,
+
+        "decision_owner":
+            decision_owner,
+
+        "decision_notes":
+            decision_notes,
+
+        "decision_updated_at":
+            datetime.now(
+                timezone.utc
+            ).isoformat(),
+    }
+
+    response = (
+        supabase
+        .table("contracts")
+        .update(
+            update_data
+        )
+        .eq(
+            "organization_id",
+            organization_id
+        )
+        .eq(
+            "id",
+            contract_id
+        )
+        .eq(
+            "archived",
+            False
+        )
+        .execute()
+    )
+
+    if not response.data:
+        return None
+
+    return response.data[0]
+
+
+# =========================================================
 # DATE HELPER
 # =========================================================
 
