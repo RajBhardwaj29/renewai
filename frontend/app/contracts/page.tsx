@@ -383,6 +383,229 @@ export default function ContractsPage() {
     );
 
 
+  const decisionSummary =
+    useMemo(
+      () => {
+
+        const initial = {
+          undecided: {
+            count: 0,
+            value: 0,
+          },
+
+          renegotiate: {
+            count: 0,
+            value: 0,
+          },
+
+          renew: {
+            count: 0,
+            value: 0,
+          },
+
+          cancel: {
+            count: 0,
+            value: 0,
+          },
+
+          underReview: {
+            count: 0,
+            value: 0,
+          },
+        };
+
+
+        return contracts.reduce(
+          (
+            summary,
+            contract
+          ) => {
+
+            const value =
+              contract.contract_value
+              ||
+              0;
+
+
+            const decision =
+              contract.renewal_decision
+              ||
+              "undecided";
+
+
+            if (
+              decision ===
+              "renegotiate"
+            ) {
+
+              summary
+                .renegotiate
+                .count += 1;
+
+              summary
+                .renegotiate
+                .value += value;
+
+            } else if (
+              decision ===
+              "renew"
+            ) {
+
+              summary
+                .renew
+                .count += 1;
+
+              summary
+                .renew
+                .value += value;
+
+            } else if (
+              decision ===
+              "cancel"
+            ) {
+
+              summary
+                .cancel
+                .count += 1;
+
+              summary
+                .cancel
+                .value += value;
+
+            } else {
+
+              summary
+                .undecided
+                .count += 1;
+
+              summary
+                .undecided
+                .value += value;
+            }
+
+
+            if (
+              (
+                contract.renewal_status
+                ||
+                "under_review"
+              ) ===
+              "under_review"
+            ) {
+
+              summary
+                .underReview
+                .count += 1;
+
+              summary
+                .underReview
+                .value += value;
+            }
+
+
+            return summary;
+          },
+
+          initial
+        );
+
+      },
+      [
+        contracts,
+      ]
+    );
+
+
+  const aiRenegotiateCount =
+    useMemo(
+      () => {
+
+        return contracts.filter(
+          (
+            contract
+          ) =>
+            contract.ai_action ===
+            "renegotiate"
+        ).length;
+
+      },
+      [
+        contracts,
+      ]
+    );
+
+
+  const aiHumanMismatchCount =
+    useMemo(
+      () => {
+
+        return contracts.filter(
+          (
+            contract
+          ) => {
+
+            const decision =
+              contract.renewal_decision
+              ||
+              "undecided";
+
+
+            if (
+              decision ===
+              "undecided"
+            ) {
+
+              return false;
+            }
+
+
+            if (
+              contract.ai_action ===
+              "renegotiate"
+            ) {
+
+              return (
+                decision !==
+                "renegotiate"
+              );
+            }
+
+
+            if (
+              contract.ai_action ===
+              "consider_cancellation"
+            ) {
+
+              return (
+                decision !==
+                "cancel"
+              );
+            }
+
+
+            if (
+              contract.ai_action ===
+              "monitor"
+            ) {
+
+              return (
+                decision ===
+                "cancel"
+              );
+            }
+
+
+            return false;
+          }
+        ).length;
+
+      },
+      [
+        contracts,
+      ]
+    );
+
+
   return (
 
     <AuthGuard>
@@ -621,6 +844,190 @@ export default function ContractsPage() {
                 overdueCount > 0
               }
             />
+
+          </section>
+
+
+          {/* RENEWAL WORK QUEUE */}
+
+          <section className="mb-10 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+
+            <div className="flex flex-col justify-between gap-4 border-b border-slate-200 px-6 py-6 lg:flex-row lg:items-end">
+
+              <div>
+
+                <p className="renewai-eyebrow">
+                  Renewal operations
+                </p>
+
+
+                <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
+                  Renewal Work Queue
+                </h2>
+
+
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                  Track where each contract sits in the human renewal decision process.
+                  AI recommendations remain advisory and are shown separately below.
+                </p>
+
+              </div>
+
+
+              <div className="flex flex-wrap gap-2">
+
+                <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
+                  {
+                    decisionSummary
+                      .underReview
+                      .count
+                  } under review
+                </span>
+
+
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
+                  {
+                    decisionSummary
+                      .undecided
+                      .count
+                  } undecided
+                </span>
+
+
+                {
+                  aiHumanMismatchCount > 0
+                  &&
+                  (
+
+                    <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">
+                      {
+                        aiHumanMismatchCount
+                      } AI / human difference{
+                        aiHumanMismatchCount === 1
+                          ? ""
+                          : "s"
+                      }
+                    </span>
+
+                  )
+                }
+
+              </div>
+
+            </div>
+
+
+            <div className="grid gap-0 sm:grid-cols-2 xl:grid-cols-4">
+
+              <DecisionQueueCard
+                label="Undecided"
+                count={
+                  decisionSummary
+                    .undecided
+                    .count
+                }
+                value={
+                  decisionSummary
+                    .undecided
+                    .value
+                }
+                description="Still needs a human decision"
+                tone="neutral"
+              />
+
+
+              <DecisionQueueCard
+                label="Renegotiate"
+                count={
+                  decisionSummary
+                    .renegotiate
+                    .count
+                }
+                value={
+                  decisionSummary
+                    .renegotiate
+                    .value
+                }
+                description="Human decision: renegotiate"
+                tone="warning"
+              />
+
+
+              <DecisionQueueCard
+                label="Renew"
+                count={
+                  decisionSummary
+                    .renew
+                    .count
+                }
+                value={
+                  decisionSummary
+                    .renew
+                    .value
+                }
+                description="Human decision: renew"
+                tone="success"
+              />
+
+
+              <DecisionQueueCard
+                label="Cancel"
+                count={
+                  decisionSummary
+                    .cancel
+                    .count
+                }
+                value={
+                  decisionSummary
+                    .cancel
+                    .value
+                }
+                description="Human decision: cancel"
+                tone="danger"
+              />
+
+            </div>
+
+
+            <div className="grid gap-4 border-t border-slate-100 bg-slate-50 px-6 py-5 md:grid-cols-3">
+
+              <QueueSignal
+                label="AI recommends renegotiation"
+                value={
+                  aiRenegotiateCount.toString()
+                }
+                description="Contracts flagged by AI for better terms"
+              />
+
+
+              <QueueSignal
+                label="Under review value"
+                value={
+                  formatCurrency(
+                    decisionSummary
+                      .underReview
+                      .value,
+                    "INR"
+                  )
+                }
+                description="Tracked value still in active review"
+              />
+
+
+              <QueueSignal
+                label="Undecided value"
+                value={
+                  formatCurrency(
+                    decisionSummary
+                      .undecided
+                      .value,
+                    "INR"
+                  )
+                }
+                description="Value without a recorded human decision"
+              />
+
+            </div>
 
           </section>
 
@@ -1292,6 +1699,133 @@ function WorkflowStatusBadge({
     </span>
   );
 }
+
+function DecisionQueueCard({
+  label,
+  count,
+  value,
+  description,
+  tone,
+}: {
+  label: string;
+  count: number;
+  value: number;
+  description: string;
+  tone:
+    | "neutral"
+    | "warning"
+    | "success"
+    | "danger";
+}) {
+
+  const styles = {
+    neutral: {
+      shell:
+        "border-slate-200 bg-white",
+
+      badge:
+        "border-slate-200 bg-slate-100 text-slate-700",
+    },
+
+    warning: {
+      shell:
+        "border-amber-100 bg-amber-50/40",
+
+      badge:
+        "border-amber-200 bg-amber-50 text-amber-800",
+    },
+
+    success: {
+      shell:
+        "border-emerald-100 bg-emerald-50/40",
+
+      badge:
+        "border-emerald-200 bg-emerald-50 text-emerald-700",
+    },
+
+    danger: {
+      shell:
+        "border-red-100 bg-red-50/40",
+
+      badge:
+        "border-red-200 bg-red-50 text-red-700",
+    },
+  };
+
+
+  const style =
+    styles[tone];
+
+
+  return (
+
+    <div className={`border-b p-6 sm:border-r xl:border-b-0 ${style.shell}`}>
+
+      <div className="flex items-center justify-between gap-3">
+
+        <p className="text-sm font-bold text-slate-700">
+          {label}
+        </p>
+
+
+        <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${style.badge}`}>
+          {count}
+        </span>
+
+      </div>
+
+
+      <p className="mt-4 text-2xl font-bold tracking-tight text-slate-950">
+        {
+          formatCurrency(
+            value,
+            "INR"
+          )
+        }
+      </p>
+
+
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        {description}
+      </p>
+
+    </div>
+  );
+}
+
+
+function QueueSignal({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description: string;
+}) {
+
+  return (
+
+    <div>
+
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
+        {label}
+      </p>
+
+
+      <p className="mt-1 text-lg font-bold text-slate-950">
+        {value}
+      </p>
+
+
+      <p className="mt-1 text-xs text-slate-500">
+        {description}
+      </p>
+
+    </div>
+  );
+}
+
 
 function StatCard({
   label,
