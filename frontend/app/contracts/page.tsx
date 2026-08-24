@@ -40,6 +40,15 @@ type Contract = {
 
   risk_level: string | null;
 
+  ai_action: string | null;
+  ai_confidence: number | null;
+
+  renewal_decision: string | null;
+  renewal_status: string | null;
+
+  decision_owner: string | null;
+  decision_updated_at: string | null;
+
   created_at: string;
 };
 
@@ -853,8 +862,7 @@ export default function ContractsPage() {
 
                 <div className="overflow-x-auto">
 
-                  <table className="w-full min-w-[1120px] text-left">
-
+<table className="w-full min-w-[1480px] text-left">
                     <thead>
 
                       <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
@@ -884,12 +892,24 @@ export default function ContractsPage() {
                         </th>
 
                         <th className="px-6 py-4">
-                          Risk
-                        </th>
+  Risk
+</th>
 
-                        <th className="px-6 py-4 text-right">
-                          Action
-                        </th>
+<th className="px-6 py-4">
+  AI Recommendation
+</th>
+
+<th className="px-6 py-4">
+  Human Decision
+</th>
+
+<th className="px-6 py-4">
+  Status
+</th>
+
+<th className="px-6 py-4 text-right">
+  Action
+</th>
 
                       </tr>
 
@@ -1073,6 +1093,31 @@ export default function ContractsPage() {
 
                               </td>
 
+                              <td className="px-6 py-5">
+  <AIActionBadge
+    action={contract.ai_action}
+    confidence={contract.ai_confidence}
+  />
+</td>
+
+<td className="px-6 py-5">
+  <HumanDecisionBadge
+    decision={contract.renewal_decision}
+  />
+</td>
+
+<td className="px-6 py-5">
+  <WorkflowStatusBadge
+    status={contract.renewal_status}
+  />
+
+  {contract.decision_owner && (
+    <p className="mt-2 text-xs text-slate-500">
+      Owner: {contract.decision_owner}
+    </p>
+  )}
+</td>
+
 
                               <td className="px-6 py-5 text-right">
 
@@ -1145,6 +1190,108 @@ export default function ContractsPage() {
   );
 }
 
+function AIActionBadge({
+  action,
+  confidence,
+}: {
+  action: string | null;
+  confidence: number | null;
+}) {
+
+  const label =
+    formatAIAction(
+      action
+    );
+
+
+  const confidenceLabel =
+    confidence !== null
+      ? `${Math.round(
+          Math.max(
+            0,
+            Math.min(
+              1,
+              confidence
+            )
+          ) * 100
+        )}%`
+      : null;
+
+
+  return (
+
+    <div>
+
+      <span
+        className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${aiActionClasses(
+          action
+        )}`}
+      >
+        {label}
+      </span>
+
+
+      {
+        confidenceLabel
+        &&
+        (
+
+          <p className="mt-2 text-xs text-slate-500">
+            {confidenceLabel} confidence
+          </p>
+
+        )
+      }
+
+    </div>
+  );
+}
+
+
+function HumanDecisionBadge({
+  decision,
+}: {
+  decision: string | null;
+}) {
+
+  return (
+
+    <span
+      className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${decisionClasses(
+        decision
+      )}`}
+    >
+      {
+        formatDecision(
+          decision
+        )
+      }
+    </span>
+  );
+}
+
+
+function WorkflowStatusBadge({
+  status,
+}: {
+  status: string | null;
+}) {
+
+  return (
+
+    <span
+      className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusClasses(
+        status
+      )}`}
+    >
+      {
+        formatStatus(
+          status
+        )
+      }
+    </span>
+  );
+}
 
 function StatCard({
   label,
@@ -1413,4 +1560,131 @@ function deadlineLabel(
         : "s"
     } remaining`
   );
+}
+
+function formatAIAction(
+  action: string | null
+) {
+
+  switch (action) {
+
+    case "monitor":
+      return "Monitor";
+
+    case "review":
+      return "Review";
+
+    case "renegotiate":
+      return "Renegotiate";
+
+    case "consider_cancellation":
+      return "Consider cancellation";
+
+    default:
+      return "Not analyzed";
+  }
+}
+
+
+function aiActionClasses(
+  action: string | null
+) {
+
+  switch (action) {
+
+    case "monitor":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+
+    case "review":
+      return "border-blue-200 bg-blue-50 text-blue-700";
+
+    case "renegotiate":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+
+    case "consider_cancellation":
+      return "border-red-200 bg-red-50 text-red-700";
+
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-600";
+  }
+}
+
+
+function formatDecision(
+  decision: string | null
+) {
+
+  switch (decision) {
+
+    case "renew":
+      return "Renew";
+
+    case "renegotiate":
+      return "Renegotiate";
+
+    case "cancel":
+      return "Cancel";
+
+    case "undecided":
+    default:
+      return "Undecided";
+  }
+}
+
+
+function decisionClasses(
+  decision: string | null
+) {
+
+  switch (decision) {
+
+    case "renew":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+
+    case "renegotiate":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+
+    case "cancel":
+      return "border-red-200 bg-red-50 text-red-700";
+
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-600";
+  }
+}
+
+
+function formatStatus(
+  status: string | null
+) {
+
+  switch (status) {
+
+    case "decision_made":
+      return "Decision made";
+
+    case "completed":
+      return "Completed";
+
+    case "under_review":
+    default:
+      return "Under review";
+  }
+}
+
+
+function statusClasses(
+  status: string | null
+) {
+
+  switch (status) {
+
+    case "decision_made":
+      return "border-blue-200 bg-blue-50 text-blue-700";
+
+    case "completed":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-600";
+  }
 }
