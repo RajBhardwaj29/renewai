@@ -48,6 +48,7 @@ from database import (
     backfill_contract_reminders,
     get_pending_due_reminders_for_delivery,
     update_contract_decision,
+    get_contract_decision_history,
     mark_reminder_sent,
 )
 
@@ -407,7 +408,6 @@ def archive_single_contract(
             ),
         )
 
-
 @app.patch(
     "/contracts/{contract_id}/decision"
 )
@@ -428,6 +428,10 @@ def update_single_contract_decision(
 
     organization_id = (
         context["organization_id"]
+    )
+
+    user = (
+        context["user"]
     )
 
     existing = (
@@ -488,16 +492,32 @@ def update_single_contract_decision(
                     contract_id,
 
                 renewal_decision=
-                    payload.renewal_decision,
+                    payload
+                    .renewal_decision,
 
                 renewal_status=
-                    payload.renewal_status,
+                    payload
+                    .renewal_status,
 
                 decision_owner=
-                    payload.decision_owner,
+                    payload
+                    .decision_owner,
 
                 decision_notes=
-                    payload.decision_notes,
+                    payload
+                    .decision_notes,
+
+                changed_by_user_id=
+                    str(
+                        user.id
+                    ),
+
+                changed_by_email=
+                    getattr(
+                        user,
+                        "email",
+                        None,
+                    ),
             )
         )
 
@@ -530,6 +550,72 @@ def update_single_contract_decision(
                 f"{str(exc)}"
             ),
         )
+
+
+@app.get(
+    "/contracts/{contract_id}/decision-history"
+)
+def get_single_contract_decision_history(
+    contract_id: str,
+
+    authorization: str | None = Header(
+        default=None
+    ),
+):
+    context = (
+        get_authenticated_context(
+            authorization
+        )
+    )
+
+    organization_id = (
+        context["organization_id"]
+    )
+
+    existing = (
+        get_contract_by_id(
+            organization_id,
+            contract_id,
+        )
+    )
+
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail="Contract not found.",
+        )
+
+    try:
+        history = (
+            get_contract_decision_history(
+                organization_id=
+                    organization_id,
+
+                contract_id=
+                    contract_id,
+            )
+        )
+
+        return {
+            "history":
+                history,
+
+            "count":
+                len(
+                    history
+                ),
+        }
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Could not load decision "
+                "history: "
+                f"{str(exc)}"
+            ),
+        )
+
 
 @app.get("/reminders")
 def list_reminders(

@@ -116,6 +116,34 @@ type ReminderResponse = {
 };
 
 
+type DecisionHistoryEntry = {
+  id: string;
+
+  organization_id: string;
+  contract_id: string;
+
+  previous_decision: string | null;
+  new_decision: string;
+
+  previous_status: string | null;
+  new_status: string;
+
+  decision_owner: string | null;
+  decision_notes: string | null;
+
+  changed_by_user_id: string | null;
+  changed_by_email: string | null;
+
+  created_at: string;
+};
+
+
+type DecisionHistoryResponse = {
+  history: DecisionHistoryEntry[];
+  count: number;
+};
+
+
 export default function ContractDetailPage() {
 
   const params =
@@ -224,6 +252,27 @@ export default function ContractDetailPage() {
   const [
     decisionError,
     setDecisionError,
+  ] =
+    useState("");
+
+
+  const [
+    decisionHistory,
+    setDecisionHistory,
+  ] =
+    useState<DecisionHistoryEntry[]>([]);
+
+
+  const [
+    decisionHistoryLoading,
+    setDecisionHistoryLoading,
+  ] =
+    useState(true);
+
+
+  const [
+    decisionHistoryError,
+    setDecisionHistoryError,
   ] =
     useState("");
 
@@ -483,6 +532,113 @@ export default function ContractDetailPage() {
     }
 
 
+    async function loadDecisionHistory() {
+
+      try {
+
+        setDecisionHistoryError(
+          ""
+        );
+
+
+        const response =
+          await authFetch(
+            `/contracts/${id}/decision-history`
+          );
+
+
+        if (
+          response.status === 401
+        ) {
+
+          router.replace(
+            "/login"
+          );
+
+          return;
+        }
+
+
+        if (
+          response.status === 403
+        ) {
+
+          router.replace(
+            "/onboarding"
+          );
+
+          return;
+        }
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok
+        ) {
+
+          throw new Error(
+            typeof data.detail ===
+            "string"
+
+              ? data.detail
+
+              : "Could not load decision history."
+          );
+        }
+
+
+        const typedData =
+          data as DecisionHistoryResponse;
+
+
+        setDecisionHistory(
+          typedData.history
+          ||
+          []
+        );
+
+
+      } catch (
+        err
+      ) {
+
+        console.error(
+          err
+        );
+
+
+        if (
+          err instanceof Error
+          &&
+          err.message ===
+            "AUTH_REQUIRED"
+        ) {
+
+          router.replace(
+            "/login"
+          );
+
+          return;
+        }
+
+
+        setDecisionHistoryError(
+          "Could not load renewal decision history."
+        );
+
+
+      } finally {
+
+        setDecisionHistoryLoading(
+          false
+        );
+      }
+    }
+
+
     if (
       id
     ) {
@@ -490,6 +646,8 @@ export default function ContractDetailPage() {
       loadContract();
 
       loadReminders();
+
+      loadDecisionHistory();
     }
 
   }, [
@@ -758,6 +916,42 @@ export default function ContractDetailPage() {
       setDecisionSuccess(
         "Renewal decision saved."
       );
+
+
+      try {
+
+        const historyResponse =
+          await authFetch(
+            `/contracts/${contract.id}/decision-history`
+          );
+
+
+        if (
+          historyResponse.ok
+        ) {
+
+          const historyData =
+            await historyResponse.json();
+
+
+          setDecisionHistory(
+            (
+              historyData as DecisionHistoryResponse
+            ).history
+            ||
+            []
+          );
+        }
+
+      } catch (
+        historyError
+      ) {
+
+        console.error(
+          "Decision history refresh failed:",
+          historyError
+        );
+      }
 
 
     } catch (
@@ -1938,6 +2132,148 @@ export default function ContractDetailPage() {
           </section>
 
 
+          {/* DECISION HISTORY */}
+
+          <section className="mb-8 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+
+            <div className="flex flex-col justify-between gap-4 border-b border-slate-200 px-6 py-6 sm:flex-row sm:items-start sm:px-7">
+
+              <div>
+
+                <p className="renewai-eyebrow">
+                  Audit trail
+                </p>
+
+
+                <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                  Decision History
+                </h2>
+
+
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                  Every saved renewal decision is recorded here so your team
+                  can see what changed, who changed it, and when.
+                </p>
+
+              </div>
+
+
+              <span className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
+                {
+                  decisionHistory.length
+                } change{
+                  decisionHistory.length === 1
+                    ? ""
+                    : "s"
+                }
+              </span>
+
+            </div>
+
+
+            {
+              decisionHistoryLoading
+              &&
+              (
+
+                <div className="p-10 text-center">
+
+                  <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+
+
+                  <p className="text-sm text-slate-500">
+                    Loading decision history...
+                  </p>
+
+                </div>
+
+              )
+            }
+
+
+            {
+              decisionHistoryError
+              &&
+              (
+
+                <div className="m-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+                  {decisionHistoryError}
+                </div>
+
+              )
+            }
+
+
+            {
+              !decisionHistoryLoading
+              &&
+              !decisionHistoryError
+              &&
+              decisionHistory.length === 0
+              &&
+              (
+
+                <div className="px-6 py-12 text-center sm:px-7">
+
+                  <h3 className="font-bold text-slate-950">
+                    No decision history yet
+                  </h3>
+
+
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    The first saved renewal decision change will appear here.
+                  </p>
+
+                </div>
+
+              )
+            }
+
+
+            {
+              !decisionHistoryLoading
+              &&
+              !decisionHistoryError
+              &&
+              decisionHistory.length > 0
+              &&
+              (
+
+                <div className="divide-y divide-slate-100">
+
+                  {
+                    decisionHistory.map(
+                      (
+                        entry,
+                        index
+                      ) => (
+
+                        <DecisionHistoryRow
+                          key={
+                            entry.id
+                          }
+
+                          entry={
+                            entry
+                          }
+
+                          isLatest={
+                            index === 0
+                          }
+                        />
+
+                      )
+                    )
+                  }
+
+                </div>
+
+              )
+            }
+
+          </section>
+
+
           {/* MAIN GRID */}
 
           <section className="mb-8 grid gap-6 lg:grid-cols-2">
@@ -2539,6 +2875,188 @@ export default function ContractDetailPage() {
 /* =========================================================
    COMPONENTS
    ========================================================= */
+
+
+function DecisionHistoryRow({
+  entry,
+  isLatest,
+}: {
+  entry: DecisionHistoryEntry;
+  isLatest: boolean;
+}) {
+
+  const previousDecision =
+    formatHumanDecision(
+      entry.previous_decision
+    );
+
+
+  const newDecision =
+    formatHumanDecision(
+      entry.new_decision
+    );
+
+
+  const actor =
+    entry.changed_by_email
+    ||
+    entry.decision_owner
+    ||
+    "Workspace user";
+
+
+  return (
+
+    <div className="grid gap-5 px-6 py-6 sm:px-7 lg:grid-cols-[1fr_auto] lg:items-start">
+
+      <div className="flex gap-4">
+
+        <div className="relative flex w-9 shrink-0 justify-center">
+
+          <span
+            className={
+              isLatest
+                ? "mt-1.5 h-3 w-3 rounded-full bg-blue-600 ring-4 ring-blue-100"
+                : "mt-1.5 h-3 w-3 rounded-full bg-slate-400 ring-4 ring-slate-100"
+            }
+          />
+
+        </div>
+
+
+        <div className="min-w-0">
+
+          <div className="flex flex-wrap items-center gap-2">
+
+            <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
+              {
+                previousDecision
+              }
+            </span>
+
+
+            <span className="text-sm font-bold text-slate-400">
+              →
+            </span>
+
+
+            <span
+              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${humanDecisionClasses(
+                entry.new_decision
+              )}`}
+            >
+              {
+                newDecision
+              }
+            </span>
+
+
+            {
+              isLatest
+              &&
+              (
+
+                <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
+                  Latest
+                </span>
+
+              )
+            }
+
+          </div>
+
+
+          <p className="mt-3 text-sm leading-6 text-slate-700">
+            Workflow status changed from{" "}
+            <span className="font-semibold text-slate-900">
+              {
+                formatWorkflowStatus(
+                  entry.previous_status
+                )
+              }
+            </span>
+            {" "}to{" "}
+            <span className="font-semibold text-slate-900">
+              {
+                formatWorkflowStatus(
+                  entry.new_status
+                )
+              }
+            </span>.
+          </p>
+
+
+          {
+            entry.decision_notes
+            &&
+            (
+
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Decision note
+                </p>
+
+
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                  {
+                    entry.decision_notes
+                  }
+                </p>
+
+              </div>
+
+            )
+          }
+
+
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
+
+            <span>
+              Changed by{" "}
+              <span className="font-semibold text-slate-700">
+                {actor}
+              </span>
+            </span>
+
+
+            {
+              entry.decision_owner
+              &&
+              (
+
+                <span>
+                  Owner{" "}
+                  <span className="font-semibold text-slate-700">
+                    {
+                      entry.decision_owner
+                    }
+                  </span>
+                </span>
+
+              )
+            }
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div className="pl-13 text-xs font-medium text-slate-500 lg:pl-0 lg:text-right">
+
+        {
+          formatDateTime(
+            entry.created_at
+          )
+        }
+
+      </div>
+
+    </div>
+  );
+}
 
 
 function DecisionStatusBadge({
@@ -3630,6 +4148,49 @@ function formatHumanDecision(
 
     default:
       return "Undecided";
+  }
+}
+
+
+function humanDecisionClasses(
+  decision: string | null
+) {
+
+  switch (
+    decision
+  ) {
+
+    case "renew":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+
+    case "renegotiate":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+
+    case "cancel":
+      return "border-red-200 bg-red-50 text-red-700";
+
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-600";
+  }
+}
+
+
+function formatWorkflowStatus(
+  status: string | null
+) {
+
+  switch (
+    status
+  ) {
+
+    case "decision_made":
+      return "Decision made";
+
+    case "completed":
+      return "Completed";
+
+    default:
+      return "Under review";
   }
 }
 

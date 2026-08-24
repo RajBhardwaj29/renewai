@@ -442,9 +442,8 @@ def archive_contract(
 
     return response.data[0]
 
-
 # =========================================================
-# UPDATE RENEWAL DECISION
+# UPDATE RENEWAL DECISION + AUDIT HISTORY
 # =========================================================
 
 
@@ -455,10 +454,72 @@ def update_contract_decision(
     renewal_status: str,
     decision_owner: str | None,
     decision_notes: str | None,
+    changed_by_user_id: str | None,
+    changed_by_email: str | None,
 ):
     from datetime import (
         datetime,
         timezone,
+    )
+
+    existing_response = (
+        supabase
+        .table("contracts")
+        .select(
+            (
+                "id,"
+                "renewal_decision,"
+                "renewal_status,"
+                "decision_owner,"
+                "decision_notes"
+            )
+        )
+        .eq(
+            "organization_id",
+            organization_id
+        )
+        .eq(
+            "id",
+            contract_id
+        )
+        .eq(
+            "archived",
+            False
+        )
+        .limit(
+            1
+        )
+        .execute()
+    )
+
+    if not existing_response.data:
+        return None
+
+    existing = (
+        existing_response.data[0]
+    )
+
+    previous_decision = (
+        existing.get(
+            "renewal_decision"
+        )
+        or
+        "undecided"
+    )
+
+    previous_status = (
+        existing.get(
+            "renewal_status"
+        )
+        or
+        "under_review"
+    )
+
+    now = (
+        datetime.now(
+            timezone.utc
+        )
+        .isoformat()
     )
 
     update_data = {
@@ -475,9 +536,7 @@ def update_contract_decision(
             decision_notes,
 
         "decision_updated_at":
-            datetime.now(
-                timezone.utc
-            ).isoformat(),
+            now,
     }
 
     response = (
@@ -504,7 +563,100 @@ def update_contract_decision(
     if not response.data:
         return None
 
-    return response.data[0]
+    updated_contract = (
+        response.data[0]
+    )
+
+    history_record = {
+        "organization_id":
+            organization_id,
+
+        "contract_id":
+            contract_id,
+
+        "previous_decision":
+            previous_decision,
+
+        "new_decision":
+            renewal_decision,
+
+        "previous_status":
+            previous_status,
+
+        "new_status":
+            renewal_status,
+
+        "decision_owner":
+            decision_owner,
+
+        "decision_notes":
+            decision_notes,
+
+        "changed_by_user_id":
+            changed_by_user_id,
+
+        "changed_by_email":
+            changed_by_email,
+    }
+
+    history_response = (
+        supabase
+        .table(
+            "contract_decision_history"
+        )
+        .insert(
+            history_record
+        )
+        .execute()
+    )
+
+    if not history_response.data:
+        raise RuntimeError(
+            (
+                "Renewal decision was updated "
+                "but audit history could not "
+                "be created."
+            )
+        )
+
+    return updated_contract
+
+
+# =========================================================
+# GET DECISION HISTORY
+# =========================================================
+
+
+def get_contract_decision_history(
+    organization_id: str,
+    contract_id: str,
+):
+    response = (
+        supabase
+        .table(
+            "contract_decision_history"
+        )
+        .select("*")
+        .eq(
+            "organization_id",
+            organization_id
+        )
+        .eq(
+            "contract_id",
+            contract_id
+        )
+        .order(
+            "created_at",
+            desc=True
+        )
+        .execute()
+    )
+
+    return (
+        response.data
+        or
+        []
+    )
 
 
 # =========================================================
