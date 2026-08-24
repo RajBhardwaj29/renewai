@@ -41,6 +41,15 @@ type Contract = {
 
   risk_level: string | null;
 
+  ai_action: string | null;
+  ai_confidence: number | null;
+
+  renewal_decision: string | null;
+  renewal_status: string | null;
+
+  decision_owner: string | null;
+  decision_updated_at: string | null;
+
   created_at: string;
 };
 
@@ -636,6 +645,99 @@ export default function DashboardPage() {
     );
 
 
+  const renewalIntelligence =
+    useMemo(
+      () => {
+
+        return contracts.reduce(
+          (
+            summary,
+            contract
+          ) => {
+
+            const value =
+              contract.contract_value
+              ||
+              0;
+
+
+            const status =
+              contract.renewal_status
+              ||
+              "under_review";
+
+
+            const decision =
+              contract.renewal_decision
+              ||
+              "undecided";
+
+
+            if (
+              status ===
+              "under_review"
+            ) {
+
+              summary.underReview += 1;
+              summary.underReviewValue += value;
+            }
+
+
+            if (
+              decision !==
+              "undecided"
+            ) {
+
+              summary.decisionsMade += 1;
+            }
+
+
+            if (
+              contract.ai_action ===
+              "renegotiate"
+            ) {
+
+              summary.aiRenegotiate += 1;
+            }
+
+
+            const days =
+              contract
+                .days_until_cancellation_deadline;
+
+
+            if (
+              days !== null
+              &&
+              days >= 0
+              &&
+              days <= 120
+            ) {
+
+              summary.upcomingExposure += value;
+              summary.upcomingExposureCount += 1;
+            }
+
+
+            return summary;
+          },
+          {
+            underReview: 0,
+            underReviewValue: 0,
+            decisionsMade: 0,
+            aiRenegotiate: 0,
+            upcomingExposure: 0,
+            upcomingExposureCount: 0,
+          }
+        );
+
+      },
+      [
+        contracts,
+      ]
+    );
+
+
   const workspaceName =
     account?.organization.name
     ||
@@ -1099,6 +1201,175 @@ export default function DashboardPage() {
                       dueReminders.length > 0
                     }
                   />
+
+                </section>
+
+
+                {/* ==================================================
+                    PORTFOLIO INTELLIGENCE
+                    ================================================== */}
+
+                <section
+                  className="
+                    mb-8
+                    overflow-hidden
+                    rounded-3xl
+                    border
+                    border-slate-200
+                    bg-white
+                    shadow-sm
+                  "
+                >
+
+                  <div
+                    className="
+                      flex
+                      flex-col
+                      justify-between
+                      gap-4
+                      border-b
+                      border-slate-200
+                      px-6
+                      py-6
+                      lg:flex-row
+                      lg:items-end
+                    "
+                  >
+
+                    <div>
+
+                      <p className="renewai-eyebrow">
+                        Portfolio intelligence
+                      </p>
+
+
+                      <h2
+                        className="
+                          mt-2
+                          text-2xl
+                          font-bold
+                          tracking-[-0.025em]
+                          text-slate-950
+                        "
+                      >
+                        Renewal decision overview
+                      </h2>
+
+
+                      <p
+                        className="
+                          mt-2
+                          max-w-2xl
+                          text-sm
+                          leading-6
+                          text-slate-600
+                        "
+                      >
+                        A workspace-level view of human renewal
+                        decisions, AI recommendations, and commercial
+                        value still moving through review.
+                      </p>
+
+                    </div>
+
+
+                    <Link
+                      href="/contracts"
+                      className="
+                        shrink-0
+                        text-sm
+                        font-semibold
+                        text-blue-700
+                        transition
+                        hover:text-blue-800
+                      "
+                    >
+                      Open renewal work queue →
+                    </Link>
+
+                  </div>
+
+
+                  <div
+                    className="
+                      grid
+                      sm:grid-cols-2
+                      xl:grid-cols-5
+                    "
+                  >
+
+                    <IntelligenceMetric
+                      label="Under review"
+                      value={
+                        renewalIntelligence
+                          .underReview
+                          .toString()
+                      }
+                      description="Contracts still in active review"
+                    />
+
+
+                    <IntelligenceMetric
+                      label="Value under review"
+                      value={
+                        formatCurrency(
+                          renewalIntelligence
+                            .underReviewValue,
+                          "INR"
+                        )
+                      }
+                      description="Commercial value awaiting completion"
+                    />
+
+
+                    <IntelligenceMetric
+                      label="AI: Renegotiate"
+                      value={
+                        renewalIntelligence
+                          .aiRenegotiate
+                          .toString()
+                      }
+                      description="Contracts flagged for better terms"
+                    />
+
+
+                    <IntelligenceMetric
+                      label="Human decisions"
+                      value={
+                        renewalIntelligence
+                          .decisionsMade
+                          .toString()
+                      }
+                      description={`Of ${contracts.length} tracked contracts`}
+                    />
+
+
+                    <IntelligenceMetric
+                      label="120-day exposure"
+                      value={
+                        formatCurrency(
+                          renewalIntelligence
+                            .upcomingExposure,
+                          "INR"
+                        )
+                      }
+                      description={
+                        renewalIntelligence
+                          .upcomingExposureCount === 0
+                          ? "No cancellation windows within 120 days"
+                          : `${renewalIntelligence.upcomingExposureCount} contract${
+                              renewalIntelligence.upcomingExposureCount === 1
+                                ? ""
+                                : "s"
+                            } within cancellation window`
+                      }
+                      urgent={
+                        renewalIntelligence
+                          .upcomingExposureCount > 0
+                      }
+                    />
+
+                  </div>
 
                 </section>
 
@@ -1930,6 +2201,113 @@ function StatCard({
             : `
               mt-1
               text-xs
+              text-slate-500
+            `
+        }
+      >
+        {description}
+      </p>
+
+    </div>
+  );
+}
+
+
+function IntelligenceMetric({
+  label,
+  value,
+  description,
+  urgent = false,
+}: {
+  label: string;
+  value: string;
+  description: string;
+  urgent?: boolean;
+}) {
+
+  return (
+
+    <div
+      className={
+        urgent
+          ? `
+            border-b
+            border-orange-100
+            bg-orange-50/60
+            p-6
+            sm:border-r
+            xl:border-b-0
+          `
+          : `
+            border-b
+            border-slate-100
+            bg-white
+            p-6
+            sm:border-r
+            xl:border-b-0
+          `
+      }
+    >
+
+      <p
+        className={
+          urgent
+            ? `
+              text-xs
+              font-bold
+              uppercase
+              tracking-[0.08em]
+              text-orange-700
+            `
+            : `
+              text-xs
+              font-bold
+              uppercase
+              tracking-[0.08em]
+              text-slate-500
+            `
+        }
+      >
+        {label}
+      </p>
+
+
+      <p
+        className={
+          urgent
+            ? `
+              mt-3
+              text-2xl
+              font-bold
+              tracking-tight
+              text-orange-950
+            `
+            : `
+              mt-3
+              text-2xl
+              font-bold
+              tracking-tight
+              text-slate-950
+            `
+        }
+      >
+        {value}
+      </p>
+
+
+      <p
+        className={
+          urgent
+            ? `
+              mt-2
+              text-xs
+              leading-5
+              text-orange-700
+            `
+            : `
+              mt-2
+              text-xs
+              leading-5
               text-slate-500
             `
         }
