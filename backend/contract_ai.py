@@ -59,11 +59,8 @@ class ContractData(BaseModel):
     renewal_term_months: int | None
 
     notice_period_days: int | None
+    notice_period_anchor: str | None
     auto_renewal: bool | None
-
-    renewal_clause: str | None
-    termination_clause: str | None
-    payment_terms: str | None
 
     renewal_clause: str | None
     termination_clause: str | None
@@ -119,27 +116,62 @@ IMPORTANT RULES:
 4. Dates should use YYYY-MM-DD whenever possible.
 5. contract_value must be numeric only.
 6. notice_period_days must be an integer.
-7. auto_renewal should only be true if the contract explicitly states
+
+7. notice_period_anchor identifies the explicit contractual date from which
+   notice_period_days must be counted backwards.
+
+   Use exactly one of these values:
+   - "end_date"
+   - "renewal_date"
+   - null
+
+   Return "end_date" when the notice clause explicitly measures notice before
+   the end, expiration, or expiry of the current/current contractual term.
+
+   Example:
+   "Customer must give notice at least 90 days before the end of the current term."
+   -> notice_period_days = 90
+   -> notice_period_anchor = "end_date"
+
+   Return "renewal_date" when the notice clause explicitly measures notice
+   before the renewal date, automatic renewal date, or commencement of the
+   renewal term.
+
+   Example:
+   "Customer must provide written notice of non-renewal no later than
+   60 calendar days before the applicable renewal date."
+   -> notice_period_days = 60
+   -> notice_period_anchor = "renewal_date"
+
+   Determine the anchor from the wording of the notice requirement itself.
+   Do not substitute end_date merely because an end date exists.
+
+   If the notice clause does not clearly identify the date against which
+   notice must be measured, return null.
+
+   Never infer an anchor from dates alone.
+
+8. auto_renewal should only be true if the contract explicitly states
    that the agreement renews automatically.
-8. initial_term_months means the duration of the ORIGINAL contract term.
-9. renewal_term_months means the duration of EACH subsequent renewal period.
-10. Never confuse initial_term_months with renewal_term_months.
-11. renewal_clause should contain language specifically related to renewal.
-12. termination_clause should contain language specifically related to
+9. initial_term_months means the duration of the ORIGINAL contract term.
+10. renewal_term_months means the duration of EACH subsequent renewal period.
+11. Never confuse initial_term_months with renewal_term_months.
+12. renewal_clause should contain language specifically related to renewal.
+13. termination_clause should contain language specifically related to
     termination or cancellation rights.
-13. Do not invent vendors, dates, prices, notice periods, or clauses.
-14. If the contract provides a start date and duration but does not explicitly
+14. Do not invent vendors, dates, prices, notice periods, or clauses.
+15. If the contract provides a start date and duration but does not explicitly
     state an end date, leave end_date as null.
-15. If the contract does not explicitly state a renewal date, leave
+16. If the contract does not explicitly state a renewal date, leave
     renewal_date as null. Another system will calculate derived dates.
-16. pricing_clause should contain contract language describing renewal
+17. pricing_clause should contain contract language describing renewal
     price increases, price escalation, price adjustment rights, discounts,
     or other pricing changes relevant to renewal.
-17. minimum_commitment should contain any minimum licence, seat, purchase,
+18. minimum_commitment should contain any minimum licence, seat, purchase,
     spend, volume, usage, or similar contractual commitment.
-18. refund_clause should contain language describing whether prepaid fees
+19. refund_clause should contain language describing whether prepaid fees
     or other payments are refundable or non-refundable.
-19. Preserve commercially important details such as percentages, quantities,
+20. Preserve commercially important details such as percentages, quantities,
     conditions and limitations when extracting these clauses.
 CONTRACT TEXT:
 
@@ -512,6 +544,9 @@ Renewal term months:
 
 Notice period days:
 {contract.notice_period_days}
+
+Notice period anchor:
+{contract.notice_period_anchor}
 
 Auto renewal:
 {contract.auto_renewal}

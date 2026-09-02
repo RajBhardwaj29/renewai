@@ -200,6 +200,9 @@ def save_contract(
         "notice_period_days":
             contract.notice_period_days,
 
+        "notice_period_anchor":
+            contract.notice_period_anchor,
+
         "auto_renewal":
             contract.auto_renewal,
 

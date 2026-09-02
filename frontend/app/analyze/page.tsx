@@ -29,6 +29,7 @@ type ContractData = {
   renewal_term_months: number | null;
 
   notice_period_days: number | null;
+  notice_period_anchor: string | null;
   auto_renewal: boolean | null;
 
   renewal_clause: string | null;
@@ -1496,6 +1497,47 @@ export default function AnalyzeContractPage() {
                       />
 
                     </FormField>
+
+                    <FormField
+  label="Notice Based On"
+>
+  <select
+    value={
+      reviewedContract.notice_period_anchor
+      ?? "unknown"
+    }
+
+    onChange={
+      (event) =>
+        setReviewedContract(
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  notice_period_anchor:
+                    event.target.value === "unknown"
+                      ? null
+                      : event.target.value,
+                }
+              : current
+        )
+    }
+
+    className="renewai-input"
+  >
+    <option value="unknown">
+      Not found
+    </option>
+
+    <option value="end_date">
+      Contract / Term End Date
+    </option>
+
+    <option value="renewal_date">
+      Renewal Date
+    </option>
+  </select>
+</FormField>
 
 
                     <FormField

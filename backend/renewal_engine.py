@@ -60,14 +60,24 @@ def calculate_renewal_intelligence(contract):
     # 3. Calculate cancellation deadline
     # --------------------------------------------------
 
-    if (
-        effective_renewal_date
-        and contract.notice_period_days is not None
-    ):
-        cancellation_deadline = (
-            effective_end_date
-            - timedelta(days=contract.notice_period_days)
-        )
+    if contract.notice_period_days is not None:
+        if (
+            contract.notice_period_anchor == "end_date"
+            and effective_end_date
+        ):
+            cancellation_deadline = (
+                effective_end_date
+                - timedelta(days=contract.notice_period_days)
+            )
+
+        elif (
+            contract.notice_period_anchor == "renewal_date"
+            and effective_renewal_date
+        ):
+            cancellation_deadline = (
+                effective_renewal_date
+                - timedelta(days=contract.notice_period_days)
+            )
 
     # --------------------------------------------------
     # 4. Calculate days remaining
