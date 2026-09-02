@@ -65,7 +65,7 @@ def calculate_renewal_intelligence(contract):
         and contract.notice_period_days is not None
     ):
         cancellation_deadline = (
-            effective_renewal_date
+            effective_end_date
             - timedelta(days=contract.notice_period_days)
         )
 
