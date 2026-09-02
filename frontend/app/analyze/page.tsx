@@ -35,6 +35,10 @@ type ContractData = {
   renewal_clause: string | null;
   termination_clause: string | null;
   payment_terms: string | null;
+
+  pricing_clause: string | null;
+  minimum_commitment: string | null;
+  refund_clause: string | null;
 };
 
 
@@ -1678,6 +1682,86 @@ export default function AnalyzeContractPage() {
 
                     </FormField>
 
+                    <FormField
+                      label="Pricing Clause"
+                    >
+
+                      <textarea
+                        rows={4}
+
+                        value={
+                          reviewedContract.pricing_clause
+                          ??
+                          ""
+                        }
+
+                        onChange={
+                          (event) =>
+                            updateTextField(
+                              "pricing_clause",
+                              event.target.value
+                            )
+                        }
+
+                        className="renewai-input resize-y"
+                      />
+
+                    </FormField>
+
+
+                    <FormField
+                      label="Minimum Commitment"
+                    >
+
+                      <textarea
+                        rows={4}
+
+                        value={
+                          reviewedContract.minimum_commitment
+                          ??
+                          ""
+                        }
+
+                        onChange={
+                          (event) =>
+                            updateTextField(
+                              "minimum_commitment",
+                              event.target.value
+                            )
+                        }
+
+                        className="renewai-input resize-y"
+                      />
+
+                    </FormField>
+
+
+                    <FormField
+                      label="Refund Clause"
+                    >
+
+                      <textarea
+                        rows={4}
+
+                        value={
+                          reviewedContract.refund_clause
+                          ??
+                          ""
+                        }
+
+                        onChange={
+                          (event) =>
+                            updateTextField(
+                              "refund_clause",
+                              event.target.value
+                            )
+                        }
+
+                        className="renewai-input resize-y"
+                      />
+
+                    </FormField>
+
                   </div>
 
                 </ReviewSection>
@@ -1761,14 +1845,13 @@ export default function AnalyzeContractPage() {
 
                   <div className="renewai-card p-6 sm:p-7">
 
-                    <p className="renewai-eyebrow">
-                      Renewal decision
-                    </p>
+                  <p className="renewai-eyebrow">
+  Deadline intelligence
+</p>
 
-
-                    <h2 className="mt-2 text-xl font-bold text-slate-950">
-                      AI Recommendation
-                    </h2>
+<h2 className="mt-2 text-xl font-bold text-slate-950">
+  Renewal Deadline Risk
+</h2>
 
 
                     <div
@@ -1843,9 +1926,11 @@ export default function AnalyzeContractPage() {
 
 
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-                        RenewAI will use your reviewed values to recalculate
-                        renewal dates, cancellation deadlines, risk level
-                        and reminder schedules before saving.
+                      RenewAI will use your reviewed values to recalculate
+renewal dates, cancellation deadlines, deadline risk
+and reminder schedules before saving. Commercial
+renewal intelligence will be generated from the
+reviewed contract evidence.
                       </p>
 
                     </div>
