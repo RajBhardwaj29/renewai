@@ -39,6 +39,8 @@ type Contract = {
   renewal_term_months: number | null;
 
   notice_period_days: number | null;
+  notice_period_value: number | null;
+  notice_period_unit: string | null;
   auto_renewal: boolean | null;
 
   renewal_clause: string | null;
@@ -1475,14 +1477,11 @@ export default function ContractDetailPage() {
                 <DarkMetric
                   label="Notice period"
                   value={
-                    contract
-                      .notice_period_days
-                    !==
-                    null
-
-                      ? `${contract.notice_period_days} days`
-
-                      : "Not found"
+                    formatNoticePeriod(
+                      contract.notice_period_value,
+                      contract.notice_period_unit,
+                      contract.notice_period_days
+                    )
                   }
                 />
 
@@ -1581,14 +1580,11 @@ export default function ContractDetailPage() {
               label="Notice Period"
 
               value={
-                contract
-                  .notice_period_days
-                !==
-                null
-
-                  ? `${contract.notice_period_days} days`
-
-                  : "Not found"
+                formatNoticePeriod(
+                  contract.notice_period_value,
+                  contract.notice_period_unit,
+                  contract.notice_period_days
+                )
               }
 
               description="Required notice"
@@ -2355,14 +2351,11 @@ export default function ContractDetailPage() {
               <DetailRow
                 label="Notice Period"
                 value={
-                  contract
-                    .notice_period_days
-                  !==
-                  null
-
-                    ? `${contract.notice_period_days} days`
-
-                    : "Not found"
+                  formatNoticePeriod(
+                    contract.notice_period_value,
+                    contract.notice_period_unit,
+                    contract.notice_period_days
+                  )
                 }
               />
 
@@ -3056,6 +3049,27 @@ function DecisionHistoryRow({
 
     </div>
   );
+}
+
+
+function formatNoticePeriod(
+  noticePeriodValue: number | null,
+  noticePeriodUnit: string | null,
+  noticePeriodDays: number | null
+) {
+  if (
+    noticePeriodValue !== null &&
+    noticePeriodUnit
+  ) {
+    return `${noticePeriodValue} ${noticePeriodUnit}`;
+  }
+
+  // Backward compatibility for older contracts
+  if (noticePeriodDays !== null) {
+    return `${noticePeriodDays} days`;
+  }
+
+  return "Not found";
 }
 
 

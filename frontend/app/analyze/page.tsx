@@ -30,6 +30,9 @@ type ContractData = {
 
   notice_period_days: number | null;
   notice_period_anchor: string | null;
+  notice_period_value: number | null;
+  notice_period_unit: string | null;
+
   auto_renewal: boolean | null;
 
   renewal_clause: string | null;
@@ -1475,8 +1478,9 @@ export default function AnalyzeContractPage() {
 
 
                     <FormField
-                      label="Notice Period (days)"
-                    >
+                    label="Notice Period"
+                  >
+                    <div className="grid grid-cols-[1fr_140px] gap-3">
 
                       <input
                         type="number"
@@ -1484,23 +1488,110 @@ export default function AnalyzeContractPage() {
                         step="1"
 
                         value={
+                          reviewedContract.notice_period_value
+                          ??
                           reviewedContract.notice_period_days
                           ??
                           ""
                         }
 
                         onChange={
-                          (event) =>
-                            updateNumberField(
-                              "notice_period_days",
-                              event.target.value
-                            )
+                          (event) => {
+                            const value =
+                              event.target.value === ""
+                                ? null
+                                : Number(event.target.value);
+
+                            setReviewedContract(
+                              (current) =>
+                                current
+                                  ? {
+                                      ...current,
+
+                                      notice_period_value:
+                                        value,
+
+                                      notice_period_days:
+                                        (
+                                          current.notice_period_unit === "months"
+                                        )
+                                          ? null
+                                          : value,
+                                    }
+                                  : current
+                            );
+                          }
                         }
 
                         className="renewai-input"
                       />
 
-                    </FormField>
+
+                      <select
+                        value={
+                          reviewedContract.notice_period_unit
+                          ??
+                          (
+                            reviewedContract.notice_period_days !== null
+                              ? "days"
+                              : "unknown"
+                          )
+                        }
+
+                        onChange={
+                          (event) => {
+                            const unit =
+                              event.target.value === "unknown"
+                                ? null
+                                : event.target.value;
+
+                            setReviewedContract(
+                              (current) => {
+                                if (!current) {
+                                  return current;
+                                }
+
+                                const value =
+                                  current.notice_period_value
+                                  ??
+                                  current.notice_period_days;
+
+                                return {
+                                  ...current,
+
+                                  notice_period_unit:
+                                    unit,
+
+                                  notice_period_value:
+                                    value,
+
+                                  notice_period_days:
+                                    unit === "days"
+                                      ? value
+                                      : null,
+                                };
+                              }
+                            );
+                          }
+                        }
+
+                        className="renewai-input"
+                      >
+                        <option value="unknown">
+                          Unit
+                        </option>
+
+                        <option value="days">
+                          Days
+                        </option>
+
+                        <option value="months">
+                          Months
+                        </option>
+                      </select>
+
+                    </div>
+                  </FormField>
 
                     <FormField
   label="Notice Based On"

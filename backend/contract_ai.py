@@ -59,6 +59,8 @@ class ContractData(BaseModel):
     renewal_term_months: int | None
 
     notice_period_days: int | None
+    notice_period_value: int | None
+    notice_period_unit: str | None
     notice_period_anchor: str | None
     auto_renewal: bool | None
 
@@ -115,10 +117,47 @@ IMPORTANT RULES:
 3. If information is unavailable, return null.
 4. Dates should use YYYY-MM-DD whenever possible.
 5. contract_value must be numeric only.
-6. notice_period_days must be an integer.
+6. Preserve the notice period exactly as expressed by the contract.
+
+   notice_period_value must contain the numeric amount of the notice period.
+
+   notice_period_unit must use exactly one of:
+   - "days"
+   - "months"
+   - null
+
+   notice_period_days exists for backward compatibility.
+
+   When the contract explicitly expresses the notice period in days:
+   - set notice_period_value to the number of days
+   - set notice_period_unit to "days"
+   - set notice_period_days to the same number
+
+   Example:
+   "Customer must give notice at least 90 days before expiration."
+   -> notice_period_value = 90
+   -> notice_period_unit = "days"
+   -> notice_period_days = 90
+
+   When the contract explicitly expresses the notice period in calendar months
+   or months:
+   - set notice_period_value to the number of months
+   - set notice_period_unit to "months"
+   - set notice_period_days = null
+
+   Example:
+   "Customer must provide notice at least 3 calendar months before
+   the applicable renewal date."
+   -> notice_period_value = 3
+   -> notice_period_unit = "months"
+   -> notice_period_days = null
+
+   Never convert months into days.
+   Never convert days into months.
+   Never approximate a calendar month as 30 days.
 
 7. notice_period_anchor identifies the explicit contractual date from which
-   notice_period_days must be counted backwards.
+   the notice period must be counted backwards.
 
    Use exactly one of these values:
    - "end_date"
@@ -126,10 +165,12 @@ IMPORTANT RULES:
    - null
 
    Return "end_date" when the notice clause explicitly measures notice before
-   the end, expiration, or expiry of the current/current contractual term.
+   the end, expiration, or expiry of the current contractual term.
 
    Example:
    "Customer must give notice at least 90 days before the end of the current term."
+   -> notice_period_value = 90
+   -> notice_period_unit = "days"
    -> notice_period_days = 90
    -> notice_period_anchor = "end_date"
 
@@ -140,7 +181,17 @@ IMPORTANT RULES:
    Example:
    "Customer must provide written notice of non-renewal no later than
    60 calendar days before the applicable renewal date."
+   -> notice_period_value = 60
+   -> notice_period_unit = "days"
    -> notice_period_days = 60
+   -> notice_period_anchor = "renewal_date"
+
+   Example:
+   "Customer must provide notice at least 3 calendar months before
+   the applicable renewal date."
+   -> notice_period_value = 3
+   -> notice_period_unit = "months"
+   -> notice_period_days = null
    -> notice_period_anchor = "renewal_date"
 
    Determine the anchor from the wording of the notice requirement itself.
@@ -150,7 +201,7 @@ IMPORTANT RULES:
    notice must be measured, return null.
 
    Never infer an anchor from dates alone.
-
+   
 8. auto_renewal should only be true if the contract explicitly states
    that the agreement renews automatically.
 9. initial_term_months means the duration of the ORIGINAL contract term.

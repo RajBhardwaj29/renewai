@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+
 from dateutil.relativedelta import relativedelta
 
 
@@ -57,30 +58,65 @@ def calculate_renewal_intelligence(contract):
         effective_renewal_date = None
 
     # --------------------------------------------------
-    # 3. Calculate cancellation deadline
+    # 3. Determine notice anchor
     # --------------------------------------------------
 
-    if contract.notice_period_days is not None:
+    notice_anchor_date = None
+
+    if (
+        contract.notice_period_anchor == "end_date"
+        and effective_end_date
+    ):
+        notice_anchor_date = effective_end_date
+
+    elif (
+        contract.notice_period_anchor == "renewal_date"
+        and effective_renewal_date
+    ):
+        notice_anchor_date = effective_renewal_date
+
+    # --------------------------------------------------
+    # 4. Calculate cancellation deadline
+    # --------------------------------------------------
+
+    if notice_anchor_date:
+
+        # Calendar-month notice period
         if (
-            contract.notice_period_anchor == "end_date"
-            and effective_end_date
+            contract.notice_period_value is not None
+            and contract.notice_period_unit == "months"
         ):
             cancellation_deadline = (
-                effective_end_date
-                - timedelta(days=contract.notice_period_days)
+                notice_anchor_date
+                - relativedelta(
+                    months=contract.notice_period_value
+                )
             )
 
+        # Fixed-day notice period
         elif (
-            contract.notice_period_anchor == "renewal_date"
-            and effective_renewal_date
+            contract.notice_period_value is not None
+            and contract.notice_period_unit == "days"
         ):
             cancellation_deadline = (
-                effective_renewal_date
-                - timedelta(days=contract.notice_period_days)
+                notice_anchor_date
+                - timedelta(
+                    days=contract.notice_period_value
+                )
+            )
+
+        # Backward compatibility for contracts created
+        # before value/unit fields were introduced.
+        elif contract.notice_period_days is not None:
+            cancellation_deadline = (
+                notice_anchor_date
+                - timedelta(
+                    days=contract.notice_period_days
+                )
             )
 
     # --------------------------------------------------
-    # 4. Calculate days remaining
+    # 5. Calculate days remaining
     # --------------------------------------------------
 
     today = date.today()
@@ -93,7 +129,7 @@ def calculate_renewal_intelligence(contract):
         ).days
 
     # --------------------------------------------------
-    # 5. Risk scoring
+    # 6. Risk scoring
     # --------------------------------------------------
 
     if not cancellation_deadline:
@@ -115,7 +151,7 @@ def calculate_renewal_intelligence(contract):
         risk_level = "safe"
 
     # --------------------------------------------------
-    # 6. Recommendation
+    # 7. Recommendation
     # --------------------------------------------------
 
     if risk_level == "critical":
@@ -156,6 +192,10 @@ def calculate_renewal_intelligence(contract):
             "required contract dates are missing."
         )
 
+    # --------------------------------------------------
+    # 8. Return renewal intelligence
+    # --------------------------------------------------
+
     return {
         "effective_start_date": (
             start_date.isoformat()
@@ -190,7 +230,9 @@ def calculate_renewal_intelligence(contract):
         "days_until_cancellation_deadline":
             days_until_deadline,
 
-        "risk_level": risk_level,
+        "risk_level":
+            risk_level,
 
-        "recommendation": recommendation,
+        "recommendation":
+            recommendation,
     }
