@@ -1588,6 +1588,10 @@ export default function AnalyzeContractPage() {
                         <option value="months">
                           Months
                         </option>
+
+                        <option value="business_days">
+                          Business Days
+                        </option>
                       </select>
 
                     </div>

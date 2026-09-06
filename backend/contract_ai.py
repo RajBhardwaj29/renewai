@@ -124,6 +124,7 @@ IMPORTANT RULES:
    notice_period_unit must use exactly one of:
    - "days"
    - "months"
+   - "business_days"
    - null
 
    notice_period_days exists for backward compatibility.
@@ -152,8 +153,23 @@ IMPORTANT RULES:
    -> notice_period_unit = "months"
    -> notice_period_days = null
 
+   When the contract explicitly expresses the notice period in business days:
+   - set notice_period_value to the number of business days
+   - set notice_period_unit = "business_days"
+   - set notice_period_days = null
+
+   Example:
+   "Customer must provide written notice at least 30 business days before
+   the applicable renewal date."
+   -> notice_period_value = 30
+   -> notice_period_unit = "business_days"
+   -> notice_period_days = null
+
    Never convert months into days.
    Never convert days into months.
+   Never convert business days into calendar days.
+   Never approximate business days using weekdays only.
+   Never infer a holiday calendar or jurisdiction unless explicitly provided.
    Never approximate a calendar month as 30 days.
 
 7. notice_period_anchor identifies the explicit contractual date from which

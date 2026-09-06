@@ -3061,7 +3061,12 @@ function formatNoticePeriod(
     noticePeriodValue !== null &&
     noticePeriodUnit
   ) {
-    return `${noticePeriodValue} ${noticePeriodUnit}`;
+    const unitLabel =
+  noticePeriodUnit === "business_days"
+    ? "business days"
+    : noticePeriodUnit;
+
+return `${noticePeriodValue} ${unitLabel}`;
   }
 
   // Backward compatibility for older contracts
