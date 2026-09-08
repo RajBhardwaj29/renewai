@@ -17,6 +17,51 @@ def parse_date(value: str | None):
         return None
 
 
+def subtract_notice_period(
+    anchor_date,
+    value,
+    unit,
+):
+    """
+    Calculate a notice boundary from an anchor date.
+
+    Calendar days:
+        timedelta(days=...)
+
+    Calendar months:
+        relativedelta(months=...)
+
+    Business days:
+        deliberately not calculated because RenewAI
+        does not yet have a reliable holiday/business
+        calendar.
+    """
+
+    if (
+        anchor_date is None
+        or value is None
+        or unit is None
+    ):
+        return None
+
+    if unit == "days":
+        return (
+            anchor_date
+            - timedelta(days=value)
+        )
+
+    if unit == "months":
+        return (
+            anchor_date
+            - relativedelta(months=value)
+        )
+
+    if unit == "business_days":
+        return None
+
+    return None
+
+
 def calculate_renewal_intelligence(contract):
 
     start_date = parse_date(
@@ -33,7 +78,11 @@ def calculate_renewal_intelligence(contract):
 
     derived_end_date = None
     derived_renewal_date = None
+
     cancellation_deadline = None
+
+    notice_window_open_date = None
+    notice_window_close_date = None
 
     # --------------------------------------------------
     # 1. Derive contract end date
@@ -86,7 +135,7 @@ def calculate_renewal_intelligence(contract):
         effective_renewal_date = None
 
     # --------------------------------------------------
-    # 3. Determine notice anchor
+    # 3. Determine contractual notice anchor
     # --------------------------------------------------
 
     notice_anchor_date = None
@@ -112,24 +161,62 @@ def calculate_renewal_intelligence(contract):
         )
 
     # --------------------------------------------------
-    # 4. Calculate cancellation deadline
+    # 4. Determine whether this is a notice window
     # --------------------------------------------------
 
-    if notice_anchor_date:
+    has_notice_window = (
+        contract.notice_window_start_value
+        is not None
+        or contract.notice_window_end_value
+        is not None
+    )
 
-        # ----------------------------------------------
+    # --------------------------------------------------
+    # 5. Calculate notice window
+    # --------------------------------------------------
+
+    if (
+        has_notice_window
+        and notice_anchor_date
+    ):
+
+        notice_window_open_date = (
+            subtract_notice_period(
+                notice_anchor_date,
+                contract.notice_window_start_value,
+                contract.notice_window_start_unit,
+            )
+        )
+
+        notice_window_close_date = (
+            subtract_notice_period(
+                notice_anchor_date,
+                contract.notice_window_end_value,
+                contract.notice_window_end_unit,
+            )
+        )
+
+        # The closing boundary is the final date on
+        # which valid notice may be delivered.
+        #
+        # It therefore acts as the cancellation /
+        # non-renewal deadline when it can be safely
+        # calculated.
+
+        if notice_window_close_date:
+            cancellation_deadline = (
+                notice_window_close_date
+            )
+
+    # --------------------------------------------------
+    # 6. Calculate ordinary single notice period
+    # --------------------------------------------------
+
+    elif notice_anchor_date:
+
         # Business-day notice period
         #
-        # We deliberately DO NOT calculate this yet.
-        #
-        # Business days depend on a defined business
-        # calendar, weekends, public holidays and
-        # potentially jurisdiction-specific rules.
-        #
-        # Treating business days as ordinary calendar
-        # days could produce a legally incorrect
-        # cancellation deadline.
-        # ----------------------------------------------
+        # Do not manufacture a calendar-day deadline.
 
         if (
             contract.notice_period_value
@@ -140,9 +227,7 @@ def calculate_renewal_intelligence(contract):
 
             cancellation_deadline = None
 
-        # ----------------------------------------------
         # Calendar-month notice period
-        # ----------------------------------------------
 
         elif (
             contract.notice_period_value
@@ -159,9 +244,7 @@ def calculate_renewal_intelligence(contract):
                 )
             )
 
-        # ----------------------------------------------
-        # Fixed calendar-day notice period
-        # ----------------------------------------------
+        # Calendar-day notice period
 
         elif (
             contract.notice_period_value
@@ -178,12 +261,7 @@ def calculate_renewal_intelligence(contract):
                 )
             )
 
-        # ----------------------------------------------
-        # Backward compatibility
-        #
-        # Older contracts may only contain
-        # notice_period_days.
-        # ----------------------------------------------
+        # Backward compatibility for older contracts
 
         elif (
             contract.notice_period_days
@@ -199,7 +277,7 @@ def calculate_renewal_intelligence(contract):
             )
 
     # --------------------------------------------------
-    # 5. Calculate days remaining
+    # 7. Calculate days remaining
     # --------------------------------------------------
 
     today = date.today()
@@ -214,7 +292,7 @@ def calculate_renewal_intelligence(contract):
         ).days
 
     # --------------------------------------------------
-    # 6. Risk scoring
+    # 8. Risk scoring
     # --------------------------------------------------
 
     if not cancellation_deadline:
@@ -242,7 +320,7 @@ def calculate_renewal_intelligence(contract):
         risk_level = "safe"
 
     # --------------------------------------------------
-    # 7. Recommendation
+    # 9. Recommendation
     # --------------------------------------------------
 
     if risk_level == "critical":
@@ -289,9 +367,9 @@ def calculate_renewal_intelligence(contract):
 
     else:
 
-        # Business-day periods intentionally land here
-        # until RenewAI has enough information to
-        # calculate them safely.
+        # ----------------------------------------------
+        # Business-day ordinary notice period
+        # ----------------------------------------------
 
         if (
             contract.notice_period_unit
@@ -306,16 +384,49 @@ def calculate_renewal_intelligence(contract):
                 "calendar."
             )
 
+        # ----------------------------------------------
+        # Business-day notice-window boundary
+        # ----------------------------------------------
+
+        elif (
+            contract.notice_window_start_unit
+            == "business_days"
+            or contract.notice_window_end_unit
+            == "business_days"
+        ):
+
+            recommendation = (
+                "The contract defines a notice window "
+                "using business days. Reliable notice "
+                "window dates cannot be calculated "
+                "without a defined business-day and "
+                "holiday calendar."
+            )
+
+        # ----------------------------------------------
+        # Notice window exists but cannot yet be
+        # completely calculated
+        # ----------------------------------------------
+
+        elif has_notice_window:
+
+            recommendation = (
+                "The contract defines a notice window, "
+                "but the window boundaries cannot yet "
+                "be calculated reliably from the "
+                "available contract information."
+            )
+
         else:
 
             recommendation = (
                 "Renewal risk cannot yet be determined "
                 "because required contract dates "
-                "are missing."
+                "or notice terms are missing."
             )
 
     # --------------------------------------------------
-    # 8. Return renewal intelligence
+    # 10. Return renewal intelligence
     # --------------------------------------------------
 
     return {
@@ -343,6 +454,16 @@ def calculate_renewal_intelligence(contract):
         "derived_renewal_date":
             derived_renewal_date.isoformat()
             if derived_renewal_date
+            else None,
+
+        "notice_window_open_date":
+            notice_window_open_date.isoformat()
+            if notice_window_open_date
+            else None,
+
+        "notice_window_close_date":
+            notice_window_close_date.isoformat()
+            if notice_window_close_date
             else None,
 
         "cancellation_deadline":

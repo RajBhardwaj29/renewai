@@ -61,7 +61,14 @@ class ContractData(BaseModel):
     notice_period_days: int | None
     notice_period_value: int | None
     notice_period_unit: str | None
+
+    notice_window_start_value: int | None
+    notice_window_start_unit: str | None
+    notice_window_end_value: int | None
+    notice_window_end_unit: str | None
+
     notice_period_anchor: str | None
+
     auto_renewal: bool | None
 
     renewal_clause: str | None
@@ -117,9 +124,10 @@ IMPORTANT RULES:
 3. If information is unavailable, return null.
 4. Dates should use YYYY-MM-DD whenever possible.
 5. contract_value must be numeric only.
-6. Preserve the notice period exactly as expressed by the contract.
+6. Preserve the notice requirement exactly as expressed by the contract.
 
-   notice_period_value must contain the numeric amount of the notice period.
+   notice_period_value must contain the numeric amount of a single notice
+   period when the contract defines one ordinary notice period.
 
    notice_period_unit must use exactly one of:
    - "days"
@@ -128,6 +136,8 @@ IMPORTANT RULES:
    - null
 
    notice_period_days exists for backward compatibility.
+
+   For ordinary single-period notice requirements:
 
    When the contract explicitly expresses the notice period in days:
    - set notice_period_value to the number of days
@@ -165,12 +175,76 @@ IMPORTANT RULES:
    -> notice_period_unit = "business_days"
    -> notice_period_days = null
 
+
+   NOTICE WINDOWS
+
+   Some contracts define a valid notice window rather than one single notice
+   period.
+
+   A notice window exists when the contract specifies both:
+   - the earliest time notice may validly be delivered, and
+   - the latest time notice may validly be delivered.
+
+   Use these fields for notice windows:
+   - notice_window_start_value
+   - notice_window_start_unit
+   - notice_window_end_value
+   - notice_window_end_unit
+
+   The allowed units for notice-window fields are:
+   - "days"
+   - "months"
+   - "business_days"
+   - null
+
+   notice_window_start_* represents the boundary at which the valid notice
+   window opens.
+
+   notice_window_end_* represents the boundary at which the valid notice
+   window closes and therefore the latest valid notice date.
+
+   Example:
+   "Customer must provide notice no earlier than 120 calendar days and
+   no later than 90 calendar days before expiration of the current term."
+
+   -> notice_window_start_value = 120
+   -> notice_window_start_unit = "days"
+   -> notice_window_end_value = 90
+   -> notice_window_end_unit = "days"
+
+   -> notice_period_value = null
+   -> notice_period_unit = null
+   -> notice_period_days = null
+
+   Do not collapse a notice window into one ordinary notice period.
+   Do not choose only the earlier boundary.
+   Do not choose only the later boundary.
+
+   Preserve both contractual boundaries.
+
+   If the contract contains an ordinary single notice period and does not
+   contain a notice window:
+   - notice_window_start_value = null
+   - notice_window_start_unit = null
+   - notice_window_end_value = null
+   - notice_window_end_unit = null
+
+   If the contract contains a notice window:
+   - notice_period_value = null
+   - notice_period_unit = null
+   - notice_period_days = null
+
+
+   UNIT PRESERVATION RULES
+
    Never convert months into days.
    Never convert days into months.
    Never convert business days into calendar days.
    Never approximate business days using weekdays only.
    Never infer a holiday calendar or jurisdiction unless explicitly provided.
    Never approximate a calendar month as 30 days.
+
+   Preserve the unit exactly as the contract expresses it.
 
 7. notice_period_anchor identifies the explicit contractual date from which
    the notice period must be counted backwards.

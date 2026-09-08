@@ -39,9 +39,18 @@ type Contract = {
   renewal_term_months: number | null;
 
   notice_period_days: number | null;
-  notice_period_value: number | null;
-  notice_period_unit: string | null;
-  auto_renewal: boolean | null;
+notice_period_value: number | null;
+notice_period_unit: string | null;
+
+notice_window_start_value: number | null;
+notice_window_start_unit: string | null;
+notice_window_end_value: number | null;
+notice_window_end_unit: string | null;
+
+notice_window_open_date: string | null;
+notice_window_close_date: string | null;
+
+auto_renewal: boolean | null;
 
   renewal_clause: string | null;
   termination_clause: string | null;
@@ -1477,10 +1486,14 @@ export default function ContractDetailPage() {
                 <DarkMetric
                   label="Notice period"
                   value={
-                    formatNoticePeriod(
+                    formatNoticeRequirement(
                       contract.notice_period_value,
                       contract.notice_period_unit,
-                      contract.notice_period_days
+                      contract.notice_period_days,
+                      contract.notice_window_start_value,
+                      contract.notice_window_start_unit,
+                      contract.notice_window_end_value,
+                      contract.notice_window_end_unit
                     )
                   }
                 />
@@ -1580,10 +1593,14 @@ export default function ContractDetailPage() {
               label="Notice Period"
 
               value={
-                formatNoticePeriod(
+                formatNoticeRequirement(
                   contract.notice_period_value,
                   contract.notice_period_unit,
-                  contract.notice_period_days
+                  contract.notice_period_days,
+                  contract.notice_window_start_value,
+                  contract.notice_window_start_unit,
+                  contract.notice_window_end_value,
+                  contract.notice_window_end_unit
                 )
               }
 
@@ -2351,10 +2368,14 @@ export default function ContractDetailPage() {
               <DetailRow
                 label="Notice Period"
                 value={
-                  formatNoticePeriod(
+                  formatNoticeRequirement(
                     contract.notice_period_value,
                     contract.notice_period_unit,
-                    contract.notice_period_days
+                    contract.notice_period_days,
+                    contract.notice_window_start_value,
+                    contract.notice_window_start_unit,
+                    contract.notice_window_end_value,
+                    contract.notice_window_end_unit
                   )
                 }
               />
@@ -2441,6 +2462,31 @@ export default function ContractDetailPage() {
                 }
               />
 
+{(
+  contract.notice_window_start_value !== null
+  ||
+  contract.notice_window_end_value !== null
+) && (
+  <>
+    <DetailRow
+      label="Notice Window Opens"
+      value={
+        formatDate(
+          contract.notice_window_open_date
+        )
+      }
+    />
+
+    <DetailRow
+      label="Notice Window Closes"
+      value={
+        formatDate(
+          contract.notice_window_close_date
+        )
+      }
+    />
+  </>
+)}
 
               <DetailRow
                 label="Cancellation Deadline"
@@ -3075,6 +3121,50 @@ return `${noticePeriodValue} ${unitLabel}`;
   }
 
   return "Not found";
+}
+
+function formatNoticeRequirement(
+  noticePeriodValue: number | null,
+  noticePeriodUnit: string | null,
+  noticePeriodDays: number | null,
+  noticeWindowStartValue: number | null,
+  noticeWindowStartUnit: string | null,
+  noticeWindowEndValue: number | null,
+  noticeWindowEndUnit: string | null
+) {
+  const formatUnit = (
+    value: number,
+    unit: string | null
+  ) => {
+    if (!unit) {
+      return `${value}`;
+    }
+
+    if (unit === "business_days") {
+      return `${value} business days`;
+    }
+
+    return `${value} ${unit}`;
+  };
+
+  if (
+    noticeWindowStartValue !== null &&
+    noticeWindowEndValue !== null
+  ) {
+    return `${formatUnit(
+      noticeWindowStartValue,
+      noticeWindowStartUnit
+    )} → ${formatUnit(
+      noticeWindowEndValue,
+      noticeWindowEndUnit
+    )}`;
+  }
+
+  return formatNoticePeriod(
+    noticePeriodValue,
+    noticePeriodUnit,
+    noticePeriodDays
+  );
 }
 
 

@@ -206,6 +206,18 @@ def save_contract(
         "notice_period_unit":
             contract.notice_period_unit,
 
+        "notice_window_start_value":
+            contract.notice_window_start_value,
+
+        "notice_window_start_unit":
+            contract.notice_window_start_unit,
+
+        "notice_window_end_value":
+            contract.notice_window_end_value,
+
+        "notice_window_end_unit":
+            contract.notice_window_end_unit,
+
         "notice_period_anchor":
             contract.notice_period_anchor,
 
@@ -251,14 +263,24 @@ def save_contract(
             ),
 
         "derived_renewal_date":
-            renewal_intelligence.get(
-                "derived_renewal_date"
-            ),
+    renewal_intelligence.get(
+        "derived_renewal_date"
+    ),
 
-        "cancellation_deadline":
-            renewal_intelligence.get(
-                "cancellation_deadline"
-            ),
+"notice_window_open_date":
+    renewal_intelligence.get(
+        "notice_window_open_date"
+    ),
+
+"notice_window_close_date":
+    renewal_intelligence.get(
+        "notice_window_close_date"
+    ),
+
+"cancellation_deadline":
+    renewal_intelligence.get(
+        "cancellation_deadline"
+    ),
 
         "days_until_cancellation_deadline":
             renewal_intelligence.get(

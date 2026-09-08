@@ -29,9 +29,16 @@ type ContractData = {
   renewal_term_months: number | null;
 
   notice_period_days: number | null;
-  notice_period_anchor: string | null;
+
   notice_period_value: number | null;
   notice_period_unit: string | null;
+
+  notice_window_start_value: number | null;
+  notice_window_start_unit: string | null;
+  notice_window_end_value: number | null;
+  notice_window_end_unit: string | null;
+
+  notice_period_anchor: string | null;
 
   auto_renewal: boolean | null;
 
@@ -53,6 +60,9 @@ type RenewalIntelligence = {
   derived_end_date: string | null;
   derived_renewal_date: string | null;
 
+  notice_window_open_date: string | null;
+  notice_window_close_date: string | null;
+  
   cancellation_deadline: string | null;
 
   days_until_cancellation_deadline:
@@ -1477,9 +1487,168 @@ export default function AnalyzeContractPage() {
                     </FormField>
 
 
-                    <FormField
-                    label="Notice Period"
-                  >
+                    {(
+  reviewedContract.notice_window_start_value !== null
+  ||
+  reviewedContract.notice_window_end_value !== null
+) && (
+  <div className="space-y-4">
+    <div className="text-sm font-medium text-slate-700">
+      Notice Window
+    </div>
+
+    <FormField label="Window Opens">
+      <div className="grid grid-cols-[1fr_140px] gap-3">
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value={
+            reviewedContract.notice_window_start_value
+            ?? ""
+          }
+          onChange={(event) => {
+            const value =
+              event.target.value === ""
+                ? null
+                : Number(event.target.value);
+
+            setReviewedContract(
+              (current) =>
+                current
+                  ? {
+                      ...current,
+                      notice_window_start_value: value,
+                    }
+                  : current
+            );
+          }}
+          className="renewai-input"
+        />
+
+        <select
+          value={
+            reviewedContract.notice_window_start_unit
+            ?? "unknown"
+          }
+          onChange={(event) => {
+            const unit =
+              event.target.value === "unknown"
+                ? null
+                : event.target.value;
+
+            setReviewedContract(
+              (current) =>
+                current
+                  ? {
+                      ...current,
+                      notice_window_start_unit: unit,
+                    }
+                  : current
+            );
+          }}
+          className="renewai-input"
+        >
+          <option value="unknown">
+            Unit
+          </option>
+
+          <option value="days">
+            Days
+          </option>
+
+          <option value="months">
+            Months
+          </option>
+
+          <option value="business_days">
+            Business Days
+          </option>
+        </select>
+      </div>
+    </FormField>
+
+    <FormField label="Window Closes">
+      <div className="grid grid-cols-[1fr_140px] gap-3">
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value={
+            reviewedContract.notice_window_end_value
+            ?? ""
+          }
+          onChange={(event) => {
+            const value =
+              event.target.value === ""
+                ? null
+                : Number(event.target.value);
+
+            setReviewedContract(
+              (current) =>
+                current
+                  ? {
+                      ...current,
+                      notice_window_end_value: value,
+                    }
+                  : current
+            );
+          }}
+          className="renewai-input"
+        />
+
+        <select
+          value={
+            reviewedContract.notice_window_end_unit
+            ?? "unknown"
+          }
+          onChange={(event) => {
+            const unit =
+              event.target.value === "unknown"
+                ? null
+                : event.target.value;
+
+            setReviewedContract(
+              (current) =>
+                current
+                  ? {
+                      ...current,
+                      notice_window_end_unit: unit,
+                    }
+                  : current
+            );
+          }}
+          className="renewai-input"
+        >
+          <option value="unknown">
+            Unit
+          </option>
+
+          <option value="days">
+            Days
+          </option>
+
+          <option value="months">
+            Months
+          </option>
+
+          <option value="business_days">
+            Business Days
+          </option>
+        </select>
+      </div>
+    </FormField>
+  </div>
+)}
+
+{!(
+  reviewedContract.notice_window_start_value !== null
+  ||
+  reviewedContract.notice_window_end_value !== null
+) && (
+<FormField
+  label="Notice Period"
+>
                     <div className="grid grid-cols-[1fr_140px] gap-3">
 
                       <input
@@ -1596,6 +1765,7 @@ export default function AnalyzeContractPage() {
 
                     </div>
                   </FormField>
+                )}
 
                     <FormField
   label="Notice Based On"
@@ -1922,16 +2092,46 @@ export default function AnalyzeContractPage() {
                       />
 
 
-                      <DetailRow
-                        label="Cancellation Deadline"
-                        value={
-                          formatDate(
-                            analysis
-                              .renewal_intelligence
-                              .cancellation_deadline
-                          )
-                        }
-                      />
+{(
+  analysis.contract.notice_window_start_value !== null
+  ||
+  analysis.contract.notice_window_end_value !== null
+) && (
+  <>
+    <DetailRow
+      label="Notice Window Opens"
+      value={
+        formatDate(
+          analysis
+            .renewal_intelligence
+            .notice_window_open_date
+        )
+      }
+    />
+
+    <DetailRow
+      label="Notice Window Closes"
+      value={
+        formatDate(
+          analysis
+            .renewal_intelligence
+            .notice_window_close_date
+        )
+      }
+    />
+  </>
+)}
+
+<DetailRow
+  label="Cancellation Deadline"
+  value={
+    formatDate(
+      analysis
+        .renewal_intelligence
+        .cancellation_deadline
+    )
+  }
+/>
 
                     </div>
 
@@ -2228,19 +2428,42 @@ reviewed contract evidence.
                   />
 
 
-                  <InfoCard
-                    label="Notice Period"
-                    value={
-                      savedResult
-                        .contract
-                        .notice_period_days
-                      !== null
+<InfoCard
+  label={
+    savedResult.contract.notice_window_start_value !== null
+    || savedResult.contract.notice_window_end_value !== null
+      ? "Notice Window"
+      : "Notice Period"
+  }
+  value={
+    savedResult.contract.notice_window_start_value !== null
+    && savedResult.contract.notice_window_end_value !== null
 
-                        ? `${savedResult.contract.notice_period_days} days`
+      ? `${savedResult.contract.notice_window_start_value} ${
+          savedResult.contract.notice_window_start_unit === "business_days"
+            ? "business days"
+            : savedResult.contract.notice_window_start_unit ?? ""
+        } → ${savedResult.contract.notice_window_end_value} ${
+          savedResult.contract.notice_window_end_unit === "business_days"
+            ? "business days"
+            : savedResult.contract.notice_window_end_unit ?? ""
+        }`
 
-                        : "Not found"
-                    }
-                  />
+      : savedResult.contract.notice_period_value !== null
+
+        ? `${savedResult.contract.notice_period_value} ${
+            savedResult.contract.notice_period_unit === "business_days"
+              ? "business days"
+              : savedResult.contract.notice_period_unit ?? ""
+          }`
+
+        : savedResult.contract.notice_period_days !== null
+
+          ? `${savedResult.contract.notice_period_days} days`
+
+          : "Not found"
+  }
+/>
 
 
                   <InfoCard
