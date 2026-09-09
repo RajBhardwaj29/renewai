@@ -197,6 +197,9 @@ def save_contract(
         "renewal_term_months":
             contract.renewal_term_months,
 
+        "renewal_structure":
+            contract.renewal_structure,
+
         "notice_period_days":
             contract.notice_period_days,
 

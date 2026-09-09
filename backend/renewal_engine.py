@@ -3,476 +3,774 @@ from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 
-def parse_date(value: str | None):
-    if not value:
+# =========================================================
+# DATE HELPERS
+# =========================================================
+
+
+def parse_date(
+    value: str | date | datetime | None,
+) -> date | None:
+    if value is None:
         return None
 
-    try:
-        return datetime.strptime(
-            value,
-            "%Y-%m-%d",
-        ).date()
+    if isinstance(value, datetime):
+        return value.date()
 
-    except ValueError:
+    if isinstance(value, date):
+        return value
+
+    if isinstance(value, str):
+        value = value.strip()
+
+        if not value:
+            return None
+
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            return None
+
+    return None
+
+
+def format_date(
+    value: date | None,
+) -> str | None:
+    if value is None:
         return None
+
+    return value.isoformat()
+
+
+# =========================================================
+# NOTICE PERIOD CALCULATION
+# =========================================================
 
 
 def subtract_notice_period(
-    anchor_date,
-    value,
-    unit,
-):
+    anchor_date: date | None,
+    value: int | None,
+    unit: str | None,
+) -> date | None:
     """
-    Calculate a notice boundary from an anchor date.
+    Subtract a contractual notice period from an anchor date.
 
-    Calendar days:
-        timedelta(days=...)
+    Supported units:
+    - days
+    - months
+    - business_days
 
-    Calendar months:
-        relativedelta(months=...)
-
-    Business days:
-        deliberately not calculated because RenewAI
-        does not yet have a reliable holiday/business
-        calendar.
+    Business-day deadlines are deliberately NOT calculated because
+    RenewAI currently does not have a reliable jurisdiction-specific
+    holiday/business-day calendar.
     """
 
     if (
         anchor_date is None
         or value is None
-        or unit is None
+        or value < 0
     ):
         return None
 
-    if unit == "days":
+    normalized_unit = (
+        unit.strip().lower()
+        if isinstance(unit, str)
+        else None
+    )
+
+    if normalized_unit == "days":
         return (
             anchor_date
             - timedelta(days=value)
         )
 
-    if unit == "months":
+    if normalized_unit == "months":
         return (
             anchor_date
             - relativedelta(months=value)
         )
 
-    if unit == "business_days":
+    if normalized_unit == "business_days":
         return None
 
     return None
 
 
-def calculate_renewal_intelligence(contract):
+# =========================================================
+# RISK HELPERS
+# =========================================================
+
+
+def calculate_deadline_risk(
+    cancellation_deadline: date | None,
+) -> tuple[
+    str,
+    int | None,
+    str,
+]:
+    if cancellation_deadline is None:
+        return (
+            "unknown",
+            None,
+            (
+                "Renewal risk cannot yet be determined because "
+                "required contract dates or notice terms are missing."
+            ),
+        )
+
+    today = date.today()
+
+    days_remaining = (
+        cancellation_deadline
+        - today
+    ).days
+
+    if days_remaining < 0:
+        return (
+            "critical",
+            days_remaining,
+            (
+                "The contractual cancellation or non-renewal "
+                "deadline has already passed."
+            ),
+        )
+
+    if days_remaining <= 14:
+        return (
+            "critical",
+            days_remaining,
+            (
+                "The contractual cancellation or non-renewal "
+                "deadline is imminent. Immediate review is required."
+            ),
+        )
+
+    if days_remaining <= 30:
+        return (
+            "urgent",
+            days_remaining,
+            (
+                "The contractual cancellation or non-renewal "
+                "deadline is approaching. Review promptly."
+            ),
+        )
+
+    if days_remaining <= 90:
+        return (
+            "attention",
+            days_remaining,
+            (
+                "The contractual cancellation or non-renewal "
+                "deadline is within the next 90 days."
+            ),
+        )
+
+    return (
+        "safe",
+        days_remaining,
+        (
+            "No immediate action required. "
+            "Continue monitoring."
+        ),
+    )
+
+
+# =========================================================
+# MAIN RENEWAL ENGINE
+# =========================================================
+
+
+def calculate_renewal_intelligence(
+    contract,
+) -> dict:
+    """
+    Deterministically calculate renewal dates, cancellation deadlines,
+    notice windows and time-based renewal risk.
+
+    AI interprets contractual meaning.
+    This engine performs date arithmetic only from reviewed structured
+    contract data.
+
+    Supported renewal structures:
+
+    fixed_term
+        A contract that ends without automatic renewal.
+
+    fixed_term_auto_renewal
+        A contract that renews into defined subsequent terms.
+
+    evergreen_indefinite
+        A contract that continues indefinitely after the initial term
+        without successive fixed renewal periods.
+
+    Older contracts may have renewal_structure = None. Those contracts
+    continue to use the legacy auto_renewal behavior for backwards
+    compatibility.
+    """
+
+    # -----------------------------------------------------
+    # SOURCE FIELDS
+    # -----------------------------------------------------
 
     start_date = parse_date(
-        contract.start_date
+        getattr(
+            contract,
+            "start_date",
+            None,
+        )
     )
 
-    end_date = parse_date(
-        contract.end_date
+    explicit_end_date = parse_date(
+        getattr(
+            contract,
+            "end_date",
+            None,
+        )
     )
 
-    renewal_date = parse_date(
-        contract.renewal_date
+    explicit_renewal_date = parse_date(
+        getattr(
+            contract,
+            "renewal_date",
+            None,
+        )
     )
 
-    derived_end_date = None
-    derived_renewal_date = None
+    initial_term_months = getattr(
+        contract,
+        "initial_term_months",
+        None,
+    )
 
-    cancellation_deadline = None
+    renewal_term_months = getattr(
+        contract,
+        "renewal_term_months",
+        None,
+    )
 
-    notice_window_open_date = None
-    notice_window_close_date = None
+    auto_renewal = getattr(
+        contract,
+        "auto_renewal",
+        None,
+    )
 
-    # --------------------------------------------------
-    # 1. Derive contract end date
-    # --------------------------------------------------
+    renewal_structure = getattr(
+        contract,
+        "renewal_structure",
+        None,
+    )
+
+    notice_period_days = getattr(
+        contract,
+        "notice_period_days",
+        None,
+    )
+
+    notice_period_value = getattr(
+        contract,
+        "notice_period_value",
+        None,
+    )
+
+    notice_period_unit = getattr(
+        contract,
+        "notice_period_unit",
+        None,
+    )
+
+    notice_period_anchor = getattr(
+        contract,
+        "notice_period_anchor",
+        None,
+    )
+
+    notice_window_start_value = getattr(
+        contract,
+        "notice_window_start_value",
+        None,
+    )
+
+    notice_window_start_unit = getattr(
+        contract,
+        "notice_window_start_unit",
+        None,
+    )
+
+    notice_window_end_value = getattr(
+        contract,
+        "notice_window_end_value",
+        None,
+    )
+
+    notice_window_end_unit = getattr(
+        contract,
+        "notice_window_end_unit",
+        None,
+    )
+
+    # -----------------------------------------------------
+    # NORMALIZE RENEWAL STRUCTURE
+    # -----------------------------------------------------
+
+    if isinstance(
+        renewal_structure,
+        str,
+    ):
+        renewal_structure = (
+            renewal_structure
+            .strip()
+            .lower()
+        )
+
+    valid_structures = {
+        "fixed_term",
+        "fixed_term_auto_renewal",
+        "evergreen_indefinite",
+    }
 
     if (
-        not end_date
-        and start_date
-        and contract.initial_term_months
+        renewal_structure
+        not in valid_structures
+    ):
+        renewal_structure = None
+
+    is_evergreen = (
+        renewal_structure
+        == "evergreen_indefinite"
+    )
+
+    is_fixed_term = (
+        renewal_structure
+        == "fixed_term"
+    )
+
+    is_fixed_auto_renewal = (
+        renewal_structure
+        == "fixed_term_auto_renewal"
+    )
+
+    # -----------------------------------------------------
+    # EFFECTIVE START
+    # -----------------------------------------------------
+
+    effective_start_date = start_date
+
+    # -----------------------------------------------------
+    # EFFECTIVE / DERIVED END DATE
+    # -----------------------------------------------------
+
+    derived_end_date = None
+
+    if explicit_end_date:
+        effective_end_date = (
+            explicit_end_date
+        )
+
+    elif (
+        start_date
+        and initial_term_months
+        and initial_term_months > 0
     ):
         derived_end_date = (
             start_date
             + relativedelta(
-                months=contract.initial_term_months
+                months=initial_term_months
             )
             - timedelta(days=1)
         )
 
-    effective_end_date = (
-        end_date
-        or derived_end_date
-    )
-
-    # --------------------------------------------------
-    # 2. Determine renewal date
-    # --------------------------------------------------
-
-    if renewal_date:
-
-        effective_renewal_date = (
-            renewal_date
-        )
-
-    elif (
-        contract.auto_renewal
-        and effective_end_date
-    ):
-
-        derived_renewal_date = (
-            effective_end_date
-            + timedelta(days=1)
-        )
-
-        effective_renewal_date = (
-            derived_renewal_date
+        effective_end_date = (
+            derived_end_date
         )
 
     else:
+        effective_end_date = None
 
+    # -----------------------------------------------------
+    # EFFECTIVE / DERIVED RENEWAL DATE
+    # -----------------------------------------------------
+
+    derived_renewal_date = None
+
+    if is_evergreen:
+        # Evergreen continuation does not create a fixed renewal date.
         effective_renewal_date = None
 
-    # --------------------------------------------------
-    # 3. Determine contractual notice anchor
-    # --------------------------------------------------
+    elif is_fixed_term:
+        # A non-renewing fixed-term agreement has no renewal date.
+        effective_renewal_date = None
 
-    notice_anchor_date = None
+    elif explicit_renewal_date:
+        effective_renewal_date = (
+            explicit_renewal_date
+        )
 
-    if (
-        contract.notice_period_anchor
-        == "end_date"
-        and effective_end_date
-    ):
+    else:
+        should_derive_renewal = False
 
+        # New explicit lifecycle model.
+        if is_fixed_auto_renewal:
+            should_derive_renewal = True
+
+        # Backward compatibility for existing records created before
+        # renewal_structure existed.
+        elif (
+            renewal_structure is None
+            and auto_renewal is True
+        ):
+            should_derive_renewal = True
+
+        if (
+            should_derive_renewal
+            and effective_end_date
+        ):
+            derived_renewal_date = (
+                effective_end_date
+                + timedelta(days=1)
+            )
+
+            effective_renewal_date = (
+                derived_renewal_date
+            )
+
+        else:
+            effective_renewal_date = None
+
+    # -----------------------------------------------------
+    # EVERGREEN CONTRACT
+    # -----------------------------------------------------
+
+    if is_evergreen:
+        return {
+            "effective_start_date":
+                format_date(
+                    effective_start_date
+                ),
+
+            "effective_end_date":
+                format_date(
+                    effective_end_date
+                ),
+
+            "effective_renewal_date":
+                None,
+
+            "derived_end_date":
+                format_date(
+                    derived_end_date
+                ),
+
+            "derived_renewal_date":
+                None,
+
+            "notice_window_open_date":
+                None,
+
+            "notice_window_close_date":
+                None,
+
+            "cancellation_deadline":
+                None,
+
+            "days_until_cancellation_deadline":
+                None,
+
+            "risk_level":
+                "unknown",
+
+            "recommendation":
+                (
+                    "This contract continues on an evergreen basis "
+                    "without a fixed renewal date or cancellation "
+                    "deadline. Termination may be exercised on a "
+                    "rolling basis subject to the contractual "
+                    "notice period."
+                ),
+        }
+
+    # -----------------------------------------------------
+    # NOTICE ANCHOR
+    # -----------------------------------------------------
+
+    normalized_anchor = (
+        notice_period_anchor
+        .strip()
+        .lower()
+        if isinstance(
+            notice_period_anchor,
+            str,
+        )
+        else None
+    )
+
+    if normalized_anchor == "end_date":
         notice_anchor_date = (
             effective_end_date
         )
 
-    elif (
-        contract.notice_period_anchor
-        == "renewal_date"
-        and effective_renewal_date
-    ):
-
+    elif normalized_anchor == "renewal_date":
         notice_anchor_date = (
             effective_renewal_date
         )
 
-    # --------------------------------------------------
-    # 4. Determine whether this is a notice window
-    # --------------------------------------------------
+    else:
+        notice_anchor_date = None
+
+    # -----------------------------------------------------
+    # NOTICE WINDOW
+    # -----------------------------------------------------
 
     has_notice_window = (
-        contract.notice_window_start_value
+        notice_window_start_value
         is not None
-        or contract.notice_window_end_value
+        or notice_window_end_value
         is not None
     )
 
-    # --------------------------------------------------
-    # 5. Calculate notice window
-    # --------------------------------------------------
+    notice_window_open_date = None
+    notice_window_close_date = None
 
-    if (
-        has_notice_window
-        and notice_anchor_date
-    ):
+    cancellation_deadline = None
 
+    if has_notice_window:
         notice_window_open_date = (
             subtract_notice_period(
                 notice_anchor_date,
-                contract.notice_window_start_value,
-                contract.notice_window_start_unit,
+                notice_window_start_value,
+                notice_window_start_unit,
             )
         )
 
         notice_window_close_date = (
             subtract_notice_period(
                 notice_anchor_date,
-                contract.notice_window_end_value,
-                contract.notice_window_end_unit,
+                notice_window_end_value,
+                notice_window_end_unit,
             )
         )
 
-        # The closing boundary is the final date on
-        # which valid notice may be delivered.
-        #
-        # It therefore acts as the cancellation /
-        # non-renewal deadline when it can be safely
-        # calculated.
+        # The final valid date in the contractual window functions
+        # operationally as the cancellation/non-renewal deadline.
+        cancellation_deadline = (
+            notice_window_close_date
+        )
 
-        if notice_window_close_date:
-            cancellation_deadline = (
-                notice_window_close_date
+    # -----------------------------------------------------
+    # ORDINARY NOTICE PERIOD
+    # -----------------------------------------------------
+
+    else:
+        effective_notice_value = (
+            notice_period_value
+        )
+
+        effective_notice_unit = (
+            notice_period_unit
+        )
+
+        # Legacy compatibility:
+        # older contracts only stored notice_period_days.
+        if (
+            effective_notice_value
+            is None
+            and notice_period_days
+            is not None
+        ):
+            effective_notice_value = (
+                notice_period_days
             )
 
-    # --------------------------------------------------
-    # 6. Calculate ordinary single notice period
-    # --------------------------------------------------
-
-    elif notice_anchor_date:
-
-        # Business-day notice period
-        #
-        # Do not manufacture a calendar-day deadline.
+            effective_notice_unit = (
+                "days"
+            )
 
         if (
-            contract.notice_period_value
+            effective_notice_value
             is not None
-            and contract.notice_period_unit
+            and effective_notice_unit
+            is not None
+        ):
+            cancellation_deadline = (
+                subtract_notice_period(
+                    notice_anchor_date,
+                    effective_notice_value,
+                    effective_notice_unit,
+                )
+            )
+
+    # -----------------------------------------------------
+    # BUSINESS-DAY SAFETY
+    # -----------------------------------------------------
+
+    normalized_notice_unit = (
+        notice_period_unit
+        .strip()
+        .lower()
+        if isinstance(
+            notice_period_unit,
+            str,
+        )
+        else None
+    )
+
+    normalized_window_start_unit = (
+        notice_window_start_unit
+        .strip()
+        .lower()
+        if isinstance(
+            notice_window_start_unit,
+            str,
+        )
+        else None
+    )
+
+    normalized_window_end_unit = (
+        notice_window_end_unit
+        .strip()
+        .lower()
+        if isinstance(
+            notice_window_end_unit,
+            str,
+        )
+        else None
+    )
+
+    ordinary_business_days = (
+        not has_notice_window
+        and normalized_notice_unit
+        == "business_days"
+    )
+
+    window_has_business_days = (
+        has_notice_window
+        and (
+            normalized_window_start_unit
             == "business_days"
-        ):
+            or normalized_window_end_unit
+            == "business_days"
+        )
+    )
 
-            cancellation_deadline = None
-
-        # Calendar-month notice period
-
-        elif (
-            contract.notice_period_value
-            is not None
-            and contract.notice_period_unit
-            == "months"
-        ):
-
-            cancellation_deadline = (
-                notice_anchor_date
-                - relativedelta(
-                    months=
-                    contract.notice_period_value
-                )
-            )
-
-        # Calendar-day notice period
-
-        elif (
-            contract.notice_period_value
-            is not None
-            and contract.notice_period_unit
-            == "days"
-        ):
-
-            cancellation_deadline = (
-                notice_anchor_date
-                - timedelta(
-                    days=
-                    contract.notice_period_value
-                )
-            )
-
-        # Backward compatibility for older contracts
-
-        elif (
-            contract.notice_period_days
-            is not None
-        ):
-
-            cancellation_deadline = (
-                notice_anchor_date
-                - timedelta(
-                    days=
-                    contract.notice_period_days
-                )
-            )
-
-    # --------------------------------------------------
-    # 7. Calculate days remaining
-    # --------------------------------------------------
-
-    today = date.today()
-
-    days_until_deadline = None
-
-    if cancellation_deadline:
-
-        days_until_deadline = (
-            cancellation_deadline
-            - today
-        ).days
-
-    # --------------------------------------------------
-    # 8. Risk scoring
-    # --------------------------------------------------
-
-    if not cancellation_deadline:
-
+    if ordinary_business_days:
         risk_level = "unknown"
 
-    elif days_until_deadline < 0:
+        days_until_cancellation_deadline = (
+            None
+        )
 
-        risk_level = "critical"
+        recommendation = (
+            "The notice period is expressed in business days. "
+            "A reliable cancellation deadline cannot be "
+            "calculated without a defined business-day and "
+            "holiday calendar."
+        )
 
-    elif days_until_deadline <= 7:
+    elif window_has_business_days:
+        risk_level = "unknown"
 
-        risk_level = "critical"
+        days_until_cancellation_deadline = (
+            None
+        )
 
-    elif days_until_deadline <= 30:
+        recommendation = (
+            "The contractual notice window uses business days. "
+            "Reliable notice-window dates cannot be calculated "
+            "without a defined business-day and holiday calendar."
+        )
 
-        risk_level = "urgent"
+    # -----------------------------------------------------
+    # INCOMPLETE NOTICE WINDOW
+    # -----------------------------------------------------
 
-    elif days_until_deadline <= 90:
+    elif (
+        has_notice_window
+        and (
+            notice_window_start_value
+            is None
+            or notice_window_start_unit
+            is None
+            or notice_window_end_value
+            is None
+            or notice_window_end_unit
+            is None
+            or notice_anchor_date
+            is None
+        )
+    ):
+        risk_level = "unknown"
 
-        risk_level = "attention"
+        days_until_cancellation_deadline = (
+            None
+        )
+
+        recommendation = (
+            "The contract contains a notice window, but the "
+            "window cannot be calculated reliably because one "
+            "or more required notice terms or anchor dates are "
+            "unknown."
+        )
+
+    # -----------------------------------------------------
+    # NORMAL DEADLINE RISK
+    # -----------------------------------------------------
 
     else:
-
-        risk_level = "safe"
-
-    # --------------------------------------------------
-    # 9. Recommendation
-    # --------------------------------------------------
-
-    if risk_level == "critical":
-
-        if (
-            days_until_deadline is not None
-            and days_until_deadline < 0
-        ):
-
-            recommendation = (
-                "The cancellation deadline appears "
-                "to have passed. Review the agreement "
-                "immediately and contact the vendor."
-            )
-
-        else:
-
-            recommendation = (
-                "Immediate action required. "
-                "The cancellation deadline is "
-                "extremely close."
-            )
-
-    elif risk_level == "urgent":
-
-        recommendation = (
-            "Review this contract immediately "
-            "before the cancellation window closes."
+        (
+            risk_level,
+            days_until_cancellation_deadline,
+            recommendation,
+        ) = calculate_deadline_risk(
+            cancellation_deadline
         )
 
-    elif risk_level == "attention":
-
-        recommendation = (
-            "Begin renewal review and evaluate "
-            "usage, pricing and alternatives."
-        )
-
-    elif risk_level == "safe":
-
-        recommendation = (
-            "No immediate action required. "
-            "Continue monitoring."
-        )
-
-    else:
-
-        # ----------------------------------------------
-        # Business-day ordinary notice period
-        # ----------------------------------------------
-
-        if (
-            contract.notice_period_unit
-            == "business_days"
-        ):
-
-            recommendation = (
-                "The notice period is expressed in "
-                "business days. A reliable cancellation "
-                "deadline cannot be calculated without "
-                "a defined business-day and holiday "
-                "calendar."
-            )
-
-        # ----------------------------------------------
-        # Business-day notice-window boundary
-        # ----------------------------------------------
-
-        elif (
-            contract.notice_window_start_unit
-            == "business_days"
-            or contract.notice_window_end_unit
-            == "business_days"
-        ):
-
-            recommendation = (
-                "The contract defines a notice window "
-                "using business days. Reliable notice "
-                "window dates cannot be calculated "
-                "without a defined business-day and "
-                "holiday calendar."
-            )
-
-        # ----------------------------------------------
-        # Notice window exists but cannot yet be
-        # completely calculated
-        # ----------------------------------------------
-
-        elif has_notice_window:
-
-            recommendation = (
-                "The contract defines a notice window, "
-                "but the window boundaries cannot yet "
-                "be calculated reliably from the "
-                "available contract information."
-            )
-
-        else:
-
-            recommendation = (
-                "Renewal risk cannot yet be determined "
-                "because required contract dates "
-                "or notice terms are missing."
-            )
-
-    # --------------------------------------------------
-    # 10. Return renewal intelligence
-    # --------------------------------------------------
+    # -----------------------------------------------------
+    # RESULT
+    # -----------------------------------------------------
 
     return {
-
         "effective_start_date":
-            start_date.isoformat()
-            if start_date
-            else None,
+            format_date(
+                effective_start_date
+            ),
 
         "effective_end_date":
-            effective_end_date.isoformat()
-            if effective_end_date
-            else None,
+            format_date(
+                effective_end_date
+            ),
 
         "effective_renewal_date":
-            effective_renewal_date.isoformat()
-            if effective_renewal_date
-            else None,
+            format_date(
+                effective_renewal_date
+            ),
 
         "derived_end_date":
-            derived_end_date.isoformat()
-            if derived_end_date
-            else None,
+            format_date(
+                derived_end_date
+            ),
 
         "derived_renewal_date":
-            derived_renewal_date.isoformat()
-            if derived_renewal_date
-            else None,
+            format_date(
+                derived_renewal_date
+            ),
 
         "notice_window_open_date":
-            notice_window_open_date.isoformat()
-            if notice_window_open_date
-            else None,
+            format_date(
+                notice_window_open_date
+            ),
 
         "notice_window_close_date":
-            notice_window_close_date.isoformat()
-            if notice_window_close_date
-            else None,
+            format_date(
+                notice_window_close_date
+            ),
 
         "cancellation_deadline":
-            cancellation_deadline.isoformat()
-            if cancellation_deadline
-            else None,
+            format_date(
+                cancellation_deadline
+            ),
 
         "days_until_cancellation_deadline":
-            days_until_deadline,
+            days_until_cancellation_deadline,
 
         "risk_level":
             risk_level,

@@ -28,6 +28,12 @@ type ContractData = {
   initial_term_months: number | null;
   renewal_term_months: number | null;
 
+  renewal_structure:
+  | "fixed_term"
+  | "fixed_term_auto_renewal"
+  | "evergreen_indefinite"
+  | null;
+
   notice_period_days: number | null;
 
   notice_period_value: number | null;
@@ -639,6 +645,109 @@ export default function AnalyzeContractPage() {
     });
   }
 
+  function updateRenewalStructure(
+    value: string
+  ) {
+
+    if (
+      !reviewedContract
+    ) {
+      return;
+    }
+
+
+    const structure =
+      value === "unknown"
+        ? null
+        : value as
+            | "fixed_term"
+            | "fixed_term_auto_renewal"
+            | "evergreen_indefinite";
+
+
+    setReviewedContract(
+      (current) => {
+
+        if (!current) {
+          return current;
+        }
+
+
+        if (
+          structure ===
+          "fixed_term_auto_renewal"
+        ) {
+
+          return {
+            ...current,
+
+            renewal_structure:
+              structure,
+
+            auto_renewal:
+              true,
+          };
+        }
+
+
+        if (
+          structure ===
+          "fixed_term"
+        ) {
+
+          return {
+            ...current,
+
+            renewal_structure:
+              structure,
+
+            auto_renewal:
+              false,
+
+            renewal_term_months:
+              null,
+
+            renewal_date:
+              null,
+          };
+        }
+
+
+        if (
+          structure ===
+          "evergreen_indefinite"
+        ) {
+
+          return {
+            ...current,
+
+            renewal_structure:
+              structure,
+
+            auto_renewal:
+              false,
+
+            renewal_term_months:
+              null,
+
+            renewal_date:
+              null,
+
+            notice_period_anchor:
+              null,
+          };
+        }
+
+
+        return {
+          ...current,
+
+          renewal_structure:
+            null,
+        };
+      }
+    );
+  }
 
   function updateBooleanField(
     value: string
@@ -672,12 +781,60 @@ export default function AnalyzeContractPage() {
     }
 
 
-    setReviewedContract({
-      ...reviewedContract,
+    setReviewedContract(
+      (current) => {
 
-      auto_renewal:
-        parsedValue,
-    });
+        if (!current) {
+          return current;
+        }
+
+
+        if (
+          parsedValue === true
+        ) {
+
+          return {
+            ...current,
+
+            auto_renewal:
+              true,
+
+            renewal_structure:
+              "fixed_term_auto_renewal",
+          };
+        }
+
+
+        if (
+          parsedValue === false
+        ) {
+
+          return {
+            ...current,
+
+            auto_renewal:
+              false,
+
+            renewal_structure:
+              current.renewal_structure ===
+              "evergreen_indefinite"
+                ? "evergreen_indefinite"
+                : "fixed_term",
+          };
+        }
+
+
+        return {
+          ...current,
+
+          auto_renewal:
+            null,
+
+          renewal_structure:
+            null,
+        };
+      }
+    );
   }
 
 
@@ -1457,6 +1614,47 @@ export default function AnalyzeContractPage() {
 
                     </FormField>
 
+                    <FormField
+                      label="Renewal Structure"
+                    >
+
+                      <select
+                        value={
+                          reviewedContract
+                            .renewal_structure
+                          ??
+                          "unknown"
+                        }
+
+                        onChange={
+                          (event) =>
+                            updateRenewalStructure(
+                              event.target.value
+                            )
+                        }
+
+                        className="renewai-input"
+                      >
+
+                        <option value="unknown">
+                          Not found
+                        </option>
+
+                        <option value="fixed_term">
+                          Fixed Term
+                        </option>
+
+                        <option value="fixed_term_auto_renewal">
+                          Fixed-Term Auto Renewal
+                        </option>
+
+                        <option value="evergreen_indefinite">
+                          Evergreen / Indefinite
+                        </option>
+
+                      </select>
+
+                    </FormField>
 
                     <FormField
                       label="Renewal Term (months)"
@@ -2401,8 +2599,7 @@ reviewed contract evidence.
 
                 </section>
 
-
-                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 
                   <InfoCard
                     label="Renewal Date"
@@ -2464,6 +2661,29 @@ reviewed contract evidence.
           : "Not found"
   }
 />
+
+
+                                    <InfoCard
+                    label="Renewal Structure"
+                    value={
+                      savedResult.contract
+                        .renewal_structure ===
+                      "fixed_term_auto_renewal"
+                        ? "Fixed-Term Auto Renewal"
+
+                        : savedResult.contract
+                            .renewal_structure ===
+                          "evergreen_indefinite"
+                        ? "Evergreen / Indefinite"
+
+                        : savedResult.contract
+                            .renewal_structure ===
+                          "fixed_term"
+                        ? "Fixed Term"
+
+                        : "Not found"
+                    }
+                  />
 
 
                   <InfoCard

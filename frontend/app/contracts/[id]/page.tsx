@@ -38,6 +38,12 @@ type Contract = {
   initial_term_months: number | null;
   renewal_term_months: number | null;
 
+  renewal_structure:
+    | "fixed_term"
+    | "fixed_term_auto_renewal"
+    | "evergreen_indefinite"
+    | null;
+
   notice_period_days: number | null;
 notice_period_value: number | null;
 notice_period_unit: string | null;
@@ -1348,8 +1354,39 @@ export default function ContractDetailPage() {
 
 
                 {
-                  contract.auto_renewal ===
-                  true
+                  contract.renewal_structure ===
+                  "evergreen_indefinite"
+                  &&
+                  (
+
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
+
+                      <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+
+                      Evergreen / Indefinite
+
+                    </span>
+
+                  )
+                }
+
+
+                {
+                  contract.renewal_structure !==
+                  "evergreen_indefinite"
+                  &&
+                  (
+                    contract.renewal_structure ===
+                    "fixed_term_auto_renewal"
+                    ||
+                    (
+                      contract.renewal_structure ===
+                      null
+                      &&
+                      contract.auto_renewal ===
+                      true
+                    )
+                  )
                   &&
                   (
 
@@ -1366,13 +1403,30 @@ export default function ContractDetailPage() {
 
 
                 {
+                  contract.renewal_structure ===
+                  "fixed_term"
+                  &&
+                  (
+
+                    <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                      Fixed term
+                    </span>
+
+                  )
+                }
+
+
+                {
+                  contract.renewal_structure ===
+                  null
+                  &&
                   contract.auto_renewal ===
                   false
                   &&
                   (
 
                     <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                      Manual renewal
+                      No auto-renewal
                     </span>
 
                   )
@@ -1428,7 +1482,8 @@ export default function ContractDetailPage() {
                     recommendationHeading(
                       contract.risk_level,
                       contract
-                        .days_until_cancellation_deadline
+                        .days_until_cancellation_deadline,
+                      contract.renewal_structure
                     )
                   }
 
@@ -1451,34 +1506,58 @@ export default function ContractDetailPage() {
               <div className="grid gap-3 sm:grid-cols-2">
 
                 <DarkMetric
-                  label="Renewal date"
+                  label={
+                    contract.renewal_structure ===
+                    "evergreen_indefinite"
+                      ? "Renewal structure"
+                      : "Renewal date"
+                  }
                   value={
-                    formatDate(
-                      contract
-                        .effective_renewal_date
-                    )
+                    contract.renewal_structure ===
+                    "evergreen_indefinite"
+                      ? "Evergreen / Indefinite"
+                      : formatDate(
+                          contract
+                            .effective_renewal_date
+                        )
                   }
                 />
 
 
                 <DarkMetric
-                  label="Cancel by"
+                  label={
+                    contract.renewal_structure ===
+                    "evergreen_indefinite"
+                      ? "Termination timing"
+                      : "Cancel by"
+                  }
                   value={
-                    formatDate(
-                      contract
-                        .cancellation_deadline
-                    )
+                    contract.renewal_structure ===
+                    "evergreen_indefinite"
+                      ? "Rolling notice"
+                      : formatDate(
+                          contract
+                            .cancellation_deadline
+                        )
                   }
                 />
 
 
                 <DarkMetric
-                  label="Time until deadline"
+                  label={
+                    contract.renewal_structure ===
+                    "evergreen_indefinite"
+                      ? "Fixed deadline"
+                      : "Time until deadline"
+                  }
                   value={
-                    formatDeadline(
-                      contract
-                        .days_until_cancellation_deadline
-                    )
+                    contract.renewal_structure ===
+                    "evergreen_indefinite"
+                      ? "None"
+                      : formatDeadline(
+                          contract
+                            .days_until_cancellation_deadline
+                        )
                   }
                 />
 
@@ -1507,7 +1586,7 @@ export default function ContractDetailPage() {
 
           {/* EXECUTIVE CARDS */}
 
-          <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
 
             <InfoCard
               label="Contract Value"
@@ -1524,32 +1603,70 @@ export default function ContractDetailPage() {
 
 
             <InfoCard
-              label="Renewal Date"
+              label="Renewal Structure"
 
               value={
-                formatDate(
-                  contract
-                    .effective_renewal_date
+                formatRenewalStructure(
+                  contract.renewal_structure,
+                  contract.auto_renewal
                 )
               }
 
-              description="Next renewal"
+              description="Lifecycle model"
             />
 
 
             <InfoCard
-              label="Cancel By"
+              label="Renewal Date"
 
               value={
-                formatDate(
-                  contract
-                    .cancellation_deadline
-                )
+                contract.renewal_structure ===
+                "evergreen_indefinite"
+                  ? "No fixed date"
+                  : formatDate(
+                      contract
+                        .effective_renewal_date
+                    )
               }
 
-              description="Notice deadline"
+              description={
+                contract.renewal_structure ===
+                "evergreen_indefinite"
+                  ? "Continues indefinitely"
+                  : "Next renewal"
+              }
+            />
+
+
+            <InfoCard
+              label={
+                contract.renewal_structure ===
+                "evergreen_indefinite"
+                  ? "Termination"
+                  : "Cancel By"
+              }
+
+              value={
+                contract.renewal_structure ===
+                "evergreen_indefinite"
+                  ? "Rolling notice"
+                  : formatDate(
+                      contract
+                        .cancellation_deadline
+                    )
+              }
+
+              description={
+                contract.renewal_structure ===
+                "evergreen_indefinite"
+                  ? "No fixed cancellation deadline"
+                  : "Notice deadline"
+              }
 
               urgent={
+                contract.renewal_structure !==
+                "evergreen_indefinite"
+                &&
                 deadlineStatus ===
                 "urgent"
               }
@@ -1560,29 +1677,38 @@ export default function ContractDetailPage() {
               label="Deadline"
 
               value={
-                formatDeadline(
-                  contract
-                    .days_until_cancellation_deadline
-                )
+                contract.renewal_structure ===
+                "evergreen_indefinite"
+                  ? "No fixed deadline"
+                  : formatDeadline(
+                      contract
+                        .days_until_cancellation_deadline
+                    )
               }
 
               description={
-                contract
-                  .days_until_cancellation_deadline
-                !==
-                null
-                &&
-                contract
-                  .days_until_cancellation_deadline
-                <
-                0
+                contract.renewal_structure ===
+                "evergreen_indefinite"
+                  ? "Rolling termination right"
+                  : contract
+                      .days_until_cancellation_deadline
+                    !==
+                    null
+                    &&
+                    contract
+                      .days_until_cancellation_deadline
+                    <
+                    0
 
-                  ? "Window already passed"
+                      ? "Window already passed"
 
-                  : "Time remaining"
+                      : "Time remaining"
               }
 
               urgent={
+                contract.renewal_structure !==
+                "evergreen_indefinite"
+                &&
                 deadlineStatus ===
                 "urgent"
               }
@@ -2334,12 +2460,28 @@ export default function ContractDetailPage() {
 
 
               <DetailRow
+                label="Renewal Structure"
+                value={
+                  formatRenewalStructure(
+                    contract.renewal_structure,
+                    contract.auto_renewal
+                  )
+                }
+              />
+
+
+              <DetailRow
                 label="Renewal Term"
                 value={
-                  contract
-                    .renewal_term_months
-                  !==
-                  null
+                  contract.renewal_structure ===
+                  "evergreen_indefinite"
+
+                    ? "Not applicable"
+
+                    : contract
+                        .renewal_term_months
+                      !==
+                      null
 
                     ? `${contract.renewal_term_months} months`
 
@@ -2349,10 +2491,15 @@ export default function ContractDetailPage() {
 
 
               <DetailRow
-                label="Auto Renewal"
+                label="Fixed-Term Auto Renewal"
                 value={
-                  contract.auto_renewal ===
-                  null
+                  contract.renewal_structure ===
+                  "evergreen_indefinite"
+
+                    ? "No — evergreen continuation"
+
+                    : contract.auto_renewal ===
+                      null
 
                     ? "Unknown"
 
@@ -2421,9 +2568,12 @@ export default function ContractDetailPage() {
               <DetailRow
                 label="Extracted Renewal Date"
                 value={
-                  formatDate(
-                    contract.renewal_date
-                  )
+                  contract.renewal_structure ===
+                  "evergreen_indefinite"
+                    ? "No fixed renewal date"
+                    : formatDate(
+                        contract.renewal_date
+                      )
                 }
               />
 
@@ -2443,7 +2593,10 @@ export default function ContractDetailPage() {
               <DetailRow
                 label="Derived Renewal Date"
                 value={
-                  contract.derived_renewal_date
+                  contract.renewal_structure ===
+                  "evergreen_indefinite"
+                    ? "Not applicable — evergreen"
+                    : contract.derived_renewal_date
                     ? formatDate(
                         contract.derived_renewal_date
                       )
@@ -2455,10 +2608,13 @@ export default function ContractDetailPage() {
               <DetailRow
                 label="Effective Renewal Date"
                 value={
-                  formatDate(
-                    contract
-                      .effective_renewal_date
-                  )
+                  contract.renewal_structure ===
+                  "evergreen_indefinite"
+                    ? "No fixed renewal date"
+                    : formatDate(
+                        contract
+                          .effective_renewal_date
+                      )
                 }
               />
 
@@ -2491,10 +2647,13 @@ export default function ContractDetailPage() {
               <DetailRow
                 label="Cancellation Deadline"
                 value={
-                  formatDate(
-                    contract
-                      .cancellation_deadline
-                  )
+                  contract.renewal_structure ===
+                  "evergreen_indefinite"
+                    ? "No fixed deadline — rolling notice"
+                    : formatDate(
+                        contract
+                          .cancellation_deadline
+                      )
                 }
               />
 
@@ -2598,7 +2757,12 @@ export default function ContractDetailPage() {
 
 
                   <p className="mt-2 text-sm text-slate-500">
-                    This contract does not currently have a reminder schedule.
+                    {
+                      contract.renewal_structure ===
+                      "evergreen_indefinite"
+                        ? "This evergreen contract has no fixed cancellation deadline, so no date-based renewal reminders were generated."
+                        : "This contract does not currently have a reminder schedule."
+                    }
                   </p>
 
 
@@ -3944,6 +4108,45 @@ function formatCurrency(
 }
 
 
+function formatRenewalStructure(
+  value: Contract["renewal_structure"],
+  autoRenewal: boolean | null
+) {
+
+  switch (
+    value
+  ) {
+
+    case "fixed_term":
+      return "Fixed Term";
+
+    case "fixed_term_auto_renewal":
+      return "Fixed-Term Auto Renewal";
+
+    case "evergreen_indefinite":
+      return "Evergreen / Indefinite";
+
+    default:
+
+      if (
+        autoRenewal === true
+      ) {
+        return "Fixed-Term Auto Renewal";
+      }
+
+
+      if (
+        autoRenewal === false
+      ) {
+        return "Fixed Term / No Auto-Renewal";
+      }
+
+
+      return "Not found";
+  }
+}
+
+
 function formatDeadline(
   days: number | null
 ) {
@@ -4182,8 +4385,20 @@ function riskClasses(
 
 function recommendationHeading(
   risk: string | null,
-  days: number | null
+  days: number | null,
+  renewalStructure: Contract["renewal_structure"]
 ) {
+
+  if (
+    renewalStructure ===
+    "evergreen_indefinite"
+  ) {
+
+    return (
+      "Evergreen contract with rolling termination rights"
+    );
+  }
+
 
   if (
     days !== null
