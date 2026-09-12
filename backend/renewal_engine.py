@@ -514,28 +514,27 @@ def calculate_renewal_intelligence(
     # -----------------------------------------------------
 
     # Extraction preserves the original contractual dates. Operational
-    # renewal intelligence, however, must point at the next actionable
-    # cycle.
+    # renewal intelligence must instead surface the next renewal cycle
+    # for which the customer still has an actionable notice opportunity.
     #
-    # There are two ways the initial cycle can stop being actionable:
+    # A cycle can stop being actionable in two ways:
     #
-    # 1. The first renewal term has already started.
-    # 2. The first-cycle non-renewal deadline has already passed, even
-    #    though the renewal term itself has not started yet.
+    # 1. The renewal term has already started, so the engine must move to
+    #    the term that is operationally current as of today.
+    # 2. The non-renewal deadline for an upcoming renewal has already
+    #    passed, even if that renewal term has not started yet.
     #
-    # Case (2) matters because once the contractual notice deadline has
-    # passed, the customer is already committed to the upcoming renewal
-    # term. RenewAI should therefore surface that committed term and its
-    # next non-renewal opportunity instead of showing a historical
-    # deadline as the primary operational state.
+    # Case (2) can repeat when the contractual notice period is longer
+    # than the renewal term itself. For example, a 120-day notice period
+    # on successive 3-month renewals can mean more than one future term
+    # is already committed. RenewAI therefore keeps advancing until it
+    # reaches the first renewal whose notice deadline has not yet passed.
     #
-    # Business-day deadlines are intentionally excluded from this
-    # pre-renewal advancement because RenewAI cannot calculate them
-    # reliably without a jurisdiction-specific holiday calendar.
+    # Business-day deadlines remain excluded from deadline-based
+    # advancement because RenewAI cannot calculate them reliably without
+    # a jurisdiction-specific holiday calendar.
 
     today = date.today()
-
-    should_advance_auto_renewal_cycle = False
 
     if (
         is_fixed_auto_renewal
@@ -544,58 +543,58 @@ def calculate_renewal_intelligence(
         and renewal_term_months
         and renewal_term_months > 0
     ):
-        # The renewal term has already begun.
-        if today >= effective_renewal_date:
-            should_advance_auto_renewal_cycle = True
+        # First, move from the originally extracted cycle to the term that
+        # is operationally current based purely on calendar progression.
+        (
+            effective_end_date,
+            effective_renewal_date,
+        ) = advance_fixed_term_auto_renewal_cycle(
+            initial_end_date=effective_end_date,
+            first_renewal_date=effective_renewal_date,
+            renewal_term_months=renewal_term_months,
+            today=today,
+        )
 
-        # The renewal term has not begun, but the current-cycle notice
-        # deadline may already have passed.
-        else:
-            normalized_pre_cycle_anchor = (
-                notice_period_anchor.strip().lower()
-                if isinstance(notice_period_anchor, str)
-                else None
-            )
+        normalized_pre_cycle_anchor = (
+            notice_period_anchor.strip().lower()
+            if isinstance(notice_period_anchor, str)
+            else None
+        )
 
+        pre_cycle_has_notice_window = (
+            notice_window_start_value is not None
+            or notice_window_end_value is not None
+        )
+
+        # Keep skipping already-committed future renewals until the first
+        # still-actionable notice deadline is reached.
+        while True:
             if normalized_pre_cycle_anchor == "end_date":
-                pre_cycle_notice_anchor_date = (
-                    effective_end_date
-                )
+                pre_cycle_notice_anchor_date = effective_end_date
+
             elif normalized_pre_cycle_anchor == "renewal_date":
-                pre_cycle_notice_anchor_date = (
-                    effective_renewal_date
-                )
+                pre_cycle_notice_anchor_date = effective_renewal_date
+
             else:
                 pre_cycle_notice_anchor_date = None
 
             pre_cycle_deadline = None
 
-            pre_cycle_has_notice_window = (
-                notice_window_start_value is not None
-                or notice_window_end_value is not None
-            )
-
             if pre_cycle_has_notice_window:
-                # The close boundary is the last valid date for notice.
+                # The close boundary is the final valid date for notice.
                 if (
                     notice_window_end_value is not None
                     and notice_window_end_unit is not None
                 ):
-                    pre_cycle_deadline = (
-                        subtract_notice_period(
-                            pre_cycle_notice_anchor_date,
-                            notice_window_end_value,
-                            notice_window_end_unit,
-                        )
+                    pre_cycle_deadline = subtract_notice_period(
+                        pre_cycle_notice_anchor_date,
+                        notice_window_end_value,
+                        notice_window_end_unit,
                     )
-            else:
-                pre_cycle_notice_value = (
-                    notice_period_value
-                )
 
-                pre_cycle_notice_unit = (
-                    notice_period_unit
-                )
+            else:
+                pre_cycle_notice_value = notice_period_value
+                pre_cycle_notice_unit = notice_period_unit
 
                 # Backward compatibility for records that only have
                 # notice_period_days.
@@ -603,58 +602,46 @@ def calculate_renewal_intelligence(
                     pre_cycle_notice_value is None
                     and notice_period_days is not None
                 ):
-                    pre_cycle_notice_value = (
-                        notice_period_days
-                    )
+                    pre_cycle_notice_value = notice_period_days
                     pre_cycle_notice_unit = "days"
 
                 if (
                     pre_cycle_notice_value is not None
                     and pre_cycle_notice_unit is not None
                 ):
-                    pre_cycle_deadline = (
-                        subtract_notice_period(
-                            pre_cycle_notice_anchor_date,
-                            pre_cycle_notice_value,
-                            pre_cycle_notice_unit,
-                        )
+                    pre_cycle_deadline = subtract_notice_period(
+                        pre_cycle_notice_anchor_date,
+                        pre_cycle_notice_value,
+                        pre_cycle_notice_unit,
                     )
 
-            # Strictly greater than: on the contractual deadline itself,
-            # the notice opportunity is still treated as actionable.
-            if (
-                pre_cycle_deadline is not None
-                and today > pre_cycle_deadline
-            ):
-                should_advance_auto_renewal_cycle = True
+            # If the deadline cannot be calculated safely, do not infer
+            # that another future renewal is already committed.
+            if pre_cycle_deadline is None:
+                break
 
-    if should_advance_auto_renewal_cycle:
-        # If the first renewal has not started yet but its notice
-        # deadline has passed, advance as though that committed renewal
-        # term is the operationally current cycle.
-        cycle_reference_date = (
-            today
-            if today >= effective_renewal_date
-            else effective_renewal_date
-        )
+            # On the contractual deadline itself, notice is still treated
+            # as actionable. Advance only after that date has passed.
+            if today <= pre_cycle_deadline:
+                break
 
-        (
-            current_cycle_end_date,
-            next_cycle_renewal_date,
-        ) = advance_fixed_term_auto_renewal_cycle(
-            initial_end_date=effective_end_date,
-            first_renewal_date=effective_renewal_date,
-            renewal_term_months=renewal_term_months,
-            today=cycle_reference_date,
-        )
+            # The displayed next renewal is already committed. Move one
+            # complete renewal term forward and test the following
+            # renewal's deadline. This may repeat several times when the
+            # notice period exceeds the renewal-term length.
+            committed_term_start = effective_renewal_date
 
-        effective_end_date = (
-            current_cycle_end_date
-        )
+            next_cycle_renewal_date = (
+                committed_term_start
+                + relativedelta(months=renewal_term_months)
+            )
 
-        effective_renewal_date = (
-            next_cycle_renewal_date
-        )
+            effective_end_date = (
+                next_cycle_renewal_date
+                - timedelta(days=1)
+            )
+
+            effective_renewal_date = next_cycle_renewal_date
 
     # -----------------------------------------------------
     # EVERGREEN CONTRACT
