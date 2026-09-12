@@ -179,6 +179,22 @@ html {
     smooth;
 }
 
+/* =========================================================
+   DESKTOP DENSITY
+   ========================================================= */
+
+/*
+ * RenewAI is a data-dense enterprise application.
+ * Slightly reduce the root scale on desktop so dashboards,
+ * contract intelligence and workspaces fit comfortably at
+ * normal browser zoom.
+ */
+
+ @media (min-width: 1024px) {
+  html {
+    font-size: 14px;
+  }
+}
 
 body {
 
