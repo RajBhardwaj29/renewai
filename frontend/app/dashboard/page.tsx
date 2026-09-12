@@ -115,6 +115,63 @@ type MeResponse = {
 };
 
 
+async function authFetchWithRetry(
+  path: string,
+  attempts = 3
+): Promise<Response> {
+  let lastError: unknown;
+
+  for (
+    let attempt = 1;
+    attempt <= attempts;
+    attempt++
+  ) {
+    try {
+      const response =
+        await authFetch(path);
+
+      // Retry only temporary server/gateway failures.
+      if (
+        response.status !== 502 &&
+        response.status !== 503 &&
+        response.status !== 504
+      ) {
+        return response;
+      }
+
+      if (attempt === attempts) {
+        return response;
+      }
+    } catch (error) {
+      lastError = error;
+
+      if (
+        error instanceof Error &&
+        error.message === "AUTH_REQUIRED"
+      ) {
+        throw error;
+      }
+
+      if (attempt === attempts) {
+        throw error;
+      }
+    }
+
+    await new Promise(
+      (resolve) =>
+        setTimeout(
+          resolve,
+          attempt * 1000
+        )
+    );
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("NETWORK_ERROR");
+}
+
+
 export default function DashboardPage() {
 
   const router =
@@ -183,15 +240,15 @@ export default function DashboardPage() {
             meResponse,
           ] =
             await Promise.all([
-              authFetch(
+              authFetchWithRetry(
                 "/contracts"
               ),
-
-              authFetch(
+          
+              authFetchWithRetry(
                 "/reminders"
               ),
-
-              authFetch(
+          
+              authFetchWithRetry(
                 "/me"
               ),
             ]);
@@ -338,11 +395,7 @@ export default function DashboardPage() {
 
 
           setError(
-            err instanceof Error
-
-              ? err.message
-
-              : "Could not load dashboard."
+            "We couldn’t load your dashboard right now. Please try again or reload the page."
           );
 
 
@@ -898,7 +951,21 @@ export default function DashboardPage() {
                 text-red-800
               "
             >
-              {error}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <span>
+    {error}
+  </span>
+
+  <button
+    type="button"
+    onClick={
+      loadDashboard
+    }
+    className="renewai-button-secondary shrink-0"
+  >
+    Try again
+  </button>
+</div>
             </div>
 
           )}
