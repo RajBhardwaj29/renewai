@@ -1217,7 +1217,7 @@ def get_pending_due_reminders_for_delivery(
             "status",
             "pending"
         )
-        .lte(
+        .eq(
             "remind_on",
             today
         )
