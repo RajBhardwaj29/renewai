@@ -805,6 +805,9 @@ Do not include commentary before or after the JSON.
             ],
 
             temperature=0,
+            reasoning_effort="low",
+            include_reasoning=False,
+            max_completion_tokens=4096,
 
             response_format={
                 "type": "json_object",
@@ -880,6 +883,9 @@ def extract_with_groq(
                 ],
 
                 temperature=0,
+                reasoning_effort="low",
+                include_reasoning=False,
+                max_completion_tokens=4096,
 
                 response_format={
                     "type": "json_schema",
@@ -1572,6 +1578,9 @@ def generate_with_groq(
             ],
 
             temperature=0,
+            reasoning_effort="low",
+            include_reasoning=False,
+            max_completion_tokens=4096,
 
             response_format={
                 "type": "json_schema",
