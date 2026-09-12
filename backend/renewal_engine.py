@@ -177,6 +177,78 @@ def calculate_deadline_risk(
 
 
 # =========================================================
+# CURRENT AUTO-RENEWAL CYCLE
+# =========================================================
+
+
+def advance_fixed_term_auto_renewal_cycle(
+    initial_end_date: date | None,
+    first_renewal_date: date | None,
+    renewal_term_months: int | None,
+    today: date | None = None,
+) -> tuple[date | None, date | None]:
+    """
+    Advance a fixed-term auto-renewing agreement to the renewal cycle
+    that is operationally current as of today.
+
+    The stored/extracted dates describe the initial term and first
+    renewal. For successive fixed renewal terms, RenewAI must calculate
+    the current term end and the next renewal date rather than continuing
+    to surface a historical first-cycle deadline.
+
+    Returns:
+        (current_term_end_date, next_renewal_date)
+
+    If the first renewal has not yet started, the original initial end
+    and first renewal date are returned unchanged.
+    """
+    if (
+        initial_end_date is None
+        or first_renewal_date is None
+        or renewal_term_months is None
+        or renewal_term_months <= 0
+    ):
+        return (
+            initial_end_date,
+            first_renewal_date,
+        )
+
+    if today is None:
+        today = date.today()
+
+    if today < first_renewal_date:
+        return (
+            initial_end_date,
+            first_renewal_date,
+        )
+
+    current_term_start = first_renewal_date
+
+    while True:
+        next_renewal_date = (
+            current_term_start
+            + relativedelta(
+                months=renewal_term_months
+            )
+        )
+
+        current_term_end_date = (
+            next_renewal_date
+            - timedelta(days=1)
+        )
+
+        if today <= current_term_end_date:
+            return (
+                current_term_end_date,
+                next_renewal_date,
+            )
+
+        current_term_start = (
+            next_renewal_date
+        )
+
+
+# =========================================================
 # MAIN RENEWAL ENGINE
 # =========================================================
 
@@ -436,6 +508,44 @@ def calculate_renewal_intelligence(
 
         else:
             effective_renewal_date = None
+
+    # -----------------------------------------------------
+    # CURRENT FIXED-TERM AUTO-RENEWAL CYCLE
+    # -----------------------------------------------------
+
+    # Extraction preserves the original contractual dates. For an
+    # auto-renewing fixed-term contract whose first renewal has already
+    # started, operational renewal intelligence must advance to the
+    # current renewal term and next actionable renewal date.
+    #
+    # Fixed-term, evergreen and legacy records without a known renewal
+    # term are intentionally left unchanged.
+
+    if (
+        is_fixed_auto_renewal
+        and effective_end_date
+        and effective_renewal_date
+        and renewal_term_months
+        and renewal_term_months > 0
+        and date.today()
+        >= effective_renewal_date
+    ):
+        (
+            current_cycle_end_date,
+            next_cycle_renewal_date,
+        ) = advance_fixed_term_auto_renewal_cycle(
+            initial_end_date=effective_end_date,
+            first_renewal_date=effective_renewal_date,
+            renewal_term_months=renewal_term_months,
+        )
+
+        effective_end_date = (
+            current_cycle_end_date
+        )
+
+        effective_renewal_date = (
+            next_cycle_renewal_date
+        )
 
     # -----------------------------------------------------
     # EVERGREEN CONTRACT
