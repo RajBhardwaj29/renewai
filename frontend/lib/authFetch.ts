@@ -269,3 +269,55 @@ export async function authFetch(
     );
   }
 }
+
+
+/*
+ * Retry safe reads after temporary network or gateway failures.
+ * Mutating requests are intentionally never retried because doing so
+ * could create duplicate writes.
+ */
+export async function authFetchWithRetry(
+  path: string,
+  options: RequestInit = {},
+  attempts = 3
+): Promise<Response> {
+  const method = (options.method || "GET").toUpperCase();
+
+  if (method !== "GET" && method !== "HEAD") {
+    return authFetch(path, options);
+  }
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await authFetch(path, options);
+
+      if (
+        response.status !== 502 &&
+        response.status !== 503 &&
+        response.status !== 504
+      ) {
+        return response;
+      }
+
+      if (attempt === attempts) {
+        return response;
+      }
+    } catch (error) {
+      lastError = error;
+
+      if (attempt === attempts) {
+        throw error;
+      }
+    }
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, attempt * 750)
+    );
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("NETWORK_ERROR");
+}
