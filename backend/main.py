@@ -41,6 +41,8 @@ from database import (
     get_contract_by_id,
     find_contract_by_hash,
     archive_contract,
+    get_archived_contracts,
+    restore_contract,
     delete_contract_permanently,
     get_reminders,
     get_upcoming_reminders,
@@ -280,9 +282,11 @@ def current_user(
 
 @app.get("/contracts")
 def list_contracts(
+    archived: bool = False,
+
     authorization: str | None = Header(
         default=None
-    )
+    ),
 ):
     context = get_authenticated_context(
         authorization
@@ -293,13 +297,25 @@ def list_contracts(
     )
 
     try:
-        contracts = get_contracts(
-            organization_id
-        )
+
+        if archived:
+            contracts = (
+                get_archived_contracts(
+                    organization_id
+                )
+            )
+
+        else:
+            contracts = (
+                get_contracts(
+                    organization_id
+                )
+            )
 
         return {
             "contracts":
                 contracts,
+
             "count":
                 len(contracts),
         }
@@ -464,6 +480,80 @@ def archive_single_contract(
         )
 
 
+@app.patch(
+    "/contracts/{contract_id}/restore"
+)
+def restore_single_contract(
+    contract_id: str,
+
+    authorization: str | None = Header(
+        default=None
+    ),
+):
+    context = get_authenticated_context(
+        authorization
+    )
+
+    organization_id = (
+        context["organization_id"]
+    )
+
+    existing = get_contract_by_id(
+        organization_id,
+        contract_id,
+    )
+
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail="Contract not found.",
+        )
+
+    if not existing.get(
+        "archived",
+        False,
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Contract is not archived."
+            ),
+        )
+
+    try:
+
+        restored = restore_contract(
+            organization_id,
+            contract_id,
+        )
+
+        if not restored:
+            raise HTTPException(
+                status_code=404,
+                detail="Contract not found.",
+            )
+
+        return {
+            "contract":
+                restored,
+
+            "message":
+                "Contract restored successfully.",
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Could not restore contract: "
+                f"{str(exc)}"
+            ),
+        )
+
+
 @app.delete("/contracts/{contract_id}")
 def delete_single_contract(
     contract_id: str,
@@ -520,7 +610,7 @@ def delete_single_contract(
                 f"{str(exc)}"
             ),
         )
-        
+
 
 @app.patch(
     "/contracts/{contract_id}/decision"

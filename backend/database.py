@@ -478,6 +478,153 @@ def archive_contract(
 
 
 # =========================================================
+# GET ARCHIVED CONTRACTS
+# =========================================================
+
+
+def get_archived_contracts(
+    organization_id: str
+):
+    response = (
+        supabase
+        .table("contracts")
+        .select("*")
+        .eq(
+            "organization_id",
+            organization_id
+        )
+        .eq(
+            "archived",
+            True
+        )
+        .order(
+            "created_at",
+            desc=True
+        )
+        .execute()
+    )
+
+    return (
+        response.data
+        or []
+    )
+
+
+# =========================================================
+# RESTORE ARCHIVED CONTRACT
+# =========================================================
+
+
+def restore_contract(
+    organization_id: str,
+    contract_id: str,
+):
+    existing = get_contract_by_id(
+        organization_id,
+        contract_id,
+    )
+
+    if not existing:
+        return None
+
+    # Restore the contract itself.
+    response = (
+        supabase
+        .table("contracts")
+        .update({
+            "archived": False
+        })
+        .eq(
+            "organization_id",
+            organization_id
+        )
+        .eq(
+            "id",
+            contract_id
+        )
+        .execute()
+    )
+
+    if not response.data:
+        return None
+
+    restored_contract = (
+        response.data[0]
+    )
+
+    today = (
+        date.today()
+        .isoformat()
+    )
+
+    # Reactivate only future reminders that were
+    # cancelled when this contract was archived.
+    (
+        supabase
+        .table("contract_reminders")
+        .update({
+            "status": "pending"
+        })
+        .eq(
+            "organization_id",
+            organization_id
+        )
+        .eq(
+            "contract_id",
+            contract_id
+        )
+        .eq(
+            "status",
+            "cancelled"
+        )
+        .gte(
+            "remind_on",
+            today
+        )
+        .execute()
+    )
+
+    # If the contract somehow has no reminder records,
+    # rebuild them from its cancellation deadline.
+    reminder_check = (
+        supabase
+        .table("contract_reminders")
+        .select("id")
+        .eq(
+            "organization_id",
+            organization_id
+        )
+        .eq(
+            "contract_id",
+            contract_id
+        )
+        .limit(1)
+        .execute()
+    )
+
+    if not reminder_check.data:
+        cancellation_deadline = (
+            restored_contract.get(
+                "cancellation_deadline"
+            )
+        )
+
+        if cancellation_deadline:
+            create_contract_reminders(
+                organization_id=
+                    organization_id,
+
+                contract_id=
+                    contract_id,
+
+                cancellation_deadline=
+                    cancellation_deadline,
+            )
+
+    return restored_contract
+
+
+# =========================================================
 # PERMANENTLY DELETE CONTRACT
 # =========================================================
 
