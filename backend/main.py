@@ -224,36 +224,90 @@ def process_reminders_from_cron(
         "CRON_SECRET"
     )
 
+
     if not configured_secret:
+
         raise HTTPException(
             status_code=503,
-            detail="Cron processing is not configured.",
+            detail=(
+                "Cron processing is not configured."
+            ),
         )
+
 
     if (
         not x_cron_secret
-        or not hmac.compare_digest(
+        or
+        not hmac.compare_digest(
             x_cron_secret,
             configured_secret,
         )
     ):
+
         raise HTTPException(
             status_code=401,
-            detail="Invalid cron credentials.",
+            detail=(
+                "Invalid cron credentials."
+            ),
         )
 
+
     try:
-        process_due_reminders()
+
+        result = (
+            process_due_reminders()
+        )
+
+
+        if (
+            result.get(
+                "status"
+            )
+            ==
+            "failed"
+        ):
+
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "message":
+                        "Reminder processing failed.",
+
+                    "run":
+                        result,
+                },
+            )
+
 
         return {
-            "status": "success",
-            "message": "Due reminder processing completed.",
+            "status":
+                result[
+                    "status"
+                ],
+
+            "message":
+                (
+                    "Due reminder processing "
+                    "completed."
+                ),
+
+            "run":
+                result,
         }
 
-    except Exception:
+
+    except HTTPException:
+        raise
+
+
+    except Exception as exc:
+
         raise HTTPException(
             status_code=500,
-            detail="Reminder processing failed.",
+            detail=(
+                "Reminder processing failed: "
+                f"{str(exc)}"
+            ),
         )
 
 
