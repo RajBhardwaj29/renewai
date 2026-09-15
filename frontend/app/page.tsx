@@ -1,9 +1,8 @@
 import Link from "next/link";
-import GuestGuard from "@/components/GuestGuard";
 
 export default function HomePage() {
   return (
-    <GuestGuard>
+    
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-7xl px-6">
 
@@ -269,7 +268,6 @@ export default function HomePage() {
 
       </div>
     </main>
-    </GuestGuard>
   );
 }
 
