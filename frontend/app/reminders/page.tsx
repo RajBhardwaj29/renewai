@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { authFetch } from "@/lib/authFetch";
+import { authFetch, authFetchWithRetry } from "@/lib/authFetch";
 
 
 type ReminderContract = {
@@ -107,7 +107,7 @@ export default function RemindersPage() {
     useCallback(async () => {
       try {
         const response =
-          await authFetch(
+          await authFetchWithRetry(
             "/reminders"
           );
 
@@ -534,6 +534,9 @@ export default function RemindersPage() {
 
           {/* INTELLIGENCE HERO */}
 
+          {!loading && !error && (
+          <>
+
           <section className="mb-6 overflow-hidden rounded-[1.75rem] bg-slate-950 p-7 shadow-sm lg:p-8">
 
             <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
@@ -682,6 +685,9 @@ export default function RemindersPage() {
 
           </section>
 
+          </>
+          )}
+
 
           {/* REMINDER ENGINE */}
 
@@ -715,13 +721,16 @@ export default function RemindersPage() {
                     handleBackfill
                   }
                   disabled={
+                    loading ||
                     backfilling ||
                     sendingEmails
                   }
                   className="renewai-button-secondary"
                 >
                   {
-                    backfilling
+                    loading
+                      ? "Loading Alerts..."
+                      : backfilling
                       ? "Generating..."
                       : "Generate Missing Alerts"
                   }
@@ -734,6 +743,7 @@ export default function RemindersPage() {
                     handleSendDueEmails
                   }
                   disabled={
+                    loading ||
                     sendingEmails ||
                     backfilling ||
                     dueReminders.length === 0
@@ -741,7 +751,9 @@ export default function RemindersPage() {
                   className="renewai-button-primary"
                 >
                   {
-                    sendingEmails
+                    loading
+                      ? "Loading Alerts..."
+                      : sendingEmails
                       ? "Sending Emails..."
                       : dueReminders.length > 0
                       ? `Send Due Emails (${dueReminders.length})`
@@ -794,6 +806,7 @@ export default function RemindersPage() {
           {/* EMPTY */}
 
           {!loading &&
+            !error &&
             reminders.length === 0 && (
 
               <section className="renewai-card p-12 text-center">
