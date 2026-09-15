@@ -18,6 +18,7 @@ import Link from "next/link";
 
 import {
   authFetch,
+  authFetchWithRetry,
 } from "@/lib/authFetch";
 
 
@@ -209,6 +210,12 @@ export default function ContractDetailPage() {
   ] =
     useState(false);
 
+  const [
+    deleting,
+    setDeleting,
+  ] =
+      useState(false);
+
 
   const [
     error,
@@ -294,6 +301,13 @@ export default function ContractDetailPage() {
     useState("");
 
 
+  const [
+    loadAttempt,
+    setLoadAttempt,
+  ] =
+    useState(0);
+
+
   useEffect(() => {
 
     async function loadContract() {
@@ -304,7 +318,7 @@ export default function ContractDetailPage() {
 
 
         const response =
-          await authFetch(
+          await authFetchWithRetry(
             `/contracts/${id}`
           );
 
@@ -454,7 +468,7 @@ export default function ContractDetailPage() {
       try {
 
         const response =
-          await authFetch(
+          await authFetchWithRetry(
             `/contracts/${id}/reminders`
           );
 
@@ -559,7 +573,7 @@ export default function ContractDetailPage() {
 
 
         const response =
-          await authFetch(
+          await authFetchWithRetry(
             `/contracts/${id}/decision-history`
           );
 
@@ -669,8 +683,20 @@ export default function ContractDetailPage() {
 
   }, [
     id,
+    loadAttempt,
     router,
   ]);
+
+
+  function handleRetryLoad() {
+    setLoading(true);
+    setRemindersLoading(true);
+    setDecisionHistoryLoading(true);
+    setError("");
+    setReminderError("");
+    setDecisionHistoryError("");
+    setLoadAttempt((attempt) => attempt + 1);
+  }
 
 
   const pendingReminders =
@@ -1149,6 +1175,155 @@ export default function ContractDetailPage() {
   }
 
 
+  async function handleDeleteContract() {
+
+    if (
+      !contract
+    ) {
+      return;
+    }
+  
+  
+    const contractName =
+      contract.vendor_name
+      ||
+      contract.contract_title
+      ||
+      contract.filename
+      ||
+      "this contract";
+  
+  
+    const confirmation =
+      window.prompt(
+        `Permanently delete "${contractName}"?\n\n`
+        +
+        "This will permanently delete the contract, "
+        +
+        "its reminders and decision history.\n\n"
+        +
+        "This action cannot be undone.\n\n"
+        +
+        "Type DELETE to confirm."
+      );
+  
+  
+    if (
+      confirmation !== "DELETE"
+    ) {
+      return;
+    }
+  
+  
+    setDeleting(
+      true
+    );
+  
+    setError(
+      ""
+    );
+  
+  
+    try {
+  
+      const response =
+        await authFetch(
+          `/contracts/${contract.id}`,
+          {
+            method: "DELETE",
+          }
+        );
+  
+  
+      if (
+        response.status === 401
+      ) {
+  
+        router.replace(
+          "/login"
+        );
+  
+        return;
+      }
+  
+  
+      if (
+        response.status === 403
+      ) {
+  
+        router.replace(
+          "/onboarding"
+        );
+  
+        return;
+      }
+  
+  
+      const data =
+        await response.json();
+  
+  
+      if (
+        !response.ok
+      ) {
+  
+        throw new Error(
+          typeof data.detail ===
+          "string"
+            ? data.detail
+            : "Could not permanently delete contract."
+        );
+      }
+  
+  
+      router.push(
+        "/contracts"
+      );
+  
+      router.refresh();
+  
+  
+    } catch (
+      err
+    ) {
+  
+      console.error(
+        "Contract deletion failed:",
+        err
+      );
+  
+  
+      if (
+        err instanceof Error
+        &&
+        err.message ===
+          "AUTH_REQUIRED"
+      ) {
+  
+        router.replace(
+          "/login"
+        );
+  
+        return;
+      }
+  
+  
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not permanently delete contract."
+      );
+  
+  
+    } finally {
+  
+      setDeleting(
+        false
+      );
+    }
+  }
+
+
   if (
     loading
   ) {
@@ -1207,12 +1382,22 @@ export default function ContractDetailPage() {
             </p>
 
 
-            <Link
-              href="/contracts"
-              className="mt-6 inline-flex font-semibold text-red-900 underline underline-offset-4"
-            >
-              ← Back to Contracts
-            </Link>
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={handleRetryLoad}
+                className="rounded-xl bg-red-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-950"
+              >
+                Try again
+              </button>
+
+              <Link
+                href="/contracts"
+                className="inline-flex font-semibold text-red-900 underline underline-offset-4"
+              >
+                ← Back to Contracts
+              </Link>
+            </div>
 
           </div>
 
@@ -1284,25 +1469,66 @@ export default function ContractDetailPage() {
               </Link>
 
 
-              <button
-                type="button"
+              <div className="flex flex-wrap gap-3">
 
-                onClick={
-                  handleArchive
-                }
+  <button
+    type="button"
+    onClick={
+      handleArchive
+    }
+    disabled={
+      archiving
+      ||
+      deleting
+    }
+    className="renewai-button-secondary"
+  >
+    {
+      archiving
+        ? "Archiving..."
+        : "Archive Contract"
+    }
+  </button>
 
-                disabled={
-                  archiving
-                }
 
-                className="renewai-button-danger"
-              >
-                {
-                  archiving
-                    ? "Archiving..."
-                    : "Archive Contract"
-                }
-              </button>
+  <button
+    type="button"
+    onClick={
+      handleDeleteContract
+    }
+    disabled={
+      deleting
+      ||
+      archiving
+    }
+    className="
+      inline-flex
+      items-center
+      justify-center
+      rounded-xl
+      border
+      border-red-300
+      bg-red-50
+      px-5
+      py-2.5
+      text-sm
+      font-bold
+      text-red-700
+      transition
+      hover:border-red-400
+      hover:bg-red-100
+      disabled:cursor-not-allowed
+      disabled:opacity-50
+    "
+  >
+    {
+      deleting
+        ? "Deleting..."
+        : "Delete Permanently"
+    }
+  </button>
+
+</div>
 
             </div>
 
