@@ -1,5 +1,6 @@
 import os
 import json
+import re
 
 from dotenv import load_dotenv
 
@@ -584,8 +585,22 @@ This applies to:
 - commercial terms
 
 
-19. pricing_clause should contain contract language describing:
+19. payment_terms should contain the exact contract language describing:
 
+- when payment is due
+- payment frequency or billing schedule
+- whether payment is made in advance or in arrears
+- invoice due periods such as Net 30
+- how payment must be made
+
+Language such as "payable annually in advance" is a payment term.
+If one sentence supports both payment_terms and pricing_clause, populate
+both fields with the relevant grounded language from that sentence.
+
+
+20. pricing_clause should contain contract language describing:
+
+- contract price or fees
 - renewal price increases
 - price escalation
 - price adjustment rights
@@ -594,7 +609,7 @@ This applies to:
 - commercially relevant pricing changes
 
 
-20. minimum_commitment should contain any minimum:
+21. minimum_commitment should contain any minimum:
 
 - licence commitment
 - seat commitment
@@ -605,7 +620,7 @@ This applies to:
 - similar contractual commitment
 
 
-21. refund_clause should contain language describing whether:
+22. refund_clause should contain language describing whether:
 
 - prepaid fees are refundable
 - prepaid fees are non-refundable
@@ -614,7 +629,7 @@ This applies to:
 - credits or refunds are available
 
 
-22. Preserve commercially important details such as:
+23. Preserve commercially important details such as:
 
 - percentages
 - quantities
@@ -941,6 +956,58 @@ def extract_with_groq(
 # =========================================================
 
 
+PAYMENT_TERMS_PATTERN = re.compile(
+    r"[^.\n]*(?:"
+    r"payable|"
+    r"payments?\s+(?:are\s+)?due|"
+    r"due\s+within|"
+    r"net\s+\d+|"
+    r"billed\s+(?:monthly|quarterly|annually|yearly)|"
+    r"billing\s+(?:schedule|monthly|quarterly|annually|yearly)|"
+    r"(?:monthly|quarterly|annual|annually|yearly)\s+in\s+advance|"
+    r"in\s+arrears"
+    r")[^.\n]*(?:\.|$)",
+    re.IGNORECASE,
+)
+
+
+def reconcile_grounded_payment_terms(
+    contract: ContractData,
+    contract_text: str,
+) -> ContractData:
+    """
+    Recover an explicitly stated payment term when the model placed the
+    same grounded sentence only in pricing_clause. This never derives or
+    invents a term; it copies source language containing a payment marker.
+    """
+    if contract.payment_terms:
+        return contract
+
+    sources = [
+        contract.pricing_clause or "",
+        contract_text,
+    ]
+
+    for source in sources:
+        match = PAYMENT_TERMS_PATTERN.search(
+            source
+        )
+
+        if not match:
+            continue
+
+        payment_terms = match.group(0).strip()
+
+        if payment_terms:
+            return contract.model_copy(
+                update={
+                    "payment_terms": payment_terms,
+                }
+            )
+
+    return contract
+
+
 def extract_contract_data(
     contract_text: str
 ) -> ContractData:
@@ -949,21 +1016,27 @@ def extract_contract_data(
     )
 
     if AI_PROVIDER == "ollama":
-        return extract_with_ollama(
+        extracted = extract_with_ollama(
             prompt
         )
 
-    if AI_PROVIDER == "groq":
-        return extract_with_groq(
+    elif AI_PROVIDER == "groq":
+        extracted = extract_with_groq(
             prompt
         )
 
-    raise RuntimeError(
-        (
-            "Unsupported AI_PROVIDER: "
-            f"{AI_PROVIDER}. "
-            "Use 'ollama' or 'groq'."
+    else:
+        raise RuntimeError(
+            (
+                "Unsupported AI_PROVIDER: "
+                f"{AI_PROVIDER}. "
+                "Use 'ollama' or 'groq'."
+            )
         )
+
+    return reconcile_grounded_payment_terms(
+        extracted,
+        contract_text,
     )
 
 
