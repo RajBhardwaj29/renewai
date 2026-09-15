@@ -12,7 +12,7 @@ RenewAI is a production-deployed private beta in launch-readiness hardening.
 - Backend: https://renewai-ai.onrender.com
 - Health check: https://renewai-ai.onrender.com/health
 
-The documented BETA-001 through BETA-032 regression campaign has passed. Before a broader external beta, the remaining work includes production verification of the eight-character password policy, observation of a scheduled reminder run, a verified email sender/domain, beta onboarding, and a clean release checkpoint.
+The documented BETA-001 through BETA-032 regression campaign has passed. The eight-character password UI is deployed and verified; a real seven-character rejection and eight-character account-creation check still needs a dedicated production test email. Before a broader external beta, the remaining work also includes observation of a scheduled reminder run, a verified email sender/domain, beta onboarding, and a clean release checkpoint.
 
 For product decisions, architecture invariants, security history, testing history, and current priorities, read [`AGENTS.md`](./AGENTS.md) before making changes.
 

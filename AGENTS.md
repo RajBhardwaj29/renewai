@@ -498,13 +498,15 @@ Local frontend validation completed on 15 September 2026 after lint cleanup:
 - `npm run lint` passed with zero errors and zero warnings  
 - `npm run build` passed with Next.js 16.3.1
 
-**Current remaining verification:** deploy the frontend and confirm in production:
+Production deployment verification completed on 15 September 2026 for commit `1b080fa`:
 
-- 7-character password is rejected  
-- 8+ character password succeeds  
-- UI displays 8-character minimum
+- Vercel deployment completed successfully  
+- production frontend returned HTTP 200  
+- production signup rendered `minLength="8"`  
+- production signup displayed the 8-character placeholder and helper text  
+- production backend health returned HTTP 200 with `{"status":"healthy"}`
 
-Until that production check is run, password-policy hardening is **pending verification**, not fully closed.
+**Current remaining verification:** use a dedicated production test email to confirm a real 7-character signup is rejected and an 8+ character signup succeeds. Until that end-to-end account check is run, password-policy hardening is **pending final verification**, not fully closed.
 
 ---
 
@@ -992,11 +994,11 @@ Passed:
 
 Remaining:
 
-- production verification of 8-character password policy after frontend deploy
+- end-to-end 7-character rejection and 8+ character signup using a dedicated production test email
 
 ### Still important before broader external beta
 
-- Verify password-policy frontend deployment  
+- Finish the password-policy account-creation check with a dedicated test email  
 - Decide when to enable email confirmation  
 - Verify external sender/domain for email  
 - Run final Account A / Account B isolation retest if any security-sensitive code changed  
@@ -1569,13 +1571,12 @@ Where available, agents should retrieve these files rather than reconstructing t
 
 At the time this AGENTS.md was compiled, the best next sequence is:
 
-1. **Finish password-policy verification**
+1. **Finish end-to-end password-policy verification**
 
    - local lint and frontend build passed on 15 September 2026  
-   - deploy  
-   - production UI says 8 characters  
-   - 7-char signup rejected  
-   - 8+ accepted  
+   - Vercel production deployment for commit `1b080fa` completed successfully  
+   - production UI and `minLength="8"` verified  
+   - use a dedicated test email to confirm 7-character rejection and 8+ account creation  
 2. **Final security retest if security-sensitive code changed**
 
    - Account A vs B contracts  
