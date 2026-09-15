@@ -222,16 +222,6 @@ export default function DashboardPage() {
   const loadDashboard =
     useCallback(
       async () => {
-
-        setLoading(
-          true
-        );
-
-        setError(
-          ""
-        );
-
-
         try {
 
           const [
@@ -416,13 +406,29 @@ export default function DashboardPage() {
   useEffect(
     () => {
 
-      loadDashboard();
+      // Initial client-side data fetch; state updates happen after network I/O.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void loadDashboard();
 
     },
     [
       loadDashboard,
     ]
   );
+
+
+  function handleTryAgain() {
+
+    setLoading(
+      true
+    );
+
+    setError(
+      ""
+    );
+
+    void loadDashboard();
+  }
 
 
   const totalPortfolioValue =
@@ -959,7 +965,7 @@ export default function DashboardPage() {
   <button
     type="button"
     onClick={
-      loadDashboard
+      handleTryAgain
     }
     className="renewai-button-secondary shrink-0"
   >

@@ -105,8 +105,6 @@ export default function RemindersPage() {
 
   const loadReminders =
     useCallback(async () => {
-      setError("");
-
       try {
         const response =
           await authFetch(
@@ -163,7 +161,9 @@ export default function RemindersPage() {
 
 
   useEffect(() => {
-    loadReminders();
+    // Initial client-side data fetch; state updates happen after network I/O.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadReminders();
   }, [loadReminders]);
 
 

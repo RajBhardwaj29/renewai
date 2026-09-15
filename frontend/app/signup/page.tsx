@@ -590,7 +590,7 @@ export default function SignupPage() {
                 type="password"
                 autoComplete="new-password"
                 required
-                minLength={6}
+                minLength={8}
                 value={
                   password
                 }
@@ -600,12 +600,11 @@ export default function SignupPage() {
                       event.target.value
                     )
                 }
-                placeholder="Minimum 6 characters"
+                placeholder="Minimum 8 characters"
                 className="
                   renewai-input
                 "
               />
-
 
               <p
                 className="
@@ -615,7 +614,7 @@ export default function SignupPage() {
                   text-slate-500
                 "
               >
-                Use at least 6 characters.
+                Use at least 8 characters.
               </p>
 
             </div>

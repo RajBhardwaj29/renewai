@@ -3713,32 +3713,6 @@ function EvidenceBlock({
 }
 
 
-function TextBlock({
-  title,
-  value,
-}: {
-  title: string;
-  value: string;
-}) {
-
-  return (
-
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-
-      <h3 className="font-bold text-slate-950">
-        {title}
-      </h3>
-
-
-      <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-600">
-        {value}
-      </p>
-
-    </div>
-  );
-}
-
-
 function ReminderTimelineRow({
   reminder,
   isNext,
