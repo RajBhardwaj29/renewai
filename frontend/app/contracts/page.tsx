@@ -17,7 +17,13 @@ import Link from "next/link";
 
 import {
   authFetch,
+  authFetchWithRetry,
 } from "@/lib/authFetch";
+
+import {
+  formatCurrency,
+  formatContractTotal,
+} from "@/lib/currency";
 
 
 type Contract = {
@@ -72,6 +78,12 @@ export default function ContractsPage() {
     useState<Contract[]>([]);
 
 
+    const [
+      deletingContractId,
+      setDeletingContractId,
+    ] = useState<string | null>(null);
+
+
   const [
     loading,
     setLoading,
@@ -100,7 +112,7 @@ export default function ContractsPage() {
       try {
 
         const response =
-          await authFetch(
+          await authFetchWithRetry(
             "/contracts"
           );
 
@@ -249,32 +261,6 @@ export default function ContractsPage() {
       [
         contracts,
         search,
-      ]
-    );
-
-
-  const totalValue =
-    useMemo(
-      () => {
-
-        return contracts.reduce(
-          (
-            total,
-            contract
-          ) =>
-            total +
-            (
-              contract.contract_value
-              ||
-              0
-            ),
-
-          0
-        );
-
-      },
-      [
-        contracts,
       ]
     );
 
@@ -605,6 +591,134 @@ export default function ContractsPage() {
       ]
     );
 
+    async function handleDeleteContract(
+      contract: Contract
+    ) {
+      const contractName =
+        contract.vendor_name
+        ||
+        contract.contract_title
+        ||
+        contract.filename
+        ||
+        "this contract";
+    
+    
+      const confirmation =
+        window.prompt(
+          `Permanently delete "${contractName}"?\n\n`
+          +
+          "This will permanently delete the contract, "
+          +
+          "its reminders and decision history.\n\n"
+          +
+          "This action cannot be undone.\n\n"
+          +
+          "Type DELETE to confirm."
+        );
+    
+    
+      if (
+        confirmation !== "DELETE"
+      ) {
+        return;
+      }
+    
+    
+      setDeletingContractId(
+        contract.id
+      );
+    
+      setError("");
+    
+    
+      try {
+    
+        const response =
+          await authFetch(
+            `/contracts/${contract.id}`,
+            {
+              method: "DELETE",
+            }
+          );
+    
+    
+        if (
+          response.status === 401
+        ) {
+          router.replace(
+            "/login"
+          );
+    
+          return;
+        }
+    
+    
+        if (
+          response.status === 403
+        ) {
+          router.replace(
+            "/onboarding"
+          );
+    
+          return;
+        }
+    
+    
+        const data =
+          await response.json();
+    
+    
+        if (
+          !response.ok
+        ) {
+          throw new Error(
+            typeof data.detail === "string"
+              ? data.detail
+              : "Could not permanently delete contract."
+          );
+        }
+    
+    
+        setContracts(
+          (
+            currentContracts
+          ) =>
+            currentContracts.filter(
+              (
+                currentContract
+              ) =>
+                currentContract.id !==
+                contract.id
+            )
+        );
+    
+    
+      } catch (
+        err
+      ) {
+    
+        console.error(
+          "Contract deletion failed:",
+          err
+        );
+    
+    
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not permanently delete contract."
+        );
+    
+    
+      } finally {
+    
+        setDeletingContractId(
+          null
+        );
+      }
+    }
+
 
   return (
 
@@ -688,6 +802,9 @@ export default function ContractsPage() {
 
           {/* PORTFOLIO SUMMARY */}
 
+          {!loading && !error && (
+          <>
+
           <section className="mb-6 overflow-hidden rounded-[1.75rem] bg-slate-950 text-white shadow-sm">
 
             <div className="grid gap-8 p-7 lg:grid-cols-[1.4fr_1fr] lg:items-center lg:p-8">
@@ -753,9 +870,8 @@ export default function ContractsPage() {
 
                   <p className="mt-2 text-2xl font-bold tracking-tight text-white">
                     {
-                      formatCurrency(
-                        totalValue,
-                        "INR"
+                      formatContractTotal(
+                        contracts
                       )
                     }
                   </p>
@@ -798,9 +914,8 @@ export default function ContractsPage() {
             <StatCard
               label="Portfolio Value"
               value={
-                formatCurrency(
-                  totalValue,
-                  "INR"
+                formatContractTotal(
+                  contracts
                 )
               }
               description="Tracked value"
@@ -927,9 +1042,12 @@ export default function ContractsPage() {
                     .count
                 }
                 value={
-                  decisionSummary
-                    .undecided
-                    .value
+                  formatContractTotal(
+                    contracts.filter(
+                      (contract) =>
+                        (contract.renewal_decision || "undecided") === "undecided"
+                    )
+                  )
                 }
                 description="Still needs a human decision"
                 tone="neutral"
@@ -944,9 +1062,11 @@ export default function ContractsPage() {
                     .count
                 }
                 value={
-                  decisionSummary
-                    .renegotiate
-                    .value
+                  formatContractTotal(
+                    contracts.filter(
+                      (contract) => contract.renewal_decision === "renegotiate"
+                    )
+                  )
                 }
                 description="Human decision: renegotiate"
                 tone="warning"
@@ -961,9 +1081,11 @@ export default function ContractsPage() {
                     .count
                 }
                 value={
-                  decisionSummary
-                    .renew
-                    .value
+                  formatContractTotal(
+                    contracts.filter(
+                      (contract) => contract.renewal_decision === "renew"
+                    )
+                  )
                 }
                 description="Human decision: renew"
                 tone="success"
@@ -978,9 +1100,11 @@ export default function ContractsPage() {
                     .count
                 }
                 value={
-                  decisionSummary
-                    .cancel
-                    .value
+                  formatContractTotal(
+                    contracts.filter(
+                      (contract) => contract.renewal_decision === "cancel"
+                    )
+                  )
                 }
                 description="Human decision: cancel"
                 tone="danger"
@@ -1003,11 +1127,11 @@ export default function ContractsPage() {
               <QueueSignal
                 label="Under review value"
                 value={
-                  formatCurrency(
-                    decisionSummary
-                      .underReview
-                      .value,
-                    "INR"
+                  formatContractTotal(
+                    contracts.filter(
+                      (contract) =>
+                        (contract.renewal_status || "under_review") === "under_review"
+                    )
                   )
                 }
                 description="Tracked value still in active review"
@@ -1017,11 +1141,11 @@ export default function ContractsPage() {
               <QueueSignal
                 label="Undecided value"
                 value={
-                  formatCurrency(
-                    decisionSummary
-                      .undecided
-                      .value,
-                    "INR"
+                  formatContractTotal(
+                    contracts.filter(
+                      (contract) =>
+                        (contract.renewal_decision || "undecided") === "undecided"
+                    )
                   )
                 }
                 description="Value without a recorded human decision"
@@ -1030,6 +1154,9 @@ export default function ContractsPage() {
             </div>
 
           </section>
+
+          </>
+          )}
 
 
           {/* PORTFOLIO TABLE */}
@@ -1054,13 +1181,11 @@ export default function ContractsPage() {
 
 
                 <p className="mt-1.5 text-sm text-slate-500">
-                  {
-                    contracts.length
-                  } active contract{
-                    contracts.length === 1
-                      ? ""
-                      : "s"
-                  } currently being monitored
+                  {loading
+                    ? "Loading contracts..."
+                    : `${contracts.length} active contract${
+                        contracts.length === 1 ? "" : "s"
+                      } currently being monitored`}
                 </p>
 
               </div>
@@ -1069,6 +1194,10 @@ export default function ContractsPage() {
               <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
 
                 <div className="relative">
+
+                  <label htmlFor="contract-search" className="sr-only">
+                    Search contracts
+                  </label>
 
                   <svg
                     viewBox="0 0 24 24"
@@ -1089,8 +1218,12 @@ export default function ContractsPage() {
 
 
                   <input
+                    id="contract-search"
+                    name="contract-search"
                     type="text"
+                    aria-label="Search contracts"
                     placeholder="Search contracts..."
+                    disabled={loading}
                     value={
                       search
                     }
@@ -1267,7 +1400,121 @@ export default function ContractsPage() {
               &&
               (
 
-                <div className="overflow-x-auto">
+                <>
+                <div className="grid gap-4 p-4 md:hidden">
+                  {filteredContracts.map((contract) => (
+                    <article
+                      key={contract.id}
+                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-slate-950">
+                            {contract.vendor_name || "Unknown Vendor"}
+                          </p>
+                          <p className="mt-1 truncate text-sm text-slate-500">
+                            {contract.contract_title || contract.filename}
+                          </p>
+                        </div>
+                        <span
+                          className={`inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${riskClasses(
+                            contract.risk_level
+                          )}`}
+                        >
+                          {contract.risk_level || "unknown"}
+                        </span>
+                      </div>
+
+                      <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Value</dt>
+                          <dd className="mt-1 font-bold text-slate-900">
+                            {formatCurrency(contract.contract_value, contract.currency)}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Cancel by</dt>
+                          <dd className="mt-1 font-semibold text-slate-800">
+                            {formatDate(contract.cancellation_deadline)}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Renewal</dt>
+                          <dd className="mt-1 font-semibold text-slate-800">
+                            {formatDate(contract.effective_renewal_date)}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Deadline</dt>
+                          <dd className={`mt-1 font-bold ${deadlineClasses(contract.days_until_cancellation_deadline)}`}>
+                            {deadlineLabel(contract.days_until_cancellation_deadline)}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        <AIActionBadge action={contract.ai_action} confidence={contract.ai_confidence} />
+                        <HumanDecisionBadge decision={contract.renewal_decision} />
+                        <WorkflowStatusBadge status={contract.renewal_status} />
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-2 gap-2">
+
+  <Link
+    href={`/contracts/${contract.id}`}
+    className="renewai-button-secondary justify-center"
+  >
+    Open Contract →
+  </Link>
+
+
+  <button
+    type="button"
+    onClick={
+      () =>
+        handleDeleteContract(
+          contract
+        )
+    }
+    disabled={
+      deletingContractId ===
+      contract.id
+    }
+    className="
+      inline-flex
+      items-center
+      justify-center
+      rounded-xl
+      border
+      border-red-200
+      bg-red-50
+      px-4
+      py-2.5
+      text-sm
+      font-bold
+      text-red-700
+      transition
+      hover:border-red-300
+      hover:bg-red-100
+      disabled:cursor-not-allowed
+      disabled:opacity-50
+    "
+  >
+    {
+      deletingContractId ===
+      contract.id
+        ? "Deleting..."
+        : "Delete"
+    }
+  </button>
+
+</div>
+
+                    </article>
+                  ))}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
 
 <table className="w-full min-w-[1480px] text-left">
                     <thead>
@@ -1526,23 +1773,80 @@ export default function ContractsPage() {
 </td>
 
 
-                              <td className="px-6 py-5 text-right">
+<td className="px-6 py-5">
 
-                                <Link
-                                  href={
-                                    `/contracts/${contract.id}`
-                                  }
-                                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-800 transition hover:border-slate-950 hover:bg-slate-950 hover:text-white"
-                                >
-                                  Open
+<div className="flex items-center justify-end gap-2">
 
-                                  <span aria-hidden="true">
-                                    →
-                                  </span>
+  <Link
+    href={`/contracts/${contract.id}`}
+    className="
+      inline-flex
+      items-center
+      gap-2
+      rounded-xl
+      border
+      border-slate-300
+      bg-white
+      px-4
+      py-2
+      text-xs
+      font-bold
+      text-slate-800
+      transition
+      hover:border-slate-950
+      hover:bg-slate-950
+      hover:text-white
+    "
+  >
+    Open
+    <span aria-hidden="true">
+      →
+    </span>
+  </Link>
 
-                                </Link>
 
-                              </td>
+  <button
+    type="button"
+    onClick={
+      () =>
+        handleDeleteContract(
+          contract
+        )
+    }
+    disabled={
+      deletingContractId ===
+      contract.id
+    }
+    className="
+      inline-flex
+      items-center
+      rounded-xl
+      border
+      border-red-200
+      bg-red-50
+      px-3
+      py-2
+      text-xs
+      font-bold
+      text-red-700
+      transition
+      hover:border-red-300
+      hover:bg-red-100
+      disabled:cursor-not-allowed
+      disabled:opacity-50
+    "
+  >
+    {
+      deletingContractId ===
+      contract.id
+        ? "Deleting..."
+        : "Delete"
+    }
+  </button>
+
+</div>
+
+</td>
 
                             </tr>
 
@@ -1555,6 +1859,7 @@ export default function ContractsPage() {
                   </table>
 
                 </div>
+                </>
 
               )
             }
@@ -1709,7 +2014,7 @@ function DecisionQueueCard({
 }: {
   label: string;
   count: number;
-  value: number;
+  value: string;
   description: string;
   tone:
     | "neutral"
@@ -1776,12 +2081,7 @@ function DecisionQueueCard({
 
 
       <p className="mt-4 text-2xl font-bold tracking-tight text-slate-950">
-        {
-          formatCurrency(
-            value,
-            "INR"
-          )
-        }
+        {value}
       </p>
 
 
@@ -1883,53 +2183,6 @@ function StatCard({
 
     </div>
   );
-}
-
-
-function formatCurrency(
-  value: number | null,
-  currency: string | null
-) {
-
-  if (
-    value === null
-  ) {
-
-    return "—";
-  }
-
-
-  try {
-
-    return new Intl.NumberFormat(
-      "en-IN",
-      {
-        style:
-          "currency",
-
-        currency:
-          currency
-          ||
-          "INR",
-
-        maximumFractionDigits:
-          0,
-      }
-    ).format(
-      value
-    );
-
-
-  } catch {
-
-    return (
-      `${currency || ""} `
-      +
-      value.toLocaleString(
-        "en-IN"
-      )
-    );
-  }
 }
 
 

@@ -41,6 +41,7 @@ from database import (
     get_contract_by_id,
     find_contract_by_hash,
     archive_contract,
+    delete_contract_permanently,
     get_reminders,
     get_upcoming_reminders,
     get_due_reminders,
@@ -358,6 +359,60 @@ def get_single_contract(
         )
 
 
+@app.delete("/contracts/{contract_id}")
+def delete_single_contract(
+    contract_id: str,
+    authorization: str | None = Header(default=None),
+):
+    context = get_authenticated_context(
+        authorization
+    )
+
+    organization_id = (
+        context["organization_id"]
+    )
+
+    existing = get_contract_by_id(
+        organization_id,
+        contract_id,
+    )
+
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail="Contract not found.",
+        )
+
+    try:
+        deleted = delete_contract_permanently(
+            organization_id,
+            contract_id,
+        )
+
+        if not deleted:
+            raise HTTPException(
+                status_code=404,
+                detail="Contract not found.",
+            )
+
+        return {
+            "message":
+                "Contract permanently deleted."
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Could not permanently delete contract: "
+                f"{str(exc)}"
+            ),
+        )
+
+
 @app.patch(
     "/contracts/{contract_id}/archive"
 )
@@ -407,6 +462,65 @@ def archive_single_contract(
                 f"{str(exc)}"
             ),
         )
+
+
+@app.delete("/contracts/{contract_id}")
+def delete_single_contract(
+    contract_id: str,
+    authorization: str | None = Header(
+        default=None
+    ),
+):
+    context = get_authenticated_context(
+        authorization
+    )
+
+    organization_id = (
+        context["organization_id"]
+    )
+
+    existing = get_contract_by_id(
+        organization_id,
+        contract_id,
+    )
+
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail="Contract not found.",
+        )
+
+    try:
+        deleted = delete_contract_permanently(
+            organization_id,
+            contract_id,
+        )
+
+        if not deleted:
+            raise HTTPException(
+                status_code=404,
+                detail="Contract not found.",
+            )
+
+        return {
+            "message":
+                "Contract permanently deleted.",
+            "contract_id":
+                contract_id,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Could not permanently delete contract: "
+                f"{str(exc)}"
+            ),
+        )
+        
 
 @app.patch(
     "/contracts/{contract_id}/decision"

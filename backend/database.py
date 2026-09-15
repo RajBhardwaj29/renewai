@@ -476,6 +476,86 @@ def archive_contract(
 
     return response.data[0]
 
+
+# =========================================================
+# PERMANENTLY DELETE CONTRACT
+# =========================================================
+
+
+def delete_contract_permanently(
+    organization_id: str,
+    contract_id: str,
+):
+    """
+    Permanently deletes a contract and its dependent
+    reminders and renewal decision history.
+
+    The organization_id condition prevents cross-tenant
+    deletion.
+    """
+
+    existing = get_contract_by_id(
+        organization_id,
+        contract_id,
+    )
+
+    if not existing:
+        return None
+
+    # Delete reminders belonging to this contract.
+    (
+        supabase
+        .table("contract_reminders")
+        .delete()
+        .eq(
+            "organization_id",
+            organization_id,
+        )
+        .eq(
+            "contract_id",
+            contract_id,
+        )
+        .execute()
+    )
+
+    # Delete human renewal-decision audit history.
+    (
+        supabase
+        .table("contract_decision_history")
+        .delete()
+        .eq(
+            "organization_id",
+            organization_id,
+        )
+        .eq(
+            "contract_id",
+            contract_id,
+        )
+        .execute()
+    )
+
+    # Finally delete the contract itself.
+    response = (
+        supabase
+        .table("contracts")
+        .delete()
+        .eq(
+            "organization_id",
+            organization_id,
+        )
+        .eq(
+            "id",
+            contract_id,
+        )
+        .execute()
+    )
+
+    if not response.data:
+        return None
+
+    return response.data[0]
+    
+
 # =========================================================
 # UPDATE RENEWAL DECISION + AUDIT HISTORY
 # =========================================================
