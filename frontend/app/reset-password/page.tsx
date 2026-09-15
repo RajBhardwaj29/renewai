@@ -67,11 +67,11 @@ export default function ResetPasswordPage() {
 
 
     if (
-      password.length < 6
+      password.length < 8
     ) {
 
       setError(
-        "Password must be at least 6 characters."
+        "Password must be at least 8 characters."
       );
 
       return;
@@ -361,7 +361,7 @@ export default function ResetPasswordPage() {
             >
 
               <SecurityRow
-                title="At least 6 characters"
+                title="At least 8 characters"
                 description="Use a password long enough to meet the current RenewAI minimum."
               />
 
@@ -532,7 +532,7 @@ export default function ResetPasswordPage() {
                 type="password"
                 autoComplete="new-password"
                 required
-                minLength={6}
+                minLength={8}
                 value={
                   password
                 }
@@ -542,7 +542,7 @@ export default function ResetPasswordPage() {
                       event.target.value
                     )
                 }
-                placeholder="Minimum 6 characters"
+                placeholder="Minimum 8 characters"
                 className="
                   renewai-input
                 "
@@ -557,7 +557,7 @@ export default function ResetPasswordPage() {
                   text-slate-500
                 "
               >
-                Use at least 6 characters.
+                Use at least 8 characters.
               </p>
 
             </div>
@@ -580,7 +580,7 @@ export default function ResetPasswordPage() {
                 type="password"
                 autoComplete="new-password"
                 required
-                minLength={6}
+                minLength={8}
                 value={
                   confirmPassword
                 }
