@@ -1,7 +1,9 @@
 import Link from "next/link";
+import GuestGuard from "@/components/GuestGuard";
 
 export default function HomePage() {
   return (
+    <GuestGuard>
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-7xl px-6">
 
@@ -255,11 +257,19 @@ export default function HomePage() {
         {/* FOOTER */}
         <footer className="flex flex-col justify-between gap-3 border-t border-white/10 py-8 text-sm !text-slate-400 sm:flex-row">
           <p>© 2026 RenewAI</p>
-          <p>AI-powered contract renewal intelligence</p>
+          <div className="flex flex-wrap gap-4">
+            <Link href="/privacy" className="transition hover:!text-white">
+              Privacy
+            </Link>
+            <Link href="/terms" className="transition hover:!text-white">
+              Terms
+            </Link>
+          </div>
         </footer>
 
       </div>
     </main>
+    </GuestGuard>
   );
 }
 

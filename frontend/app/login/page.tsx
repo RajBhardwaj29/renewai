@@ -9,6 +9,7 @@ import {
 } from "next/navigation";
 
 import Link from "next/link";
+import GuestGuard from "@/components/GuestGuard";
 
 import {
   supabase,
@@ -141,7 +142,7 @@ export default function LoginPage() {
 
 
   return (
-
+    <GuestGuard>
     <main
       className="
         min-h-screen
@@ -799,23 +800,23 @@ export default function LoginPage() {
 
           {/* Footer */}
 
-          <p
-            className="
-              mt-10
-              text-center
-              text-xs
-              leading-5
-              text-slate-500
-            "
-          >
-            Keep renewal dates, notice periods, and
-            cancellation deadlines visible in one place.
-          </p>
+          <div className="mt-10 text-center text-xs leading-5 text-slate-500">
+            <p>
+              Keep renewal dates, notice periods, and cancellation deadlines
+              visible in one place.
+            </p>
+            <p className="mt-2">
+              <Link href="/privacy" className="font-semibold underline underline-offset-4">Privacy</Link>
+              {" · "}
+              <Link href="/terms" className="font-semibold underline underline-offset-4">Terms</Link>
+            </p>
+          </div>
 
         </div>
 
       </section>
 
     </main>
+    </GuestGuard>
   );
 }

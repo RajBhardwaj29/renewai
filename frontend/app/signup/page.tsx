@@ -9,6 +9,7 @@ import {
 } from "next/navigation";
 
 import Link from "next/link";
+import GuestGuard from "@/components/GuestGuard";
 
 import {
   supabase,
@@ -162,7 +163,7 @@ export default function SignupPage() {
 
 
   return (
-
+    <GuestGuard>
     <main
       className="
         min-h-screen
@@ -756,23 +757,22 @@ export default function SignupPage() {
           </div>
 
 
-          <p
-            className="
-              mt-10
-              text-center
-              text-xs
-              leading-5
-              text-slate-500
-            "
-          >
-            Your first workspace is created during onboarding.
-          </p>
+          <div className="mt-10 text-center text-xs leading-5 text-slate-500">
+            <p>Your first workspace is created during onboarding.</p>
+            <p className="mt-2">
+              By creating an account, you agree to the{" "}
+              <Link href="/terms" className="font-semibold underline underline-offset-4">Terms</Link>
+              {" and acknowledge the "}
+              <Link href="/privacy" className="font-semibold underline underline-offset-4">Privacy Notice</Link>.
+            </p>
+          </div>
 
         </div>
 
       </section>
 
     </main>
+    </GuestGuard>
   );
 }
 
