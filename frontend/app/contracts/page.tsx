@@ -56,6 +56,7 @@ type Contract = {
   decision_updated_at: string | null;
 
   created_at: string;
+  archived: boolean;
 };
 
 
@@ -76,6 +77,22 @@ export default function ContractsPage() {
     setContracts,
   ] =
     useState<Contract[]>([]);
+
+  
+    const [
+      viewMode,
+      setViewMode,
+    ] =
+      useState<"active" | "archived">(
+        "active"
+      );
+    
+    
+    const [
+      restoringContractId,
+      setRestoringContractId,
+    ] =
+      useState<string | null>(null);
 
 
     const [
@@ -109,11 +126,20 @@ export default function ContractsPage() {
 
     async function loadContracts() {
 
+      setLoading(true);
+      setError("");
+
       try {
+
+        const endpoint =
+          viewMode === "archived"
+            ? "/contracts?archived=true"
+            : "/contracts";
+
 
         const response =
           await authFetchWithRetry(
-            "/contracts"
+            endpoint
           );
 
 
@@ -209,6 +235,7 @@ export default function ContractsPage() {
 
   }, [
     router,
+    viewMode,
   ]);
 
 
@@ -719,6 +746,102 @@ export default function ContractsPage() {
       }
     }
 
+    async function handleRestoreContract(
+      contract: Contract
+    ) {
+    
+      setRestoringContractId(
+        contract.id
+      );
+    
+      setError(
+        ""
+      );
+    
+    
+      try {
+    
+        const response =
+          await authFetch(
+            `/contracts/${contract.id}/restore`,
+            {
+              method: "PATCH",
+            }
+          );
+    
+    
+        if (
+          response.status === 401
+        ) {
+          router.replace(
+            "/login"
+          );
+    
+          return;
+        }
+    
+    
+        if (
+          response.status === 403
+        ) {
+          router.replace(
+            "/onboarding"
+          );
+    
+          return;
+        }
+    
+    
+        const data =
+          await response.json();
+    
+    
+        if (
+          !response.ok
+        ) {
+          throw new Error(
+            typeof data.detail ===
+            "string"
+              ? data.detail
+              : "Could not restore contract."
+          );
+        }
+    
+    
+        setContracts(
+          currentContracts =>
+            currentContracts.filter(
+              currentContract =>
+                currentContract.id !==
+                contract.id
+            )
+        );
+    
+    
+      } catch (
+        err
+      ) {
+    
+        console.error(
+          "Contract restore failed:",
+          err
+        );
+    
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not restore contract."
+        );
+    
+    
+      } finally {
+    
+        setRestoringContractId(
+          null
+        );
+      }
+    }
+
 
   return (
 
@@ -766,6 +889,8 @@ export default function ContractsPage() {
                 Renewal Alerts
 
                 {
+                  viewMode === "active"
+                  &&
                   (
                     deadlineSoonCount
                     +
@@ -799,10 +924,48 @@ export default function ContractsPage() {
 
           </header>
 
+          <div className="mb-6">
+
+<div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+
+  <button
+    type="button"
+    onClick={() => {
+      setSearch("");
+      setViewMode("active");
+    }}
+    className={`rounded-lg px-5 py-2.5 text-sm font-bold transition ${
+      viewMode === "active"
+        ? "bg-slate-950 text-white"
+        : "text-slate-600 hover:bg-slate-100"
+    }`}
+  >
+    Active
+  </button>
+
+
+  <button
+    type="button"
+    onClick={() => {
+      setSearch("");
+      setViewMode("archived");
+    }}
+    className={`rounded-lg px-5 py-2.5 text-sm font-bold transition ${
+      viewMode === "archived"
+        ? "bg-slate-950 text-white"
+        : "text-slate-600 hover:bg-slate-100"
+    }`}
+  >
+    Archived
+  </button>
+
+</div>
+
+</div>
 
           {/* PORTFOLIO SUMMARY */}
 
-          {!loading && !error && (
+          {viewMode === "active" && !loading && !error && (
           <>
 
           <section className="mb-6 overflow-hidden rounded-[1.75rem] bg-slate-950 text-white shadow-sm">
@@ -1176,16 +1339,28 @@ export default function ContractsPage() {
 
 
                 <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
-                  Contract Portfolio
-                </h2>
+  {
+    viewMode === "archived"
+      ? "Archived Contracts"
+      : "Contract Portfolio"
+  }
+</h2>
 
 
                 <p className="mt-1.5 text-sm text-slate-500">
-                  {loading
-                    ? "Loading contracts..."
-                    : `${contracts.length} active contract${
-                        contracts.length === 1 ? "" : "s"
-                      } currently being monitored`}
+                {loading
+  ? "Loading contracts..."
+  : viewMode === "archived"
+  ? `${contracts.length} archived contract${
+      contracts.length === 1
+        ? ""
+        : "s"
+    }`
+  : `${contracts.length} active contract${
+      contracts.length === 1
+        ? ""
+        : "s"
+    } currently being monitored`}
                 </p>
 
               </div>
@@ -1313,28 +1488,50 @@ export default function ContractsPage() {
                   <div className="mx-auto max-w-md">
 
                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-xl font-bold text-white">
-                      +
+                      {
+                        viewMode === "archived"
+                          ? "✓"
+                          : "+"
+                      }
                     </div>
 
 
                     <h3 className="mt-5 text-xl font-bold text-slate-950">
-                      Build your contract portfolio
+                      {
+                        viewMode === "archived"
+                          ? "No archived contracts"
+                          : "Build your contract portfolio"
+                      }
                     </h3>
 
 
                     <p className="mt-2 text-sm leading-6 text-slate-500">
-                      Analyze your first PDF and RenewAI will extract
-                      its terms, calculate renewal dates, identify
-                      cancellation deadlines and create reminders.
+                      {
+                        viewMode === "archived"
+                          ? "Archived contracts will appear here so you can restore them or permanently delete them when they are no longer needed."
+                          : (
+                            <>
+                              Analyze your first PDF and RenewAI will extract
+                              its terms, calculate renewal dates, identify
+                              cancellation deadlines and create reminders.
+                            </>
+                          )
+                      }
                     </p>
 
 
-                    <Link
-                      href="/analyze"
-                      className="renewai-button-primary mt-6"
-                    >
-                      + Analyze First Contract
-                    </Link>
+                    {
+                      viewMode === "active"
+                      &&
+                      (
+                        <Link
+                          href="/analyze"
+                          className="renewai-button-primary mt-6"
+                        >
+                          + Analyze First Contract
+                        </Link>
+                      )
+                    }
 
                   </div>
 
@@ -1460,12 +1657,39 @@ export default function ContractsPage() {
 
                       <div className="mt-5 grid grid-cols-2 gap-2">
 
-  <Link
-    href={`/contracts/${contract.id}`}
-    className="renewai-button-secondary justify-center"
-  >
-    Open Contract →
-  </Link>
+                      {
+  viewMode === "archived"
+    ? (
+      <button
+        type="button"
+        onClick={() =>
+          handleRestoreContract(
+            contract
+          )
+        }
+        disabled={
+          restoringContractId ===
+          contract.id
+        }
+        className="renewai-button-secondary justify-center"
+      >
+        {
+          restoringContractId ===
+          contract.id
+            ? "Restoring..."
+            : "Restore"
+        }
+      </button>
+    )
+    : (
+      <Link
+        href={`/contracts/${contract.id}`}
+        className="renewai-button-secondary justify-center"
+      >
+        Open Contract →
+      </Link>
+    )
+}
 
 
   <button
@@ -1478,6 +1702,9 @@ export default function ContractsPage() {
     }
     disabled={
       deletingContractId ===
+      contract.id
+      ||
+      restoringContractId ===
       contract.id
     }
     className="
@@ -1777,32 +2004,77 @@ export default function ContractsPage() {
 
 <div className="flex items-center justify-end gap-2">
 
-  <Link
-    href={`/contracts/${contract.id}`}
-    className="
-      inline-flex
-      items-center
-      gap-2
-      rounded-xl
-      border
-      border-slate-300
-      bg-white
-      px-4
-      py-2
-      text-xs
-      font-bold
-      text-slate-800
-      transition
-      hover:border-slate-950
-      hover:bg-slate-950
-      hover:text-white
-    "
-  >
-    Open
-    <span aria-hidden="true">
-      →
-    </span>
-  </Link>
+  {
+    viewMode === "archived"
+      ? (
+        <button
+          type="button"
+          onClick={
+            () =>
+              handleRestoreContract(
+                contract
+              )
+          }
+          disabled={
+            restoringContractId ===
+            contract.id
+          }
+          className="
+            inline-flex
+            items-center
+            rounded-xl
+            border
+            border-emerald-200
+            bg-emerald-50
+            px-4
+            py-2
+            text-xs
+            font-bold
+            text-emerald-700
+            transition
+            hover:border-emerald-300
+            hover:bg-emerald-100
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+          "
+        >
+          {
+            restoringContractId ===
+            contract.id
+              ? "Restoring..."
+              : "Restore"
+          }
+        </button>
+      )
+      : (
+        <Link
+          href={`/contracts/${contract.id}`}
+          className="
+            inline-flex
+            items-center
+            gap-2
+            rounded-xl
+            border
+            border-slate-300
+            bg-white
+            px-4
+            py-2
+            text-xs
+            font-bold
+            text-slate-800
+            transition
+            hover:border-slate-950
+            hover:bg-slate-950
+            hover:text-white
+          "
+        >
+          Open
+          <span aria-hidden="true">
+            →
+          </span>
+        </Link>
+      )
+  }
 
 
   <button
@@ -1815,6 +2087,9 @@ export default function ContractsPage() {
     }
     disabled={
       deletingContractId ===
+      contract.id
+      ||
+      restoringContractId ===
       contract.id
     }
     className="
@@ -1886,7 +2161,11 @@ export default function ContractsPage() {
 
 
                 <p>
-                  RenewAI monitors cancellation deadlines automatically.
+                  {
+                    viewMode === "archived"
+                      ? "Restoring a contract returns it to the active portfolio and reactivates eligible future reminders."
+                      : "RenewAI monitors cancellation deadlines automatically."
+                  }
                 </p>
 
               </div>
