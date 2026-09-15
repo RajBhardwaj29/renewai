@@ -1,6 +1,7 @@
 "use client";
 
 import AuthGuard from "@/components/AuthGuard";
+import AppNavbar from "@/components/AppNavbar";
 
 import {
   useEffect,
@@ -9,13 +10,10 @@ import {
 
 import Link from "next/link";
 
-import {
-  usePathname,
-  useRouter,
-} from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import {
-  authFetch,
+  authFetchWithRetry,
 } from "@/lib/authFetch";
 
 import {
@@ -66,7 +64,7 @@ export default function SettingsPage() {
     async function loadAccount() {
       try {
         const response =
-          await authFetch("/me");
+          await authFetchWithRetry("/me");
 
 
         if (response.status === 401) {
@@ -187,7 +185,7 @@ export default function SettingsPage() {
 
       <main className="min-h-screen bg-slate-50 text-slate-950">
 
-        <AppHeader />
+        <AppNavbar />
 
 
         <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 lg:py-14">
@@ -547,9 +545,9 @@ export default function SettingsPage() {
                   </p>
 
                   <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-                    Development reminders are currently delivered
-                    through Mailpit. Production email delivery can be
-                    configured during deployment.
+                    Renewal emails are sent through the configured Resend sender.
+                    The private beta can use Resend&apos;s testing sender; verify a
+                    RenewAI domain before inviting external customers.
                   </p>
 
                 </div>
@@ -558,7 +556,7 @@ export default function SettingsPage() {
                 <div className="shrink-0">
 
                   <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700">
-                    Development
+                    Resend
                   </span>
 
                 </div>
@@ -659,121 +657,6 @@ export default function SettingsPage() {
       </main>
 
     </AuthGuard>
-  );
-}
-
-
-/* =========================================================
-   HEADER
-   ========================================================= */
-
-function AppHeader() {
-  const pathname =
-    usePathname();
-
-
-  const navItems = [
-    {
-      label: "Dashboard",
-      href: "/dashboard",
-    },
-    {
-      label: "Contracts",
-      href: "/contracts",
-    },
-    {
-      label: "Alerts",
-      href: "/reminders",
-    },
-    {
-      label: "Settings",
-      href: "/settings",
-    },
-  ];
-
-
-  return (
-    <header className="border-b border-slate-200 bg-white">
-
-      <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-6 px-6 py-4 lg:px-10">
-
-        <Link
-          href="/dashboard"
-          className="flex shrink-0 items-center gap-4"
-        >
-
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-base font-bold text-white shadow-sm">
-            R
-          </div>
-
-
-          <div>
-
-            <p className="text-base font-bold tracking-[0.18em] text-slate-950">
-              RENEWAI
-            </p>
-
-            <p className="mt-1 text-xs text-slate-500">
-              Contract renewal intelligence
-            </p>
-
-          </div>
-
-        </Link>
-
-
-        <nav className="hidden items-center gap-2 md:flex">
-
-          {navItems.map(
-            (item) => {
-
-              const active =
-                pathname === item.href;
-
-
-              return (
-                <Link
-                  key={
-                    item.href
-                  }
-
-                  href={
-                    item.href
-                  }
-
-                  className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                    active
-                      ? "bg-slate-100 text-slate-950"
-                      : "text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            }
-          )}
-
-
-          <Link
-            href="/analyze"
-            className="ml-3 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
-          >
-            + Analyze Contract
-          </Link>
-
-        </nav>
-
-
-        <Link
-          href="/analyze"
-          className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white md:hidden"
-        >
-          + Analyze
-        </Link>
-
-      </div>
-
-    </header>
   );
 }
 
