@@ -25,6 +25,8 @@ type ContractData = {
   end_date: string | null;
   renewal_date: string | null;
 
+  cancellation_deadline: string | null;
+
   initial_term_months: number | null;
   renewal_term_months: number | null;
 
@@ -1489,7 +1491,7 @@ export default function AnalyzeContractPage() {
                   description="Review dates explicitly stated in the agreement."
                 >
 
-                  <div className="grid gap-5 md:grid-cols-3">
+                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
 
                     <FormField
                       label="Start Date"
@@ -1570,6 +1572,30 @@ export default function AnalyzeContractPage() {
                       />
 
                     </FormField>
+
+                    <FormField
+  label="Explicit Cancellation Deadline"
+>
+  <input
+    type="date"
+
+    value={
+      reviewedContract.cancellation_deadline
+      ??
+      ""
+    }
+
+    onChange={
+      (event) =>
+        updateTextField(
+          "cancellation_deadline",
+          event.target.value
+        )
+    }
+
+    className="renewai-input"
+  />
+</FormField>
 
                   </div>
 

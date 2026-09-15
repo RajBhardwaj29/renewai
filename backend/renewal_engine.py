@@ -309,6 +309,14 @@ def calculate_renewal_intelligence(
         )
     )
 
+    explicit_cancellation_deadline = parse_date(
+        getattr(
+            contract,
+            "cancellation_deadline",
+            None,
+        )
+    )
+
     initial_term_months = getattr(
         contract,
         "initial_term_months",
@@ -534,6 +542,15 @@ def calculate_renewal_intelligence(
     # advancement because RenewAI cannot calculate them reliably without
     # a jurisdiction-specific holiday calendar.
 
+    first_cycle_renewal_date = (
+        effective_renewal_date
+    )
+
+    explicit_deadline_applies = (
+        explicit_cancellation_deadline
+        is not None
+    )
+
     today = date.today()
 
     if (
@@ -555,94 +572,174 @@ def calculate_renewal_intelligence(
             today=today,
         )
 
+        # An explicitly stated deadline belongs to the original
+        # renewal cycle only. Once calendar progression has moved
+        # RenewAI into a later renewal cycle, fall back to the
+        # recurring notice-period calculation.
+        if (
+            effective_renewal_date
+            != first_cycle_renewal_date
+        ):
+            explicit_deadline_applies = False
+
         normalized_pre_cycle_anchor = (
             notice_period_anchor.strip().lower()
-            if isinstance(notice_period_anchor, str)
+            if isinstance(
+                notice_period_anchor,
+                str,
+            )
             else None
         )
 
         pre_cycle_has_notice_window = (
-            notice_window_start_value is not None
-            or notice_window_end_value is not None
+            notice_window_start_value
+            is not None
+            or
+            notice_window_end_value
+            is not None
         )
 
         # Keep skipping already-committed future renewals until the first
         # still-actionable notice deadline is reached.
         while True:
-            if normalized_pre_cycle_anchor == "end_date":
-                pre_cycle_notice_anchor_date = effective_end_date
 
-            elif normalized_pre_cycle_anchor == "renewal_date":
-                pre_cycle_notice_anchor_date = effective_renewal_date
+            if (
+                normalized_pre_cycle_anchor
+                ==
+                "end_date"
+            ):
+                pre_cycle_notice_anchor_date = (
+                    effective_end_date
+                )
+
+            elif (
+                normalized_pre_cycle_anchor
+                ==
+                "renewal_date"
+            ):
+                pre_cycle_notice_anchor_date = (
+                    effective_renewal_date
+                )
 
             else:
                 pre_cycle_notice_anchor_date = None
 
+
             pre_cycle_deadline = None
 
-            if pre_cycle_has_notice_window:
+
+            if explicit_deadline_applies:
+
+                pre_cycle_deadline = (
+                    explicit_cancellation_deadline
+                )
+
+
+            elif pre_cycle_has_notice_window:
+
                 # The close boundary is the final valid date for notice.
                 if (
-                    notice_window_end_value is not None
-                    and notice_window_end_unit is not None
+                    notice_window_end_value
+                    is not None
+                    and
+                    notice_window_end_unit
+                    is not None
                 ):
-                    pre_cycle_deadline = subtract_notice_period(
-                        pre_cycle_notice_anchor_date,
-                        notice_window_end_value,
-                        notice_window_end_unit,
+                    pre_cycle_deadline = (
+                        subtract_notice_period(
+                            pre_cycle_notice_anchor_date,
+                            notice_window_end_value,
+                            notice_window_end_unit,
+                        )
                     )
 
+
             else:
-                pre_cycle_notice_value = notice_period_value
-                pre_cycle_notice_unit = notice_period_unit
+
+                pre_cycle_notice_value = (
+                    notice_period_value
+                )
+
+                pre_cycle_notice_unit = (
+                    notice_period_unit
+                )
+
 
                 # Backward compatibility for records that only have
                 # notice_period_days.
                 if (
-                    pre_cycle_notice_value is None
-                    and notice_period_days is not None
+                    pre_cycle_notice_value
+                    is None
+                    and
+                    notice_period_days
+                    is not None
                 ):
-                    pre_cycle_notice_value = notice_period_days
-                    pre_cycle_notice_unit = "days"
+                    pre_cycle_notice_value = (
+                        notice_period_days
+                    )
+
+                    pre_cycle_notice_unit = (
+                        "days"
+                    )
+
 
                 if (
-                    pre_cycle_notice_value is not None
-                    and pre_cycle_notice_unit is not None
+                    pre_cycle_notice_value
+                    is not None
+                    and
+                    pre_cycle_notice_unit
+                    is not None
                 ):
-                    pre_cycle_deadline = subtract_notice_period(
-                        pre_cycle_notice_anchor_date,
-                        pre_cycle_notice_value,
-                        pre_cycle_notice_unit,
+                    pre_cycle_deadline = (
+                        subtract_notice_period(
+                            pre_cycle_notice_anchor_date,
+                            pre_cycle_notice_value,
+                            pre_cycle_notice_unit,
+                        )
                     )
+
 
             # If the deadline cannot be calculated safely, do not infer
             # that another future renewal is already committed.
             if pre_cycle_deadline is None:
                 break
 
+
             # On the contractual deadline itself, notice is still treated
             # as actionable. Advance only after that date has passed.
             if today <= pre_cycle_deadline:
                 break
 
-            # The displayed next renewal is already committed. Move one
-            # complete renewal term forward and test the following
-            # renewal's deadline. This may repeat several times when the
-            # notice period exceeds the renewal-term length.
-            committed_term_start = effective_renewal_date
+
+            # The displayed next renewal is already committed.
+            committed_term_start = (
+                effective_renewal_date
+            )
 
             next_cycle_renewal_date = (
                 committed_term_start
-                + relativedelta(months=renewal_term_months)
+                +
+                relativedelta(
+                    months=
+                        renewal_term_months
+                )
             )
 
             effective_end_date = (
                 next_cycle_renewal_date
-                - timedelta(days=1)
+                -
+                timedelta(
+                    days=1
+                )
             )
 
-            effective_renewal_date = next_cycle_renewal_date
+            effective_renewal_date = (
+                next_cycle_renewal_date
+            )
 
+            # Explicit calendar deadline applies only to the original
+            # renewal cycle.
+            explicit_deadline_applies = False
     # -----------------------------------------------------
     # EVERGREEN CONTRACT
     # -----------------------------------------------------
@@ -803,6 +900,13 @@ def calculate_renewal_intelligence(
                     effective_notice_value,
                     effective_notice_unit,
                 )
+            )
+
+        # Explicit contractual calendar dates take precedence over
+        # deadlines derived from notice-period arithmetic.
+        if explicit_deadline_applies:
+            cancellation_deadline = (
+                explicit_cancellation_deadline
             )
 
     # -----------------------------------------------------

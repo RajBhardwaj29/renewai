@@ -56,6 +56,7 @@ class ContractData(BaseModel):
     start_date: str | None
     end_date: str | None
     renewal_date: str | None
+    cancellation_deadline: str | None
 
     initial_term_months: int | None
     renewal_term_months: int | None
@@ -562,7 +563,37 @@ For evergreen_indefinite:
 renewal_date must remain null.
 
 
-18. AMENDMENTS AND PRECEDENCE
+18. EXPLICIT CANCELLATION / NON-RENEWAL DEADLINE
+
+cancellation_deadline must contain an exact calendar date only when
+the agreement explicitly states the final date by which cancellation
+or non-renewal notice must be received.
+
+Examples:
+
+"Notice of non-renewal must be received no later than 1 August 2027."
+
+-> cancellation_deadline = "2027-08-01"
+
+"The customer may cancel until December 15, 2026."
+
+-> cancellation_deadline = "2026-12-15"
+
+IMPORTANT:
+
+- Never calculate this field from notice_period_value.
+- Never derive it from end_date.
+- Never derive it from renewal_date.
+- Never infer it from a notice window.
+- Populate it only when the contract itself provides the calendar date.
+- If no explicit deadline date exists, return null.
+
+When both an explicit cancellation_deadline and a notice-period rule are
+present, preserve both. The deterministic renewal engine will decide
+precedence.
+
+
+19. AMENDMENTS AND PRECEDENCE
 
 When an amendment, addendum or later clause explicitly changes,
 replaces or supersedes an earlier contractual term:
@@ -585,7 +616,7 @@ This applies to:
 - commercial terms
 
 
-19. payment_terms should contain the exact contract language describing:
+20. payment_terms should contain the exact contract language describing:
 
 - when payment is due
 - payment frequency or billing schedule
@@ -598,7 +629,7 @@ If one sentence supports both payment_terms and pricing_clause, populate
 both fields with the relevant grounded language from that sentence.
 
 
-20. pricing_clause should contain contract language describing:
+21. pricing_clause should contain contract language describing:
 
 - contract price or fees
 - renewal price increases
@@ -609,7 +640,7 @@ both fields with the relevant grounded language from that sentence.
 - commercially relevant pricing changes
 
 
-21. minimum_commitment should contain any minimum:
+22. minimum_commitment should contain any minimum:
 
 - licence commitment
 - seat commitment
@@ -620,7 +651,7 @@ both fields with the relevant grounded language from that sentence.
 - similar contractual commitment
 
 
-22. refund_clause should contain language describing whether:
+23. refund_clause should contain language describing whether:
 
 - prepaid fees are refundable
 - prepaid fees are non-refundable
@@ -629,7 +660,7 @@ both fields with the relevant grounded language from that sentence.
 - credits or refunds are available
 
 
-23. Preserve commercially important details such as:
+24. Preserve commercially important details such as:
 
 - percentages
 - quantities
@@ -764,6 +795,7 @@ Use exactly these keys:
 - start_date
 - end_date
 - renewal_date
+- cancellation_deadline
 - initial_term_months
 - renewal_term_months
 - renewal_structure
