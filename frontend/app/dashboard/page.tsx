@@ -20,6 +20,11 @@ import {
   authFetch,
 } from "@/lib/authFetch";
 
+import {
+  formatCurrency,
+  formatContractTotal,
+} from "@/lib/currency";
+
 
 type Contract = {
   id: string;
@@ -431,33 +436,6 @@ export default function DashboardPage() {
   }
 
 
-  const totalPortfolioValue =
-    useMemo(
-      () => {
-
-        return contracts.reduce(
-          (
-            total,
-            contract
-          ) =>
-            total
-            +
-            (
-              contract.contract_value
-              ||
-              0
-            ),
-
-          0
-        );
-
-      },
-      [
-        contracts,
-      ]
-    );
-
-
   const riskContracts =
     useMemo(
       () => {
@@ -714,12 +692,6 @@ export default function DashboardPage() {
             contract
           ) => {
 
-            const value =
-              contract.contract_value
-              ||
-              0;
-
-
             const status =
               contract.renewal_status
               ||
@@ -738,7 +710,6 @@ export default function DashboardPage() {
             ) {
 
               summary.underReview += 1;
-              summary.underReviewValue += value;
             }
 
 
@@ -773,7 +744,6 @@ export default function DashboardPage() {
               days <= 120
             ) {
 
-              summary.upcomingExposure += value;
               summary.upcomingExposureCount += 1;
             }
 
@@ -782,10 +752,8 @@ export default function DashboardPage() {
           },
           {
             underReview: 0,
-            underReviewValue: 0,
             decisionsMade: 0,
             aiRenegotiate: 0,
-            upcomingExposure: 0,
             upcomingExposureCount: 0,
           }
         );
@@ -1155,7 +1123,7 @@ export default function DashboardPage() {
                               contracts.length === 1
                                 ? ""
                                 : "s"
-                            } are being tracked with ${upcomingReminders.length} upcoming reminder${
+                            } ${contracts.length === 1 ? "is" : "are"} being tracked with ${upcomingReminders.length} upcoming reminder${
                               upcomingReminders.length === 1
                                 ? ""
                                 : "s"
@@ -1181,9 +1149,8 @@ export default function DashboardPage() {
                       <HeroMetric
                         label="Portfolio value"
                         value={
-                          formatCurrency(
-                            totalPortfolioValue,
-                            "INR"
+                          formatContractTotal(
+                            contracts
                           )
                         }
                       />
@@ -1231,9 +1198,8 @@ export default function DashboardPage() {
                   <StatCard
                     label="Portfolio Value"
                     value={
-                      formatCurrency(
-                        totalPortfolioValue,
-                        "INR"
+                      formatContractTotal(
+                        contracts
                       )
                     }
                     description="Tracked value"
@@ -1385,10 +1351,11 @@ export default function DashboardPage() {
                     <IntelligenceMetric
                       label="Value under review"
                       value={
-                        formatCurrency(
-                          renewalIntelligence
-                            .underReviewValue,
-                          "INR"
+                        formatContractTotal(
+                          contracts.filter(
+                            (contract) =>
+                              (contract.renewal_status || "under_review") === "under_review"
+                          )
                         )
                       }
                       description="Commercial value awaiting completion"
@@ -1420,10 +1387,11 @@ export default function DashboardPage() {
                     <IntelligenceMetric
                       label="120-day exposure"
                       value={
-                        formatCurrency(
-                          renewalIntelligence
-                            .upcomingExposure,
-                          "INR"
+                        formatContractTotal(
+                          contracts.filter((contract) => {
+                            const days = contract.days_until_cancellation_deadline;
+                            return days !== null && days >= 0 && days <= 120;
+                          })
                         )
                       }
                       description={
@@ -2950,53 +2918,6 @@ function formatDate(
         "numeric",
     }
   );
-}
-
-
-function formatCurrency(
-  value: number | null,
-  currency: string | null
-) {
-
-  if (
-    value === null
-  ) {
-
-    return "—";
-  }
-
-
-  try {
-
-    return new Intl.NumberFormat(
-      "en-IN",
-      {
-        style:
-          "currency",
-
-        currency:
-          currency
-          ||
-          "INR",
-
-        maximumFractionDigits:
-          0,
-      }
-    ).format(
-      value
-    );
-
-
-  } catch {
-
-    return (
-      `${currency || ""} `
-      +
-      value.toLocaleString(
-        "en-IN"
-      )
-    );
-  }
 }
 
 
