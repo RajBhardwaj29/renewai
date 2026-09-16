@@ -12,9 +12,9 @@ RenewAI is a production-deployed private beta in launch-readiness hardening.
 - Backend: https://renewai-ai.onrender.com
 - Health check: https://renewai-ai.onrender.com/health
 
-The documented BETA-001 through BETA-032 regression campaign has passed. The eight-character password policy is deployed and production-verified. Before a broader external beta, the remaining work includes observation of a scheduled reminder run, a verified email sender/domain, basic monitoring, and beta onboarding.
+The documented BETA-001 through BETA-032 regression campaign has passed. The eight-character password policy is deployed and production-verified. Current launch work focuses on beta recruitment and onboarding, with monitoring and continued reliability checks.
 
-For product decisions, architecture invariants, security history, testing history, and current priorities, read [`AGENTS.md`](./AGENTS.md) before making changes.
+Raj maintains a local, private AGENTS.md with product decisions, architecture invariants, testing history, and current priorities. It is intentionally excluded from Git; collaborators should request the current copy before making substantial changes.
 
 ## Product workflow
 
@@ -191,7 +191,7 @@ npm run lint
 npm run build
 ```
 
-There is not yet a committed automated unit or integration test suite. The historical beta test set described in `AGENTS.md` is the current regression reference and should be preserved rather than reconstructed from memory.
+The backend has a small committed Python unittest suite. Run it from backend/ with python -m unittest discover -p 'test_*.py' when dependencies are installed. The historical beta test set described in the private AGENTS.md remains an important regression reference and should be preserved rather than reconstructed from memory.
 
 For meaningful changes, also test the relevant workflow manually. Production verification is required for changes involving authentication, deployment, reminders, CORS, API routing, tenant isolation, or other production-only configuration.
 
