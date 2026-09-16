@@ -1637,10 +1637,120 @@ def generate_with_ollama(
 # AI RENEWAL INTELLIGENCE — GROQ
 # =========================================================
 
+def _generate_renewal_with_groq_json_object(
+    client,
+    prompt: str,
+) -> RenewalAIInsight:
+    """
+    Fallback for Groq structured-output failures.
+
+    If strict json_schema generation fails, request a plain JSON
+    object and still validate it locally with RenewalAIInsight.
+    """
+
+    fallback_prompt = f"""
+{prompt}
+
+FINAL OUTPUT RULES:
+
+Return exactly one JSON object.
+
+Use exactly these keys:
+
+- action
+- confidence
+- summary
+- key_findings
+- commercial_flags
+
+Requirements:
+
+- action must be one of:
+  "monitor"
+  "review"
+  "renegotiate"
+  "consider_cancellation"
+
+- confidence must be a number between 0 and 1
+
+- summary must be a string
+
+- key_findings must be an array of strings
+
+- commercial_flags must be an array of strings
+
+Every key must be present.
+
+Use an empty array when there are no supported findings or flags.
+
+Do not add extra keys.
+
+Do not wrap the JSON in markdown.
+
+Do not include commentary before or after the JSON.
+""".strip()
+
+    response = (
+        client
+        .chat
+        .completions
+        .create(
+            model=GROQ_MODEL,
+
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You generate grounded contract renewal "
+                        "intelligence. Return exactly one valid JSON "
+                        "object. Every requested key must be present."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": fallback_prompt,
+                },
+            ],
+
+            temperature=0,
+            reasoning_effort="low",
+            include_reasoning=False,
+            max_completion_tokens=4096,
+
+            response_format={
+                "type": "json_object",
+            },
+        )
+    )
+
+    content = (
+        response
+        .choices[0]
+        .message
+        .content
+    )
+
+    if not content:
+        raise RuntimeError(
+            "Groq returned an empty renewal intelligence fallback response."
+        )
+
+    json_content = _extract_json_object(
+        content
+    )
+
+    return (
+        RenewalAIInsight
+        .model_validate_json(
+            json_content
+        )
+    )
+
 
 def generate_with_groq(
     prompt: str
 ) -> RenewalAIInsight:
+
     if not GROQ_API_KEY:
         raise RuntimeError(
             "GROQ_API_KEY is missing."
@@ -1657,49 +1767,76 @@ def generate_with_groq(
         .model_json_schema()
     )
 
-    response = (
-        client
-        .chat
-        .completions
-        .create(
-            model=GROQ_MODEL,
+    try:
+        response = (
+            client
+            .chat
+            .completions
+            .create(
+                model=GROQ_MODEL,
 
-            messages=[
-                {
-                    "role": "system",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a contract renewal "
+                            "intelligence system. "
+                            "Use only the supplied reviewed "
+                            "contract facts and deterministic "
+                            "RenewAI calculations."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
 
-                    "content": (
-                        "You are a contract renewal "
-                        "intelligence system. "
-                        "Use only the supplied reviewed "
-                        "contract facts and deterministic "
-                        "RenewAI calculations."
-                    ),
+                temperature=0,
+                reasoning_effort="low",
+                include_reasoning=False,
+                max_completion_tokens=4096,
+
+                response_format={
+                    "type": "json_schema",
+
+                    "json_schema": {
+                        "name":
+                            "renewal_ai_insight",
+
+                        "strict":
+                            True,
+
+                        "schema":
+                            schema,
+                    },
                 },
-                {
-                    "role": "user",
-                    "content": prompt,
-                },
-            ],
-
-            temperature=0,
-            reasoning_effort="low",
-            include_reasoning=False,
-            max_completion_tokens=4096,
-
-            response_format={
-                "type": "json_schema",
-
-                "json_schema": {
-                    "name": "renewal_ai_insight",
-
-                    "strict": True,
-
-                    "schema": schema,
-                },
-            },
+            )
         )
-    )
+
+    except Exception as exc:
+
+        error_text = (
+            str(exc)
+            .lower()
+        )
+
+        if (
+            "json_validate_failed"
+            not in error_text
+            and
+            "failed to validate json"
+            not in error_text
+        ):
+            raise
+
+        return (
+            _generate_renewal_with_groq_json_object(
+                client,
+                prompt,
+            )
+        )
+
 
     content = (
         response
@@ -1713,13 +1850,26 @@ def generate_with_groq(
             "Groq returned an empty response."
         )
 
-    return (
-        RenewalAIInsight
-        .model_validate_json(
-            content
-        )
-    )
 
+    # Groq may occasionally return HTTP success but still produce
+    # output that fails RenewAI's local Pydantic validation.
+    # Retry once using the simpler JSON-object mode in that case.
+    try:
+        return (
+            RenewalAIInsight
+            .model_validate_json(
+                content
+            )
+        )
+
+    except Exception:
+        return (
+            _generate_renewal_with_groq_json_object(
+                client,
+                prompt,
+            )
+        )
+        
 
 # =========================================================
 # AI RENEWAL INTELLIGENCE ROUTER
