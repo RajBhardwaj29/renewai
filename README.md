@@ -98,10 +98,19 @@ Supabase Cron
   -> Render /internal/process-reminders
   -> process_due_reminders()
   -> Resend
-  -> mark successfully delivered reminders as sent
+  -> atomically record provider acceptance and reminder status
 ```
 
 Keep `ENABLE_REMINDER_SCHEDULER=false` on the Render web service unless this architecture is intentionally replaced.
+
+Cron and manual sends share organization-scoped eligibility checks, durable
+delivery claims, frozen payloads, and provider idempotency keys. Past deadlines
+and obsolete checkpoints are excluded. Unconfirmed outcomes outside the safe
+retry window require review. Provider acceptance is distinct from inbox delivery.
+Apply `backend/migrations/20261015_reminder_delivery_safety.sql` before releasing
+this dispatcher; reconcile ambiguous legacy sends first. See the
+[delivery operations guide](docs/reminder-delivery.md) for release order, recovery,
+sender-domain requirements, rollback precautions and real PostgreSQL tests.
 
 ## Repository layout
 

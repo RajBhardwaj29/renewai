@@ -37,7 +37,8 @@ from contract_ai import (
 )
 
 from renewal_engine import calculate_renewal_intelligence
-from email_service import send_renewal_reminder_email
+from reminder_delivery import deliver_due_reminders, delivery_health
+from uuid import uuid4
 
 from database import (
     verify_access_token,
@@ -58,10 +59,8 @@ from database import (
     get_due_reminders,
     get_contract_reminders,
     backfill_contract_reminders,
-    get_pending_due_reminders_for_delivery,
     update_contract_decision,
     get_contract_decision_history,
-    mark_reminder_sent,
 )
 
 @asynccontextmanager
@@ -275,8 +274,7 @@ def process_reminders_from_cron(
             result.get(
                 "status"
             )
-            ==
-            "failed"
+            in {"failed", "partial"}
         ):
 
             raise HTTPException(
@@ -1053,155 +1051,16 @@ def backfill_reminders(
 
 
 @app.post("/reminders/send-due")
-def send_due_reminders(
-    authorization: str | None = Header(
-        default=None
-    )
-):
-    context = get_authenticated_context(
-        authorization
-    )
+def send_due_reminders(authorization: str | None = Header(default=None)):
+    context = get_authenticated_context(authorization)
+    result = deliver_due_reminders(context["organization_id"], uuid4().hex[:12])
+    return {"message": "Due reminder delivery completed.", **result}
 
-    organization_id = (
-        context["organization_id"]
-    )
 
-    user = context["user"]
-
-    recipient_email = (
-        user.email
-    )
-
-    if not recipient_email:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Authenticated user does not "
-                "have an email address."
-            ),
-        )
-
-    try:
-        reminders = (
-            get_pending_due_reminders_for_delivery(
-                organization_id
-            )
-        )
-
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "Could not load due reminders "
-                f"for delivery: {str(exc)}"
-            ),
-        )
-
-    sent = []
-    failed = []
-
-    for reminder in reminders:
-        contract = (
-            reminder.get("contracts")
-            or {}
-        )
-
-        vendor_name = (
-            contract.get("vendor_name")
-            or "Unknown Vendor"
-        )
-
-        contract_title = (
-            contract.get("contract_title")
-            or "Contract"
-        )
-
-        try:
-            send_renewal_reminder_email(
-                recipient_email=
-                    recipient_email,
-
-                vendor_name=
-                    vendor_name,
-
-                contract_title=
-                    contract_title,
-
-                reminder_type=
-                    reminder["reminder_type"],
-
-                remind_on=
-                    reminder["remind_on"],
-
-                cancellation_deadline=
-                    contract.get(
-                        "cancellation_deadline"
-                    ),
-
-                renewal_date=
-                    contract.get(
-                        "effective_renewal_date"
-                    ),
-            )
-
-            updated = mark_reminder_sent(
-                organization_id,
-                reminder["id"],
-            )
-
-            sent.append({
-                "reminder_id":
-                    reminder["id"],
-
-                "vendor_name":
-                    vendor_name,
-
-                "reminder_type":
-                    reminder["reminder_type"],
-
-                "recipient":
-                    recipient_email,
-
-                "status":
-                    updated.get("status")
-                    if updated
-                    else "sent",
-            })
-
-        except Exception as exc:
-            failed.append({
-                "reminder_id":
-                    reminder["id"],
-
-                "vendor_name":
-                    vendor_name,
-
-                "reminder_type":
-                    reminder["reminder_type"],
-
-                "error":
-                    "This reminder could not be sent. Please try again.",
-            })
-
-    return {
-        "message":
-            "Due reminder delivery completed.",
-
-        "due_found":
-            len(reminders),
-
-        "sent_count":
-            len(sent),
-
-        "failed_count":
-            len(failed),
-
-        "sent":
-            sent,
-
-        "failed":
-            failed,
-    }
+@app.get("/reminders/delivery-health")
+def reminder_delivery_health(authorization: str | None = Header(default=None)):
+    context = get_authenticated_context(authorization)
+    return delivery_health(context["organization_id"])
 
 
 @app.get(
