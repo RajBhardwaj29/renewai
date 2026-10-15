@@ -39,6 +39,7 @@ type Reminder = {
 
   created_at: string;
   sent_at: string | null;
+  delivery_eligibility?: string;
 
   contracts?: ReminderContract | null;
 };
@@ -63,6 +64,10 @@ type SendDueResponse = {
   due_found: number;
   sent_count: number;
   failed_count: number;
+  skipped_count: number;
+  in_progress_count: number;
+  needs_review_count: number;
+  reconciled_count: number;
 
   sent: Array<{
     reminder_id: string;
@@ -80,6 +85,13 @@ type SendDueResponse = {
   }>;
 };
 
+type DeliveryHealth = {
+  processing: number;
+  retryable: number;
+  needs_review: number;
+  accepted: number;
+  test_sender: boolean;
+};
 
 export default function RemindersPage() {
   const router = useRouter();
@@ -101,15 +113,19 @@ export default function RemindersPage() {
 
   const [success, setSuccess] =
     useState("");
+  const [deliveryHealth, setDeliveryHealth] = useState<DeliveryHealth | null>(null);
 
 
   const loadReminders =
     useCallback(async () => {
       try {
-        const response =
-          await authFetchWithRetry(
-            "/reminders"
-          );
+        const [response, health] = await Promise.all([
+          authFetchWithRetry("/reminders"),
+          authFetchWithRetry("/reminders/delivery-health")
+            .then(async (result) => result.ok ? await result.json() as DeliveryHealth : null)
+            .catch(() => null),
+        ]);
+        setDeliveryHealth(health);
 
         if (response.status === 401) {
           router.replace("/login");
@@ -140,6 +156,7 @@ export default function RemindersPage() {
         );
 
       } catch (err) {
+        setDeliveryHealth(null);
         console.error(err);
 
         if (
@@ -272,12 +289,26 @@ export default function RemindersPage() {
       const result =
         data as SendDueResponse;
 
+      if (result.needs_review_count > 0) {
+        setSuccess(`${result.sent_count} reminder email(s) accepted for delivery.`);
+        setError(`${result.needs_review_count} delivery attempt(s) need review. Ask your workspace owner to check the email delivery log before retrying.`);
+        await loadReminders();
+        return;
+      }
+      if (result.in_progress_count > 0 && result.failed_count === 0) {
+        setSuccess(`${result.sent_count} accepted for delivery. ${result.in_progress_count} already being processed; no duplicate request was sent.`);
+        await loadReminders();
+        return;
+      }
+
       if (
         result.sent_count === 0 &&
         result.failed_count === 0
       ) {
         setSuccess(
-          "No pending due reminders need email delivery."
+          result.skipped_count > 0
+            ? "No new emails were sent. Inactive, obsolete, or previously accepted reminders were skipped."
+            : "No pending due reminders need email delivery."
         );
       } else if (
         result.failed_count === 0
@@ -287,7 +318,7 @@ export default function RemindersPage() {
             result.sent_count === 1
               ? ""
               : "s"
-          } sent successfully.`
+          } accepted for delivery.`
         );
       } else {
         setSuccess(
@@ -295,7 +326,7 @@ export default function RemindersPage() {
             result.sent_count === 1
               ? ""
               : "s"
-          } sent. ${result.failed_count} failed.`
+          } accepted for delivery. ${result.failed_count} unconfirmed.`
         );
       }
 
@@ -350,59 +381,15 @@ export default function RemindersPage() {
 
 
   const dueReminders =
-    useMemo(() => {
-      return reminders.filter(
-        (reminder) => {
-          if (
-            reminder.status !== "pending"
-          ) {
-            return false;
-          }
-
-          const reminderDate =
-            parseDate(
-              reminder.remind_on
-            );
-
-          if (!reminderDate) {
-            return false;
-          }
-
-          return (
-            reminderDate.getTime() <=
-            today.getTime()
-          );
-        }
-      );
-    }, [reminders, today]);
+    useMemo(() => reminders.filter((reminder) =>
+      reminder.status === "pending" && reminder.delivery_eligibility === "eligible"
+    ), [reminders]);
 
 
   const upcomingReminders =
-    useMemo(() => {
-      return reminders.filter(
-        (reminder) => {
-          if (
-            reminder.status !== "pending"
-          ) {
-            return false;
-          }
-
-          const reminderDate =
-            parseDate(
-              reminder.remind_on
-            );
-
-          if (!reminderDate) {
-            return false;
-          }
-
-          return (
-            reminderDate.getTime() >
-            today.getTime()
-          );
-        }
-      );
-    }, [reminders, today]);
+    useMemo(() => reminders.filter((reminder) =>
+      reminder.status === "pending" && reminder.delivery_eligibility === "not_due"
+    ), [reminders]);
 
 
   const sentReminders =
@@ -568,7 +555,7 @@ export default function RemindersPage() {
                           dueReminders.length === 1
                             ? ""
                             : "s"
-                        } require attention`
+                        } ${dueReminders.length === 1 ? "requires" : "require"} attention`
                       : activeAlerts > 0
                       ? "Your renewal schedule is being monitored"
                       : "No active renewal alerts"
@@ -680,7 +667,7 @@ export default function RemindersPage() {
               value={
                 sentReminders.length.toString()
               }
-              description="Delivered alerts"
+              description="Accepted by email provider"
             />
 
           </section>
@@ -707,7 +694,8 @@ export default function RemindersPage() {
 
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
                   Generate missing renewal alerts and
-                  deliver any reminders that are currently due.
+                  deliver current due reminders to the workspace owner.
+                  Sent means accepted by the email provider; inbox delivery is confirmed in the delivery log.
                 </p>
 
               </div>
@@ -746,6 +734,7 @@ export default function RemindersPage() {
                     loading ||
                     sendingEmails ||
                     backfilling ||
+                    !deliveryHealth ||
                     dueReminders.length === 0
                   }
                   className="renewai-button-primary"
@@ -765,6 +754,40 @@ export default function RemindersPage() {
 
             </div>
 
+            {!loading && (
+              <div className="mt-5 space-y-3 text-sm leading-6">
+                {!deliveryHealth && (
+                  <p role="status" className="rounded-xl bg-amber-50 p-4 text-amber-900">
+                    Email delivery safety could not be verified. Sending is paused. Refresh the status or ask your workspace owner for help.
+                  </p>
+                )}
+                {deliveryHealth?.test_sender && (
+                  <p className="rounded-xl bg-amber-50 p-4 text-amber-900">
+                    Email sending is limited to the service account owner until a sending domain is verified.
+                  </p>
+                )}
+                {!!deliveryHealth?.needs_review && (
+                  <p role="status" className="rounded-xl bg-amber-50 p-4 text-amber-900">
+                    {deliveryHealth.needs_review} delivery attempt(s) need review. Automatic resending is paused for these attempts to prevent duplicate emails. Ask your workspace owner to check the delivery log.
+                  </p>
+                )}
+                {!!deliveryHealth?.retryable && (
+                  <p className="text-slate-600">{deliveryHealth.retryable} unconfirmed delivery attempt(s) can be retried safely while the recovery window remains open.</p>
+                )}
+                {!!deliveryHealth?.processing && (
+                  <p className="text-slate-600">{deliveryHealth.processing} reminder email(s) are being processed.</p>
+                )}
+                {reminders.some((reminder) => reminder.status === "pending" && ["past_deadline", "obsolete_checkpoint", "invalid_dates"].includes(reminder.delivery_eligibility || "")) && (
+                  <p className="rounded-xl bg-slate-100 p-4 text-slate-700">
+                    Some alerts relate to passed or changed deadlines. They are excluded from due emails; review the affected contracts before creating new alerts.
+                  </p>
+                )}
+                <button type="button" onClick={() => { setError(""); void loadReminders(); }} disabled={sendingEmails || backfilling}
+                  className="font-semibold text-blue-700 underline underline-offset-4 disabled:opacity-50">
+                  Refresh delivery status
+                </button>
+              </div>
+            )}
 
             {success && (
 
@@ -1036,7 +1059,7 @@ function SentReminderSection({
           </h2>
 
           <p className="mt-2 text-sm text-slate-500">
-            Renewal alerts already delivered by RenewAI.
+            Renewal alerts accepted by the email provider. Check the delivery log for inbox delivery.
           </p>
 
         </div>
@@ -1085,7 +1108,7 @@ function SentReminderSection({
                       </h3>
 
                       <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                        Delivered
+                        Accepted
                       </span>
 
                     </div>
@@ -1133,7 +1156,7 @@ function SentReminderSection({
                           ? formatDateTime(
                               reminder.sent_at
                             )
-                          : "Delivered"
+                          : "Time not recorded"
                       }
                     </p>
 

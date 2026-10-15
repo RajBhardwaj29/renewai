@@ -1,6 +1,7 @@
 import os
 
 import resend
+from email.utils import parseaddr
 
 from dotenv import load_dotenv
 
@@ -44,7 +45,7 @@ def format_reminder_type(
     )
 
 
-def send_renewal_reminder_email(
+def build_renewal_reminder_payload(
     recipient_email: str,
     vendor_name: str,
     contract_title: str,
@@ -52,16 +53,8 @@ def send_renewal_reminder_email(
     remind_on: str,
     cancellation_deadline: str | None,
     renewal_date: str | None,
+    reminder_id: str | None = None,
 ):
-    if not RESEND_API_KEY:
-        raise RuntimeError(
-            "RESEND_API_KEY is missing."
-        )
-
-    resend.api_key = (
-        RESEND_API_KEY
-    )
-
     subject = (
         f"RenewAI: "
         f"{format_reminder_type(reminder_type)} "
@@ -97,27 +90,21 @@ RenewAI
 Contract Renewal Intelligence
 """.strip()
 
-    try:
-        response = resend.Emails.send(
-            {
-                "from":
-                    EMAIL_FROM,
+    payload = {"from": EMAIL_FROM, "to": [recipient_email], "subject": subject, "text": body}
+    if reminder_id:
+        payload["tags"] = [{"name": "renewai_reminder_id", "value": reminder_id}]
+    return payload
 
-                "to": [
-                    recipient_email
-                ],
 
-                "subject":
-                    subject,
+def sender_uses_test_domain():
+    return parseaddr(EMAIL_FROM)[1].lower().endswith("@resend.dev")
 
-                "text":
-                    body,
-            }
-        )
 
-        return response
-
-    except Exception as exc:
-        raise RuntimeError(
-            f"Email send failed: {str(exc)}"
-        )
+def send_reminder_payload(payload: dict, idempotency_key: str):
+    """Only send a previously reserved, frozen payload with its stable key."""
+    if not RESEND_API_KEY:
+        raise RuntimeError("Reminder email provider is not configured.")
+    if not idempotency_key:
+        raise ValueError("A reminder idempotency key is required.")
+    resend.api_key = RESEND_API_KEY
+    return resend.Emails.send(payload, options={"idempotency_key": idempotency_key})

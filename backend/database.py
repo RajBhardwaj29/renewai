@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from reminder_rules import delivery_reason, utc_today
 
 
 load_dotenv()
@@ -1149,6 +1150,7 @@ def get_reminders(
             *,
             contracts (
                 id,
+                organization_id,
                 vendor_name,
                 contract_title,
                 cancellation_deadline,
@@ -1172,10 +1174,9 @@ def get_reminders(
         .execute()
     )
 
-    return (
-        response.data
-        or []
-    )
+    return [dict(row, delivery_eligibility=delivery_reason(row))
+            for row in (response.data or [])
+            if delivery_reason(row) != "unavailable"]
 
 
 # =========================================================
@@ -1187,7 +1188,7 @@ def get_upcoming_reminders(
     organization_id: str
 ):
     today = (
-        date.today()
+        utc_today()
         .isoformat()
     )
 
@@ -1200,6 +1201,7 @@ def get_upcoming_reminders(
             *,
             contracts (
                 id,
+                organization_id,
                 vendor_name,
                 contract_title,
                 cancellation_deadline,
@@ -1228,10 +1230,7 @@ def get_upcoming_reminders(
     )
 
 
-    return (
-        response.data
-        or []
-    )
+    return [row for row in (response.data or []) if delivery_reason(row) == "not_due"]
 
 
 # =========================================================
@@ -1243,7 +1242,7 @@ def get_due_reminders(
     organization_id: str
 ):
     today = (
-        date.today()
+        utc_today()
         .isoformat()
     )
 
@@ -1256,6 +1255,7 @@ def get_due_reminders(
             *,
             contracts (
                 id,
+                organization_id,
                 vendor_name,
                 contract_title,
                 cancellation_deadline,
@@ -1284,10 +1284,7 @@ def get_due_reminders(
     )
 
 
-    return (
-        response.data
-        or []
-    )
+    return [row for row in (response.data or []) if delivery_reason(row) == "eligible"]
 
 
 # =========================================================
@@ -1327,45 +1324,6 @@ def get_contract_reminders(
         or []
     )
 
-
-# =========================================================
-# MARK REMINDER AS SENT
-# =========================================================
-
-
-def mark_reminder_sent(
-    organization_id: str,
-    reminder_id: str,
-):
-    response = (
-        supabase
-        .table("contract_reminders")
-        .update({
-            "status":
-                "sent",
-
-            "sent_at":
-                datetime.now()
-                .astimezone()
-                .isoformat(),
-        })
-        .eq(
-            "organization_id",
-            organization_id
-        )
-        .eq(
-            "id",
-            reminder_id
-        )
-        .execute()
-    )
-
-
-    if not response.data:
-        return None
-
-
-    return response.data[0]
 
 # =========================================================
 # BACKFILL REMINDERS FOR EXISTING CONTRACTS
@@ -1441,62 +1399,40 @@ def backfill_contract_reminders(
 # =========================================================
 
 
-def get_pending_due_reminders_for_delivery(
-    organization_id: str
-):
-    today = (
-        date.today()
-        .isoformat()
-    )
+def get_pending_due_reminders_for_delivery(organization_id: str, *, include_ineligible=False):
+    """Load overdue candidates; dispatch revalidates again in an atomic RPC."""
+    response = (supabase.table("contract_reminders").select("""
+        *, contracts (id, organization_id, vendor_name, contract_title,
+          cancellation_deadline, effective_renewal_date, archived)
+        """).eq("organization_id", organization_id).eq("status", "pending")
+        .lte("remind_on", utc_today().isoformat()).order("remind_on").execute())
+    reminders = response.data or []
+    return reminders if include_ineligible else [r for r in reminders if delivery_reason(r) == "eligible"]
 
-    response = (
-        supabase
-        .table("contract_reminders")
-        .select(
-            """
-            *,
-            contracts (
-                id,
-                vendor_name,
-                contract_title,
-                cancellation_deadline,
-                effective_renewal_date,
-                archived
-            )
-            """
-        )
-        .eq(
-            "organization_id",
-            organization_id
-        )
-        .eq(
-            "status",
-            "pending"
-        )
-        .lte(
-            "remind_on",
-            today
-        )
-        .order(
-            "remind_on"
-        )
-        .execute()
-    )
 
-    reminders = (
-        response.data
-        or []
-    )
+def claim_reminder_delivery(organization_id, reminder_id, expected_deadline, payload):
+    return supabase.rpc("claim_reminder_delivery", {
+        "p_organization_id": organization_id, "p_reminder_id": reminder_id,
+        "p_expected_deadline": expected_deadline, "p_payload": payload,
+    }).execute().data
 
-    return [
-        reminder
-        for reminder
-        in reminders
-        if not (
-            reminder.get("contracts")
-            or {}
-        ).get(
-            "archived",
-            False
-        )
-    ]
+
+def complete_reminder_delivery(organization_id, reminder_id, token, provider_id):
+    return supabase.rpc("complete_reminder_delivery", {
+        "p_organization_id": organization_id, "p_reminder_id": reminder_id,
+        "p_claim_token": token, "p_provider_email_id": provider_id,
+    }).execute().data is True
+
+
+def fail_reminder_delivery(organization_id, reminder_id, token, error_code):
+    return supabase.rpc("fail_reminder_delivery", {
+        "p_organization_id": organization_id, "p_reminder_id": reminder_id,
+        "p_claim_token": token, "p_error_code": error_code,
+    }).execute().data is True
+
+
+def get_reminder_delivery_health(organization_id):
+    # Never select or expose the frozen payload or recipient through the API.
+    return (supabase.table("reminder_deliveries")
+        .select("reminder_id,state,lease_until,first_attempt_at,attempt_count,last_error_code")
+        .eq("organization_id", organization_id).execute().data or [])
