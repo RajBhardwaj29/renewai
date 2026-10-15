@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
       ) {
 
         setError(
-          updateError.message
+          "Could not update your password. Try again, or request a new reset link."
         );
 
         return;

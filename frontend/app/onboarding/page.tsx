@@ -195,7 +195,9 @@ export default function OnboardingPage() {
       ) {
 
         setError(
-          err.message
+          err.message === "You must be signed in."
+            ? "Please sign in before creating a workspace."
+            : "Could not create your workspace right now. Please try again."
         );
 
       } else {

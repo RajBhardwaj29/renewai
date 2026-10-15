@@ -228,6 +228,26 @@ Security-sensitive changes should retest at least:
 - The reminder cron endpoint rejects missing or invalid credentials.
 - Secrets do not appear in frontend output or logs.
 
+## P0 error handling and recovery
+
+API failures use friendly messages rather than provider/database exception text.
+The browser also filters error responses, including HTML gateway responses and
+errors from older API revisions. Safe GET/HEAD requests retry temporary
+500/502/503/504 failures; writes are not automatically retried after a network or
+server failure. An uncertain save directs the user to check Contracts first.
+
+Contract saving and reminder creation remain separate from AI insight generation.
+The contract page reads persisted `ai_analysis_status` after refresh, offers an
+explicit AI retry, and retains the saved dates and reminder timeline. Pending
+means analysis has not completed; it does not imply a background worker is running.
+
+Run `npm test`, `npm run lint`, and `npm run build` in `frontend/`, and
+`python -m unittest discover -p 'test_*.py'` in `backend/`. Failure-path tests use
+an isolated in-memory database and mocked providers; they do not require live
+Supabase, AI, or email credentials. They cover provider failure, same-record AI
+retry, unchanged reminders, expired sessions, private error suppression,
+validation privacy, and duplicate-save recovery.
+
 ## Deployment
 
 - Pushes to the production-linked branch deploy the frontend through Vercel.

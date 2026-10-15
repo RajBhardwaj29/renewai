@@ -93,6 +93,7 @@ auto_renewal: boolean | null;
    * These are separate from the deterministic
    * renewal engine above.
    */
+  ai_analysis_status?: "pending" | "completed" | "failed";
   ai_action: string | null;
   ai_confidence: number | null;
   ai_summary: string | null;
@@ -715,6 +716,7 @@ export default function ContractDetailPage() {
       const insight = await generateRenewalAIInsight(id);
       setContract((current) => current?.id === id ? {
         ...current,
+        ai_analysis_status: "completed",
         ai_action: insight.action,
         ai_confidence: insight.confidence,
         ai_summary: insight.summary,
@@ -2005,7 +2007,9 @@ export default function ContractDetailPage() {
               <p role="status" aria-live="polite" className="mt-3 text-sm leading-6 text-slate-600">
                 {aiAnalyzing
                   ? "AI renewal analysis is in progress. Your contract and renewal dates are saved."
-                  : aiError || "Your contract and renewal dates are saved. AI renewal analysis is not available yet."}
+                  : aiError || (contract.ai_analysis_status === "failed"
+                    ? AI_ANALYSIS_UNAVAILABLE
+                    : "Your contract and renewal dates are saved. AI renewal analysis has not completed yet.")}
               </p>
               <button
                 type="button"
@@ -2013,7 +2017,8 @@ export default function ContractDetailPage() {
                 disabled={aiAnalyzing || contract.archived}
                 className="renewai-button-secondary mt-4"
               >
-                {aiAnalyzing ? "Analyzing..." : "Retry AI analysis"}
+                {aiAnalyzing ? "Analyzing..." : contract.ai_analysis_status === "failed" || aiError
+                  ? "Retry AI analysis" : "Generate AI analysis"}
               </button>
             </section>
           )}

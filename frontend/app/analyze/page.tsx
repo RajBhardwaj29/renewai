@@ -454,7 +454,7 @@ export default function AnalyzeContractPage() {
 
 
       setError(
-        "Could not connect to RenewAI backend."
+        "We couldn't analyze this PDF right now. Please try again."
       );
 
 
@@ -600,7 +600,7 @@ export default function AnalyzeContractPage() {
 
 
       setError(
-        "Could not save the reviewed contract."
+        "We couldn't confirm whether your contract was saved. Check Contracts before trying again."
       );
 
 
