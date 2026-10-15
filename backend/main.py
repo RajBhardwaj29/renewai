@@ -13,6 +13,8 @@ from fastapi import (
     Header,
 )
 
+from api_errors import register_error_handlers
+
 from pydantic import BaseModel
 
 from contextlib import asynccontextmanager
@@ -94,6 +96,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+register_error_handlers(app)
 
 default_origins = [
     "http://localhost:3000",
@@ -1155,7 +1159,7 @@ def send_due_reminders(
                     reminder["reminder_type"],
 
                 "error":
-                    str(exc),
+                    "This reminder could not be sent. Please try again.",
             })
 
     return {
@@ -1511,8 +1515,7 @@ async def save_reviewed_contract(
         raise HTTPException(
             status_code=400,
             detail=(
-                "Invalid reviewed contract data: "
-                f"{str(exc)}"
+                "Some reviewed contract details are invalid. Review them and try again."
             ),
         )
 
@@ -1530,10 +1533,7 @@ async def save_reviewed_contract(
         raise HTTPException(
             status_code=400,
             detail=(
-                "Could not calculate renewal "
-                "intelligence from the reviewed "
-                "contract: "
-                f"{str(exc)}"
+                "We couldn't calculate renewal dates. Review the dates and notice terms, then try again."
             ),
         )
 

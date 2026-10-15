@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
       ) {
 
         setError(
-          resetError.message
+          "Could not send the reset email right now. Please try again shortly."
         );
 
         return;

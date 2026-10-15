@@ -111,7 +111,7 @@ export default function LoginPage() {
 
 
         setError(
-          signInError.message
+          "Could not sign in right now. Please try again."
         );
 
         return;

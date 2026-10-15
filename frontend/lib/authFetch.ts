@@ -1,3 +1,5 @@
+import { requestFailureMessage, safeErrorResponse } from "@/lib/apiErrors";
+
 import {
   supabase,
 } from "@/lib/supabase";
@@ -115,10 +117,7 @@ async function refreshSupabaseSession() {
   ) {
 
     refreshPromise =
-      supabase.auth.refreshSession();
-
-
-    refreshPromise.finally(
+      supabase.auth.refreshSession().finally(
       () => {
 
         refreshPromise =
@@ -145,7 +144,7 @@ async function refreshSupabaseSession() {
  * 5. Retry exactly once with the new token.
  * 6. If refresh fails, return a normal 401.
  */
-export async function authFetch(
+async function fetchWithSession(
   path: string,
   options: RequestInit = {}
 ) {
@@ -254,19 +253,24 @@ export async function authFetch(
     return response;
 
 
-  } catch (
-    error
-  ) {
+  } catch {
 
-    console.error(
-      "RenewAI authentication refresh failed:",
-      error
-    );
+    console.error("RenewAI authentication refresh failed.");
 
 
     return (
       authenticationRequiredResponse()
     );
+  }
+}
+
+
+export async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  try {
+    const response = await fetchWithSession(path, options);
+    return await safeErrorResponse(path, response);
+  } catch {
+    throw new Error(requestFailureMessage(path));
   }
 }
 
@@ -294,6 +298,7 @@ export async function authFetchWithRetry(
       const response = await authFetch(path, options);
 
       if (
+        response.status !== 500 &&
         response.status !== 502 &&
         response.status !== 503 &&
         response.status !== 504
@@ -307,7 +312,7 @@ export async function authFetchWithRetry(
     } catch (error) {
       lastError = error;
 
-      if (attempt === attempts) {
+      if (attempt === attempts || options.signal?.aborted) {
         throw error;
       }
     }

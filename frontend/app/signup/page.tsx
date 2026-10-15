@@ -112,7 +112,7 @@ export default function SignupPage() {
         ) {
 
           setError(
-            signUpError.message
+            "Please choose a stronger password with at least 8 characters."
           );
 
           return;
@@ -120,7 +120,7 @@ export default function SignupPage() {
 
 
         setError(
-          signUpError.message
+          "Could not create your account right now. Please try again."
         );
 
         return;
