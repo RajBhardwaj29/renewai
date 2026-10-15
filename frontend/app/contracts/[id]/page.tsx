@@ -21,6 +21,11 @@ import {
   authFetchWithRetry,
 } from "@/lib/authFetch";
 
+import {
+  AI_ANALYSIS_UNAVAILABLE,
+  generateRenewalAIInsight,
+} from "@/lib/renewalAI";
+
 
 type Contract = {
   id: string;
@@ -172,6 +177,12 @@ export default function ContractDetailPage() {
 
   const id =
     params.id as string;
+
+  const [aiAnalysis, setAIAnalysis] = useState({
+    contractId: "", running: false, error: "",
+  });
+  const aiAnalyzing = aiAnalysis.contractId === id && aiAnalysis.running;
+  const aiError = aiAnalysis.contractId === id ? aiAnalysis.error : "";
 
 
   const [
@@ -696,6 +707,30 @@ export default function ContractDetailPage() {
     setReminderError("");
     setDecisionHistoryError("");
     setLoadAttempt((attempt) => attempt + 1);
+  }
+
+  async function handleAIAnalysis() {
+    setAIAnalysis({ contractId: id, running: true, error: "" });
+    try {
+      const insight = await generateRenewalAIInsight(id);
+      setContract((current) => current?.id === id ? {
+        ...current,
+        ai_action: insight.action,
+        ai_confidence: insight.confidence,
+        ai_summary: insight.summary,
+        ai_key_findings: insight.key_findings,
+        ai_commercial_flags: insight.commercial_flags,
+      } : current);
+    } catch (err) {
+      setAIAnalysis((current) => current.contractId === id ? {
+        contractId: id, running: false,
+        error: err instanceof Error ? err.message : AI_ANALYSIS_UNAVAILABLE,
+      } : current);
+    } finally {
+      setAIAnalysis((current) => current.contractId === id ? {
+        ...current, running: false,
+      } : current);
+    }
   }
 
 
@@ -1963,6 +1998,25 @@ export default function ContractDetailPage() {
 
 
           {/* AI RENEWAL INTELLIGENCE */}
+
+          {!hasAIInsight && (
+            <section className="mb-8 renewai-card p-6 sm:p-7">
+              <h2 className="text-xl font-bold text-slate-950">AI Renewal Intelligence</h2>
+              <p role="status" aria-live="polite" className="mt-3 text-sm leading-6 text-slate-600">
+                {aiAnalyzing
+                  ? "AI renewal analysis is in progress. Your contract and renewal dates are saved."
+                  : aiError || "Your contract and renewal dates are saved. AI renewal analysis is not available yet."}
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleAIAnalysis()}
+                disabled={aiAnalyzing || contract.archived}
+                className="renewai-button-secondary mt-4"
+              >
+                {aiAnalyzing ? "Analyzing..." : "Retry AI analysis"}
+              </button>
+            </section>
+          )}
 
           {
             hasAIInsight

@@ -4,6 +4,7 @@ import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
 
 import {
+  useRef,
   useState,
 } from "react";
 
@@ -12,6 +13,11 @@ import Link from "next/link";
 import {
   authFetch,
 } from "@/lib/authFetch";
+
+import {
+  AI_ANALYSIS_UNAVAILABLE,
+  generateRenewalAIInsight,
+} from "@/lib/renewalAI";
 
 
 type ContractData = {
@@ -108,7 +114,8 @@ type SaveResponse = {
 
   organization_id?: string;
 
-  reminder_count?: number;
+  reminder_count?: number | null;
+  reminder_warning?: string | null;
 
   message: string;
 };
@@ -131,6 +138,12 @@ type ErrorResponse = {
 
 
 export default function AnalyzeContractPage() {
+
+  const [aiStatus, setAIStatus] = useState<
+    "not_started" | "running" | "completed" | "failed"
+  >("not_started");
+  const [aiError, setAIError] = useState("");
+  const aiRequestId = useRef(0);
 
   const [
     file,
@@ -205,6 +218,10 @@ export default function AnalyzeContractPage() {
 
 
   function resetAnalysis() {
+
+    aiRequestId.current += 1;
+    setAIStatus("not_started");
+    setAIError("");
 
     setAnalysis(
       null
@@ -450,6 +467,24 @@ export default function AnalyzeContractPage() {
   }
 
 
+  async function runSavedAIAnalysis(contractId: string) {
+    const requestId = ++aiRequestId.current;
+    setAIStatus("running");
+    setAIError("");
+
+    try {
+      await generateRenewalAIInsight(contractId);
+      if (aiRequestId.current === requestId) {
+        setAIStatus("completed");
+      }
+    } catch (err) {
+      if (aiRequestId.current === requestId) {
+        setAIStatus("failed");
+        setAIError(err instanceof Error ? err.message : AI_ANALYSIS_UNAVAILABLE);
+      }
+    }
+  }
+
   async function handleSave() {
 
     if (
@@ -533,6 +568,10 @@ export default function AnalyzeContractPage() {
       setSavedResult(
         data as SaveResponse
       );
+
+      // Saving is complete. The separate AI request owns its own failure state.
+      setSaving(false);
+      void runSavedAIAnalysis((data as SaveResponse).database_id);
 
 
     } catch (
@@ -2598,6 +2637,32 @@ reviewed contract evidence.
 
                     </div>
 
+
+                    {
+                      savedResult.reminder_warning && (
+                        <div role="status" className="mt-5 text-sm leading-6 text-amber-900">
+                          {savedResult.reminder_warning}{" "}
+                          <Link href="/reminders" className="font-semibold underline">
+                            Open Reminders
+                          </Link>
+                        </div>
+                      )
+                    }
+
+                    <div role="status" aria-live="polite" className="mt-5 text-sm leading-6 text-emerald-900">
+                      {aiStatus === "running" && "Your contract is saved. AI renewal analysis is in progress."}
+                      {aiStatus === "completed" && "AI renewal analysis is ready. Open the contract to view it."}
+                      {aiStatus === "failed" && aiError}
+                      {(aiStatus === "failed" || aiStatus === "not_started") && (
+                        <button
+                          type="button"
+                          onClick={() => void runSavedAIAnalysis(savedResult.database_id)}
+                          className="renewai-button-secondary mt-3 block"
+                        >
+                          Retry AI analysis
+                        </button>
+                      )}
+                    </div>
 
                     {
                       typeof savedResult.reminder_count ===
