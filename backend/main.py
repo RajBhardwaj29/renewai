@@ -26,7 +26,8 @@ from reminder_scheduler import (
 )
 
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from contract_summary import build_contract_summary, summary_filename
 
 from contract_ai import (
     ContractData,
@@ -127,6 +128,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 
@@ -437,6 +439,25 @@ def get_single_contract(
                 f"{str(exc)}"
             ),
         )
+
+
+@app.get("/contracts/{contract_id}/summary.pdf")
+async def download_contract_summary(
+    contract_id: str,
+    authorization: str | None = Header(default=None),
+):
+    context = get_authenticated_context(authorization)
+    organization_id = context["organization_id"]
+    contract = get_contract_by_id(organization_id, contract_id)
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found.")
+    reminders = get_contract_reminders(organization_id, contract_id)
+    pdf = build_contract_summary(contract, reminders)
+    return Response(content=pdf, media_type="application/pdf", headers={
+        "Content-Disposition": f'attachment; filename="{summary_filename(contract)}"',
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+    })
 
 
 @app.delete("/contracts/{contract_id}")
