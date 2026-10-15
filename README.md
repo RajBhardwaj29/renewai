@@ -122,7 +122,31 @@ renewai/
     └── lib/                  Supabase and authenticated API helpers
 ```
 
-The database schema and production infrastructure configuration are managed externally in Supabase, Render, and Vercel; migration and infrastructure-as-code files are not currently included in this repository.
+The base database schema and production infrastructure configuration are managed externally in Supabase, Render, and Vercel. Incremental backend migrations are checked in under `backend/migrations/`; the complete base schema is not included.
+
+### Contract save and AI analysis
+
+`POST /contracts/save` recalculates reviewed renewal terms, persists the contract with
+`ai_analysis_status=pending`, and creates reminders. It never calls the AI provider.
+Reminder creation failures return a successful save with a separate recovery warning.
+The frontend requests AI analysis after receiving the saved contract ID.
+
+`POST /contracts/{contract_id}/ai-insight` generates or retries analysis for an active,
+organization-owned contract. It stores `completed` atomically with the insight, or
+`failed` if analysis fails. The latter returns HTTP 503 for the analysis request with
+`contract_saved=true`, `retryable=true`, the saved `database_id`, and a friendly
+`detail` message. It never inserts another contract, recalculates dates, or creates
+reminders. Contract reads include the persisted status; completed insights are reused.
+Pending includes work not yet requested and interrupted attempts; it is not a queued
+job. Retrying uses the same endpoint. If database writes are unavailable, recording
+failure is best effort; the existing contract remains saved and retryable.
+
+Before deploying this backend, apply
+`backend/migrations/20261015_contract_ai_analysis_status.sql` to Supabase. It adds one
+status column and marks existing populated insights as completed. Existing records
+without an insight start pending because prior failures cannot be inferred. Apply
+the migration before the code release; older code ignores the added column. For a
+rollback, restore the older backend first; the added column can remain in place.
 
 ## Local development
 

@@ -24,6 +24,7 @@ from reminder_scheduler import (
 )
 
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from contract_ai import (
     ContractData,
@@ -40,6 +41,7 @@ from database import (
     get_user_organization,
     save_contract,
     update_contract_ai_insight,
+    update_contract_ai_analysis_status,
     create_contract_reminders,
     get_contracts,
     get_contract_by_id,
@@ -1617,7 +1619,11 @@ async def save_reviewed_contract(
         "ai_insight":
             None,
 
-        "ai_analysis_status": "not_started",
+        "ai_analysis_status": saved_contract["ai_analysis_status"],
+        "contract_saved": True,
+        "ai_analysis_message": (
+            "Contract saved. AI analysis is pending; request analysis separately."
+        ),
 
         "database_id":
             saved_contract["id"],
@@ -1677,6 +1683,9 @@ def analyze_saved_contract_renewal(
                 "commercial_flags": saved_contract.get("ai_commercial_flags") or [],
             })
         else:
+            update_contract_ai_analysis_status(
+                organization_id, contract_id, "pending",
+            )
             reviewed_contract = ContractData.model_validate({
                 name: saved_contract.get(name)
                 for name in ContractData.model_fields
@@ -1708,14 +1717,36 @@ def analyze_saved_contract_renewal(
             "AI insight generation or persistence failed for contract %s (%s)",
             contract_id, type(exc).__name__,
         )
-        raise HTTPException(
+        # A status-write failure must not hide the saved record or expose internals.
+        # Conditional writes also keep a late failed attempt from undoing success.
+        try:
+            update_contract_ai_analysis_status(
+                organization_id, contract_id, "failed",
+            )
+        except Exception as status_exc:
+            logging.getLogger("renewai.contracts").warning(
+                "AI failure status could not be persisted for contract %s (%s)",
+                contract_id, type(status_exc).__name__,
+            )
+        return JSONResponse(
             status_code=503,
-            detail="AI analysis temporarily unavailable. Please try again.",
+            content={
+                "detail": (
+                    "Contract saved; AI analysis is temporarily unavailable. "
+                    "Please retry AI analysis."
+                ),
+                "database_id": contract_id,
+                "contract_saved": True,
+                "ai_insight": None,
+                "ai_analysis_status": "failed",
+                "retryable": True,
+            },
         )
 
     return {
         "database_id": contract_id,
         "ai_insight": ai_insight.model_dump(),
         "ai_analysis_status": "completed",
+        "contract_saved": True,
         "message": "AI analysis completed successfully.",
     }

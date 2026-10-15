@@ -302,6 +302,9 @@ def save_contract(
         "ai_action":
             None,
 
+        "ai_analysis_status":
+            "pending",
+
         "ai_confidence":
             None,
 
@@ -354,10 +357,31 @@ def update_contract_ai_insight(
             "ai_summary": ai_insight.summary,
             "ai_key_findings": ai_insight.key_findings,
             "ai_commercial_flags": ai_insight.commercial_flags,
+            "ai_analysis_status": "completed",
         })
         .eq("organization_id", organization_id)
         .eq("id", contract_id)
         .eq("archived", False)
+        .execute()
+    )
+    return response.data[0] if response.data else None
+
+
+def update_contract_ai_analysis_status(
+    organization_id: str,
+    contract_id: str,
+    status: str,
+):
+    """Track attempts without overwriting a concurrently completed insight."""
+    if status not in {"pending", "failed"}:
+        raise ValueError("Completion must be persisted with the insight.")
+    response = (
+        supabase.table("contracts")
+        .update({"ai_analysis_status": status})
+        .eq("organization_id", organization_id)
+        .eq("id", contract_id)
+        .eq("archived", False)
+        .in_("ai_analysis_status", ["pending", "failed"])
         .execute()
     )
     return response.data[0] if response.data else None

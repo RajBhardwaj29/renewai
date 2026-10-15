@@ -19,12 +19,14 @@ with patch.dict(os.environ, {
     import main
 
 from contract_ai import ContractData, RenewalAIInsight
+from renewal_engine import calculate_renewal_intelligence
 
 
 class MemoryQuery:
     def __init__(self, db, table):
         self.db, self.table = db, table
         self.filters = []
+        self.in_filters = []
         self.operation, self.payload = "select", None
 
     def select(self, _columns):
@@ -35,6 +37,10 @@ class MemoryQuery:
         return self
 
     def limit(self, _count):
+        return self
+
+    def in_(self, column, values):
+        self.in_filters.append((column, values))
         return self
 
     def insert(self, payload):
@@ -61,7 +67,9 @@ class MemoryQuery:
                 rows.append(row)
                 inserted.append(deepcopy(row))
             return SimpleNamespace(data=inserted)
-        matched = [row for row in rows if all(row.get(k) == v for k, v in self.filters)]
+        matched = [row for row in rows
+                   if all(row.get(k) == v for k, v in self.filters)
+                   and all(row.get(k) in values for k, values in self.in_filters)]
         if self.operation == "update":
             self.db.updates.append(deepcopy(self.payload))
             for row in matched:
@@ -125,14 +133,25 @@ class ContractSaveFlowTests(unittest.TestCase):
             headers={"Authorization": "Bearer test-token"},
         )
 
+    def load(self, contract_id):
+        response = self.client.get(
+            f"/contracts/{contract_id}",
+            headers={"Authorization": "Bearer test-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        return response.json()["contract"]
+
     def test_save_persists_without_calling_failing_ai(self):
         self.provider.side_effect = RuntimeError("Groq structured output failed")
         response = self.save()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["reminder_count"], 5)
         self.assertIsNone(response.json()["ai_insight"])
+        self.assertTrue(response.json()["contract_saved"])
+        self.assertEqual(response.json()["ai_analysis_status"], "pending")
         self.provider.assert_not_called()
         row = self.db.rows["contracts"][0]
+        self.assertEqual(self.load(row["id"])["ai_analysis_status"], "pending")
         self.assertIsNone(row["ai_action"])
         self.assertEqual(row["ai_key_findings"], [])
         self.assertEqual(row["ai_commercial_flags"], [])
@@ -147,16 +166,31 @@ class ContractSaveFlowTests(unittest.TestCase):
         failed = self.analyze(saved["database_id"])
         self.assertEqual(failed.status_code, 503)
         self.assertNotIn("private AI error", failed.text)
-        self.assertEqual(self.db.rows, before)
+        self.assertTrue(failed.json()["contract_saved"])
+        self.assertTrue(failed.json()["retryable"])
+        self.assertEqual(failed.json()["database_id"], saved["database_id"])
+        self.assertEqual(failed.json()["ai_analysis_status"], "failed")
+        self.assertIn("Contract saved", failed.json()["detail"])
+        self.assertEqual(self.load(saved["database_id"])["ai_analysis_status"], "failed")
+        after_failure = deepcopy(before)
+        after_failure["contracts"][0]["ai_analysis_status"] = "failed"
+        self.assertEqual(self.db.rows, after_failure)
 
-        self.provider.side_effect = None
+        def retry_after_persistence(*_args):
+            self.assertEqual(self.load(saved["database_id"])["ai_analysis_status"], "pending")
+            self.assertEqual(self.db.rows["contract_reminders"], before["contract_reminders"])
+            return self.insight
+        self.provider.side_effect = retry_after_persistence
         completed = self.analyze(saved["database_id"])
         self.assertEqual(completed.status_code, 200)
         self.assertEqual(completed.json()["ai_insight"], self.insight.model_dump())
+        self.assertEqual(completed.json()["ai_analysis_status"], "completed")
+        self.assertEqual(self.load(saved["database_id"])["ai_analysis_status"], "completed")
         self.assertEqual(self.db.rows["contract_reminders"], before["contract_reminders"])
         self.assertEqual(len(self.db.rows["contracts"]), 1)
-        ai_fields = {"ai_action", "ai_confidence", "ai_summary", "ai_key_findings", "ai_commercial_flags"}
-        self.assertEqual(set(self.db.updates[0]), ai_fields)
+        ai_fields = {"ai_action", "ai_confidence", "ai_summary", "ai_key_findings",
+                     "ai_commercial_flags", "ai_analysis_status"}
+        self.assertEqual(set(self.db.updates[-1]), ai_fields)
         for field, value in before["contracts"][0].items():
             if field not in ai_fields:
                 self.assertEqual(self.db.rows["contracts"][0][field], value)
@@ -170,7 +204,24 @@ class ContractSaveFlowTests(unittest.TestCase):
         self.assertEqual(self.analyze(contract_id).status_code, 200)
         self.assertEqual(self.analyze(contract_id).status_code, 200)
         self.provider.assert_called_once()
-        self.assertEqual(len(self.db.updates), 1)
+        self.assertEqual(len(self.db.updates), 2)
+
+    def test_real_calculations_and_reminders_survive_ai_failure(self):
+        self.contract.update(end_date="2031-01-01", renewal_date="2031-01-02",
+                             notice_period_unit="days", notice_period_anchor="end_date",
+                             auto_renewal=True, renewal_term_months=12)
+        self.mocks[-2].side_effect = calculate_renewal_intelligence
+        self.provider.side_effect = RuntimeError("Provider unavailable")
+        response = self.save()
+        self.assertEqual(response.status_code, 200)
+        saved = response.json()
+        self.assertEqual(saved["renewal_intelligence"]["cancellation_deadline"], "2030-12-02")
+        self.assertEqual(saved["reminder_count"], 5)
+        before_reminders = deepcopy(self.db.rows["contract_reminders"])
+        self.assertEqual(self.analyze(saved["database_id"]).status_code, 503)
+        self.assertEqual(self.load(saved["database_id"])["cancellation_deadline"], "2030-12-02")
+        self.assertEqual(self.db.rows["contract_reminders"], before_reminders)
+        self.mocks[-2].assert_called_once()
 
     def test_analysis_preserves_existing_human_decision(self):
         contract_id = self.save().json()["database_id"]
@@ -227,8 +278,52 @@ class ContractSaveFlowTests(unittest.TestCase):
     def test_ai_update_failure_keeps_saved_contract_and_reminders(self):
         contract_id = self.save().json()["database_id"]
         before = deepcopy(self.db.rows)
+        with patch.object(main, "update_contract_ai_insight", side_effect=RuntimeError("write failed")):
+            response = self.analyze(contract_id)
+        self.assertEqual(response.status_code, 503)
+        before["contracts"][0]["ai_analysis_status"] = "failed"
+        self.assertEqual(self.db.rows, before)
+        self.assertEqual(self.analyze(contract_id).status_code, 200)
+        self.assertEqual(self.load(contract_id)["ai_analysis_status"], "completed")
+
+    def test_status_write_failure_still_returns_friendly_retry_response(self):
+        contract_id = self.save().json()["database_id"]
+        before = deepcopy(self.db.rows)
         self.db.fail = ("contracts", "update")
+        response = self.analyze(contract_id)
+        self.assertEqual(response.status_code, 503)
+        self.assertTrue(response.json()["contract_saved"])
+        self.assertTrue(response.json()["retryable"])
+        self.assertNotIn("private provider", response.text)
+        self.assertEqual(self.db.rows, before)
+        self.provider.assert_not_called()
+
+    def test_late_failed_attempt_does_not_overwrite_completed_status(self):
+        contract_id = self.save().json()["database_id"]
+        def complete_concurrently(*_args):
+            database.update_contract_ai_insight("org-a", contract_id, self.insight)
+            raise RuntimeError("Another attempt failed after concurrent success")
+        self.provider.side_effect = complete_concurrently
         self.assertEqual(self.analyze(contract_id).status_code, 503)
+        self.assertEqual(self.load(contract_id)["ai_analysis_status"], "completed")
+        self.assertEqual(self.analyze(contract_id).status_code, 200)
+        self.provider.assert_called_once()
+
+    def test_status_helper_cannot_change_foreign_or_archived_contracts(self):
+        contract_id = self.save().json()["database_id"]
+        for organization_id, archived in (("org-b", False), ("org-a", True)):
+            self.db.rows["contracts"][0]["archived"] = archived
+            before = deepcopy(self.db.rows)
+            self.assertIsNone(database.update_contract_ai_analysis_status(
+                organization_id, contract_id, "failed",
+            ))
+            self.assertEqual(self.db.rows, before)
+
+    def test_completed_status_cannot_be_reset_by_stale_attempt(self):
+        contract_id = self.save().json()["database_id"]
+        self.analyze(contract_id)
+        before = deepcopy(self.db.rows)
+        self.assertIsNone(database.update_contract_ai_analysis_status("org-a", contract_id, "pending"))
         self.assertEqual(self.db.rows, before)
 
     def test_foreign_and_archived_contracts_do_not_call_ai(self):
