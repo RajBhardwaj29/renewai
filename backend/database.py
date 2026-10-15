@@ -158,7 +158,6 @@ def save_contract(
     character_count: int,
     contract,
     renewal_intelligence: dict,
-    ai_insight,
 ):
     record = {
         "organization_id":
@@ -301,19 +300,19 @@ def save_contract(
             ),
 
         "ai_action":
-            ai_insight.action,
+            None,
 
         "ai_confidence":
-            ai_insight.confidence,
+            None,
 
         "ai_summary":
-            ai_insight.summary,
+            None,
 
         "ai_key_findings":
-            ai_insight.key_findings,
+            [],
 
         "ai_commercial_flags":
-            ai_insight.commercial_flags,
+            [],
 
         "character_count":
             character_count,
@@ -338,26 +337,30 @@ def save_contract(
         response.data[0]
     )
 
-    # -----------------------------------------------------
-    # Automatically create reminders
-    # -----------------------------------------------------
-
-    cancellation_deadline = (
-        renewal_intelligence.get(
-            "cancellation_deadline"
-        )
-    )
-
-    if cancellation_deadline:
-        create_contract_reminders(
-            organization_id=organization_id,
-            contract_id=saved_contract["id"],
-            cancellation_deadline=(
-                cancellation_deadline
-            ),
-        )
-
     return saved_contract
+
+
+def update_contract_ai_insight(
+    organization_id: str,
+    contract_id: str,
+    ai_insight,
+):
+    """Update only advisory AI fields on an active, organization-owned record."""
+    response = (
+        supabase.table("contracts")
+        .update({
+            "ai_action": ai_insight.action,
+            "ai_confidence": ai_insight.confidence,
+            "ai_summary": ai_insight.summary,
+            "ai_key_findings": ai_insight.key_findings,
+            "ai_commercial_flags": ai_insight.commercial_flags,
+        })
+        .eq("organization_id", organization_id)
+        .eq("id", contract_id)
+        .eq("archived", False)
+        .execute()
+    )
+    return response.data[0] if response.data else None
 
 
 # =========================================================
@@ -1097,6 +1100,8 @@ def create_contract_reminders(
         .execute()
     )
 
+    if not response.data:
+        raise RuntimeError("Reminders could not be created.")
 
     return (
         response.data

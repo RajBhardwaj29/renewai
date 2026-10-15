@@ -1,6 +1,7 @@
 import hashlib
 import os
 import hmac
+import logging
 import pymupdf
 
 from fastapi import (
@@ -26,6 +27,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from contract_ai import (
     ContractData,
+    RenewalAIInsight,
     extract_contract_data,
     generate_renewal_ai_insight,
 )
@@ -37,6 +39,8 @@ from database import (
     verify_access_token,
     get_user_organization,
     save_contract,
+    update_contract_ai_insight,
+    create_contract_reminders,
     get_contracts,
     get_contract_by_id,
     find_contract_by_hash,
@@ -1510,7 +1514,7 @@ async def save_reviewed_contract(
             ),
         )
 
-        # Important:
+    # Important:
     # always recalculate renewal intelligence
     # after the user edits the AI result.
     try:
@@ -1527,27 +1531,6 @@ async def save_reviewed_contract(
                 "Could not calculate renewal "
                 "intelligence from the reviewed "
                 "contract: "
-                f"{str(exc)}"
-            ),
-        )
-
-    # --------------------------------------------------
-    # Generate AI renewal intelligence
-    # --------------------------------------------------
-
-    try:
-        ai_insight = (
-            generate_renewal_ai_insight(
-                reviewed_contract,
-                renewal_intelligence,
-            )
-        )
-
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "AI renewal intelligence failed: "
                 f"{str(exc)}"
             ),
         )
@@ -1576,33 +1559,43 @@ async def save_reviewed_contract(
             renewal_intelligence=
                 renewal_intelligence,
 
-            ai_insight=
-                ai_insight,
         )
 
     except Exception as exc:
+        logging.getLogger("renewai.contracts").warning(
+            "Contract persistence failed (%s)", type(exc).__name__,
+        )
         raise HTTPException(
             status_code=500,
             detail=(
-                "Database save failed: "
-                f"{str(exc)}"
+                "Contract could not be saved. Please try again."
             ),
         )
 
-    # --------------------------------------------------
-    # Load automatically created reminders
-    # --------------------------------------------------
+    # Reminder errors must not turn a confirmed insert into a failed save.
+    reminders = []
+    reminder_status = "not_applicable"
+    reminder_warning = None
+    cancellation_deadline = renewal_intelligence.get("cancellation_deadline")
 
-    try:
-        reminders = (
-            get_contract_reminders(
-                organization_id,
-                saved_contract["id"],
+    if cancellation_deadline:
+        try:
+            reminders = create_contract_reminders(
+                organization_id=organization_id,
+                contract_id=saved_contract["id"],
+                cancellation_deadline=cancellation_deadline,
             )
-        )
-
-    except Exception:
-        reminders = []
+            reminder_status = "created"
+        except Exception as exc:
+            reminder_status = "failed"
+            reminder_warning = (
+                "Your contract is saved, but reminders could not be created. "
+                "Use Generate Missing Alerts on the Reminders page."
+            )
+            logging.getLogger("renewai.contracts").warning(
+                "Reminder creation failed for saved contract %s (%s)",
+                saved_contract["id"], type(exc).__name__,
+            )
 
     # --------------------------------------------------
     # Response
@@ -1622,7 +1615,9 @@ async def save_reviewed_contract(
             renewal_intelligence,
 
         "ai_insight":
-            ai_insight.model_dump(),
+            None,
+
+        "ai_analysis_status": "not_started",
 
         "database_id":
             saved_contract["id"],
@@ -1634,11 +1629,93 @@ async def save_reviewed_contract(
             reminders,
 
         "reminder_count":
-            len(reminders),
+            len(reminders) if reminder_status != "failed" else None,
+
+        "reminder_status": reminder_status,
+        "reminder_warning": reminder_warning,
 
         "message":
             (
-                "Contract reviewed, saved "
-                "and reminders created successfully."
+                "Contract saved successfully."
             ),
+    }
+
+
+
+@app.post("/contracts/{contract_id}/ai-insight")
+def analyze_saved_contract_renewal(
+    contract_id: str,
+    authorization: str | None = Header(default=None),
+):
+    """Generate or retry advisory insights without saving a contract again."""
+    context = get_authenticated_context(authorization)
+    organization_id = context["organization_id"]
+
+    try:
+        saved_contract = get_contract_by_id(organization_id, contract_id)
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="AI analysis temporarily unavailable. Please try again.",
+        )
+
+    if not saved_contract or saved_contract.get("archived"):
+        raise HTTPException(status_code=404, detail="Contract not found.")
+
+    try:
+        # Reuse a completed result, including after a response was lost.
+        if (
+            saved_contract.get("ai_action")
+            and saved_contract.get("ai_summary")
+            and saved_contract.get("ai_confidence") is not None
+        ):
+            ai_insight = RenewalAIInsight.model_validate({
+                "action": saved_contract["ai_action"],
+                "confidence": saved_contract["ai_confidence"],
+                "summary": saved_contract["ai_summary"],
+                "key_findings": saved_contract.get("ai_key_findings") or [],
+                "commercial_flags": saved_contract.get("ai_commercial_flags") or [],
+            })
+        else:
+            reviewed_contract = ContractData.model_validate({
+                name: saved_contract.get(name)
+                for name in ContractData.model_fields
+            })
+            # Use saved deterministic outputs; this endpoint does no date math.
+            renewal_intelligence = {
+                name: saved_contract.get(name)
+                for name in (
+                    "effective_start_date", "effective_end_date",
+                    "effective_renewal_date", "derived_end_date",
+                    "derived_renewal_date", "notice_window_open_date",
+                    "notice_window_close_date", "cancellation_deadline",
+                    "days_until_cancellation_deadline", "risk_level", "recommendation",
+                )
+            }
+            ai_insight = generate_renewal_ai_insight(
+                reviewed_contract, renewal_intelligence,
+            )
+            updated_contract = update_contract_ai_insight(
+                organization_id, contract_id, ai_insight,
+            )
+            if not updated_contract:
+                raise HTTPException(status_code=404, detail="Contract not found.")
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logging.getLogger("renewai.contracts").warning(
+            "AI insight generation or persistence failed for contract %s (%s)",
+            contract_id, type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="AI analysis temporarily unavailable. Please try again.",
+        )
+
+    return {
+        "database_id": contract_id,
+        "ai_insight": ai_insight.model_dump(),
+        "ai_analysis_status": "completed",
+        "message": "AI analysis completed successfully.",
     }
