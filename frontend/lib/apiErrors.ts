@@ -11,6 +11,9 @@ const VALIDATION_MESSAGES = new Set([
 ]);
 
 export function requestFailureMessage(path: string): string {
+  if (path.endsWith("/summary.pdf")) {
+    return "We couldn't generate this summary right now. Please try again.";
+  }
   if (path.endsWith("/ai-insight")) {
     return "AI analysis temporarily unavailable. Your contract is saved. Please try again.";
   }

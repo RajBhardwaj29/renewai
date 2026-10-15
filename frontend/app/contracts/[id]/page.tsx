@@ -2,6 +2,7 @@
 
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
+import ContractSummaryDownload from "@/components/ContractSummaryDownload";
 
 import {
   useEffect,
@@ -1496,7 +1497,9 @@ export default function ContractDetailPage() {
             </Link>
 
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-start gap-3">
+
+              <ContractSummaryDownload key={id} contractId={id} />
 
               <Link
                 href="/reminders"

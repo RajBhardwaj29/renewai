@@ -248,6 +248,23 @@ Supabase, AI, or email credentials. They cover provider failure, same-record AI
 retry, unchanged reminders, expired sessions, private error suppression,
 validation privacy, and duplicate-save recovery.
 
+## Shareable contract summary PDF
+
+Saved contract pages include **Download summary PDF**. The authenticated,
+organization-scoped `GET /contracts/{contract_id}/summary.pdf` endpoint exports
+reviewed terms, saved renewal dates and notice requirements, full saved commercial
+clauses, existing advisory AI insight, the recorded decision/status, and the saved
+non-cancelled reminder schedule. Internal decision notes, owner, history, recipient
+details, and arbitrary database fields are excluded. The response is a private,
+non-cacheable PDF attachment; no public sharing link is created.
+
+The PDF uses existing PyMuPDF support, with no new dependency, schema migration,
+AI call, contract update, or reminder send. It works without AI insight. Missing
+details are marked **Not recorded**; the customer name is not currently stored as
+a separate field. Full clause text can span multiple pages. Dates describe the
+saved calculation snapshot; the days remaining are calculated at export time in
+UTC, and a past deadline prompts review rather than appearing actionable.
+
 ## Deployment
 
 - Pushes to the production-linked branch deploy the frontend through Vercel.

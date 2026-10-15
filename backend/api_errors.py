@@ -27,6 +27,8 @@ def temporary_failure(request: Request, exc: Exception, status_code: int = 500):
         code = "save_status_unknown"
     elif route == "/contracts/{contract_id}":
         message = "We couldn't load this contract right now. Please try again."
+    elif route == "/contracts/{contract_id}/summary.pdf":
+        message = "We couldn't generate this summary right now. Please try again."
     elif route == "/contracts/{contract_id}/ai-insight":
         message = "AI analysis is temporarily unavailable. Your contract is saved. Please retry AI analysis."
         retryable = True

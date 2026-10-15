@@ -36,6 +36,18 @@ function helpers(fetch, overrides = {}) {
   return { ...load("@/lib/authFetch"), ...load("@/lib/renewalAI"), ...load("@/lib/apiErrors") };
 }
 
+test("authenticated PDF reads retain binary contents and attachment headers", async () => {
+  const api = helpers(async () => new Response("%PDF-1.7 synthetic", { headers: {
+    "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="summary.pdf"',
+  } }));
+  const response = await api.authFetchWithRetry("/contracts/test/summary.pdf");
+  assert.equal(response.headers.get("Content-Type"), "application/pdf");
+  assert.match(response.headers.get("Content-Disposition"), /summary.pdf/);
+  assert.equal(await response.text(), "%PDF-1.7 synthetic");
+  const error = await api.safeErrorResponse("/contracts/test/summary.pdf", new Response("private", {status: 500}));
+  assert.match((await error.json()).detail, /generate this summary/);
+});
+
 test("raw server details and gateway HTML never reach the UI", async () => {
   for (const response of [
     new Response(JSON.stringify({ detail: "Server disconnected: private-database-secret" }), { status: 500 }),
