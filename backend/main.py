@@ -28,6 +28,7 @@ from reminder_scheduler import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from contract_summary import build_contract_summary, summary_filename
+from contract_presentation import current_contract_countdowns
 
 from contract_ai import (
     ContractData,
@@ -378,7 +379,7 @@ def list_contracts(
 
         return {
             "contracts":
-                contracts,
+                current_contract_countdowns(contracts),
 
             "count":
                 len(contracts),
@@ -423,7 +424,7 @@ def get_single_contract(
 
         return {
             "contract":
-                contract
+                current_contract_countdowns([contract])[0]
         }
 
     except HTTPException:

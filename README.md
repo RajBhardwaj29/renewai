@@ -271,6 +271,16 @@ Supabase, AI, or email credentials. They cover provider failure, same-record AI
 retry, unchanged reminders, expired sessions, private error suppression,
 validation privacy, and duplicate-save recovery.
 
+## Current countdowns
+
+Contract detail and active/archived list responses calculate days remaining from
+the saved cancellation deadline and the current UTC calendar date on each read.
+The dashboard uses the same list response. Past dates remain negative (overdue);
+missing or invalid dates produce an unknown countdown. Reads do not advance
+renewal cycles, change saved risk/AI assessments, or write contract/reminder data.
+Reload an open page to obtain the latest countdown after midnight UTC.
+No database migration is required.
+
 ## Shareable contract summary PDF
 
 Saved contract pages include **Download summary PDF**. The authenticated,
