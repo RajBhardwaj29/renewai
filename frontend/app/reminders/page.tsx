@@ -91,6 +91,8 @@ type DeliveryHealth = {
   needs_review: number;
   accepted: number;
   test_sender: boolean;
+  provider?: "resend" | "gmail" | "unavailable";
+  sender_configured?: boolean;
 };
 
 export default function RemindersPage() {
@@ -735,6 +737,7 @@ export default function RemindersPage() {
                     sendingEmails ||
                     backfilling ||
                     !deliveryHealth ||
+                    deliveryHealth.sender_configured === false ||
                     dueReminders.length === 0
                   }
                   className="renewai-button-primary"
@@ -764,6 +767,16 @@ export default function RemindersPage() {
                 {deliveryHealth?.test_sender && (
                   <p className="rounded-xl bg-amber-50 p-4 text-amber-900">
                     Email sending is limited to the service account owner until a sending domain is verified.
+                  </p>
+                )}
+                {deliveryHealth?.sender_configured === false && (
+                  <p role="status" className="rounded-xl bg-amber-50 p-4 text-amber-900">
+                    The email sender is not connected. Sending is paused until the service administrator completes setup.
+                  </p>
+                )}
+                {deliveryHealth?.provider === "gmail" && deliveryHealth.sender_configured && (
+                  <p className="rounded-xl bg-slate-100 p-4 text-slate-700">
+                    Reminder emails use the configured Gmail account. Gmail sending limits apply. Unconfirmed sends require a delivery check before another attempt.
                   </p>
                 )}
                 {!!deliveryHealth?.needs_review && (

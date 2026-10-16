@@ -4,6 +4,7 @@ Requires psycopg in the test environment and RENEWAI_TEST_POSTGRES_URL pointing
 at the loopback-only database named renewai_reminder_test. No email is sent.
 """
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 import json
@@ -18,6 +19,8 @@ from urllib.parse import urlparse
 import test_contract_save_flow  # Import the app with synthetic configuration.
 import database
 import reminder_delivery as delivery
+import email_service
+import gmail_mail
 
 try:
     import psycopg
@@ -99,6 +102,9 @@ class ReminderPostgresTests(unittest.TestCase):
             migration = Path(__file__).with_name("migrations") / "20261015_reminder_delivery_safety.sql"
             c.execute(migration.read_text())
             c.execute(migration.read_text())  # The deployment migration is repeatable.
+            gmail_migration = migration.with_name("20261016_gmail_delivery.sql")
+            c.execute(gmail_migration.read_text())
+            c.execute(gmail_migration.read_text())
 
     def query(self, statement, params=()):
         with psycopg.connect(DSN, autocommit=True) as c:
@@ -117,7 +123,7 @@ class ReminderPostgresTests(unittest.TestCase):
         for patcher in [patch.object(database, "supabase", SQLRPC()),
                         patch.object(database, "get_pending_due_reminders_for_delivery", side_effect=self.candidates),
                         patch.object(delivery, "organization_recipient", return_value="owner@example.test"),
-                        patch.object(delivery, "send_reminder_payload", side_effect=lambda *args: self.provider(*args))]:
+                        patch.object(delivery, "send_reminder_payload", side_effect=lambda *args, **_kwargs: self.provider(*args))]:
             patcher.start()
             self.addCleanup(patcher.stop)
 
@@ -274,6 +280,90 @@ class ReminderPostgresTests(unittest.TestCase):
         self.assertTrue(database.complete_reminder_delivery(ORG,REMINDER,claim["claim_token"],"provider-1"))
         self.assertFalse(database.fail_reminder_delivery(ORG,REMINDER,claim["claim_token"],"provider_request_failed"))
         self.assertEqual(self.state(),("sent","accepted","provider-1"))
+
+    @contextmanager
+    def gmail_mode(self):
+        with patch.object(email_service,"EMAIL_PROVIDER","gmail"), patch.dict(os.environ,{
+            "GMAIL_CLIENT_ID":"synthetic","GMAIL_CLIENT_SECRET":"synthetic",
+            "GMAIL_REFRESH_TOKEN":"synthetic","GMAIL_SENDER_ADDRESS":"sender@example.test",
+        }),patch.object(gmail_mail,"prepare",return_value=gmail_mail.PreparedGmail("synthetic","mime")):
+            yield
+
+    def gmail_claim(self):
+        return database.claim_reminder_delivery(ORG,REMINDER,self.deadline.isoformat(),{
+            "_provider":"gmail","from":"RenewAI <sender@example.test>","to":["owner@example.test"],
+            "subject":"Test","text":"Frozen",
+        })
+
+    def test_gmail_lost_response_never_sends_again_and_verified_receipt_can_reconcile(self):
+        self.provider=Provider(lose_first_response=True)
+        with self.gmail_mode():
+            self.assertEqual(self.send()["needs_review_count"],1)
+            self.assertEqual(self.send()["needs_review_count"],1)
+        self.assertEqual(len(self.provider.calls),1)
+        self.assertEqual(self.state()[:2],("pending","needs_review"))
+        token=self.query("select claim_token from public.reminder_deliveries")[0][0]
+        self.assertTrue(database.complete_reminder_delivery(ORG,REMINDER,str(token),"verified-gmail-receipt"))
+        self.assertEqual(self.state()[0],"sent")
+
+    def test_gmail_worker_crash_after_marker_blocks_lease_replay(self):
+        first=self.gmail_claim()
+        self.assertTrue(database.begin_gmail_reminder_delivery(ORG,REMINDER,first["claim_token"]))
+        self.assertEqual(self.gmail_claim()["outcome"],"busy")
+        self.query("update public.reminder_deliveries set lease_until=now()-interval '1 minute'")
+        self.assertEqual(self.gmail_claim()["outcome"],"needs_review")
+        self.assertFalse(database.begin_gmail_reminder_delivery(ORG,REMINDER,first["claim_token"]))
+        self.assertEqual(self.provider.calls,[])
+
+    def test_gmail_atomic_begin_has_one_winner_even_with_same_claim_token(self):
+        claim=self.gmail_claim()
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results=list(pool.map(lambda _:database.begin_gmail_reminder_delivery(ORG,REMINDER,claim["claim_token"]),range(8)))
+        self.assertEqual(results.count(True),1)
+        self.assertEqual(results.count(False),7)
+
+    def test_gmail_overlapping_dispatches_have_one_send(self):
+        self.provider=Provider(block=True)
+        with self.gmail_mode(),ThreadPoolExecutor(max_workers=2) as pool:
+            first=pool.submit(self.send)
+            self.assertTrue(self.provider.entered.wait(5))
+            try:self.assertEqual(pool.submit(self.send).result(timeout=5)["in_progress_count"],1)
+            finally:self.provider.release.set()
+            self.assertEqual(first.result(timeout=5)["sent_count"],1)
+        self.assertEqual(len(self.provider.calls),1)
+
+    def test_gmail_receipt_write_failure_does_not_repeat_provider_request(self):
+        with self.gmail_mode():
+            with patch.object(database,"complete_reminder_delivery",side_effect=RuntimeError("DB unavailable")):
+                self.assertEqual(self.send()["needs_review_count"],1)
+            self.assertEqual(self.send()["needs_review_count"],1)
+        self.assertEqual(len(self.provider.calls),1)
+
+    def test_gmail_predispatch_auth_failure_is_safely_retryable(self):
+        with self.gmail_mode():
+            with patch.object(gmail_mail,"prepare",side_effect=gmail_mail.GmailNotReady("Not connected")):
+                self.assertEqual(self.send()["failed_count"],1)
+            self.assertIsNone(self.query("select dispatched_at from public.reminder_deliveries")[0][0])
+            self.assertEqual(self.send()["sent_count"],1)
+        self.assertEqual(len(self.provider.calls),1)
+
+    def test_gmail_begin_revalidates_archiving_and_denies_other_roles_or_stale_token(self):
+        claim=self.gmail_claim()
+        self.assertFalse(database.begin_gmail_reminder_delivery(OTHER_ORG,REMINDER,claim["claim_token"]))
+        self.assertFalse(database.begin_gmail_reminder_delivery(ORG,REMINDER,"00000000-0000-4000-8000-999999999999"))
+        self.query("update public.contracts set archived=true")
+        self.assertFalse(database.begin_gmail_reminder_delivery(ORG,REMINDER,claim["claim_token"]))
+        for role in ("anon","authenticated"):
+            with psycopg.connect(DSN,autocommit=True) as c:
+                c.execute(sql.SQL("set role {}").format(sql.Identifier(role)))
+                with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                    c.execute("select public.begin_gmail_reminder_delivery(null,null,null)")
+
+    def test_existing_resend_journal_cannot_switch_provider_automatically(self):
+        self.claim()
+        self.query("update public.reminder_deliveries set lease_until=null,state='retryable'")
+        self.assertEqual(self.gmail_claim()["outcome"],"needs_review")
+        self.assertEqual(self.query("select payload->>'_provider',dispatched_at from public.reminder_deliveries")[0],(None,None))
 
 
 if __name__ == "__main__":
