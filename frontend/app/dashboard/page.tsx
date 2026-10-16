@@ -1,5 +1,8 @@
 "use client";
 
+import { currentContractTiming } from "@/lib/contractTiming";
+import { useUtcDay } from "@/lib/useContractTiming";
+
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
 
@@ -184,10 +187,16 @@ export default function DashboardPage() {
 
 
   const [
-    contracts,
+    savedContracts,
     setContracts,
   ] =
     useState<Contract[]>([]);
+
+  const today = useUtcDay();
+  const contracts = useMemo(
+    () => savedContracts.map((contract) => currentContractTiming(contract, today)),
+    [savedContracts, today],
+  );
 
 
   const [
@@ -1053,7 +1062,7 @@ export default function DashboardPage() {
 
                         <span
                           className={
-                            dueReminders.length > 0
+                            (dueReminders.length > 0 || riskContracts.length > 0)
                               ? `
                                 h-2
                                 w-2
@@ -1070,7 +1079,7 @@ export default function DashboardPage() {
                         />
 
 
-                        {dueReminders.length > 0
+                        {(dueReminders.length > 0 || riskContracts.length > 0)
                           ? "Action required"
                           : "Portfolio monitored"
                         }
@@ -1099,6 +1108,8 @@ export default function DashboardPage() {
                                 ? ""
                                 : "s"
                             } need your attention.`
+                          : riskContracts.length > 0
+                          ? `${riskContracts.length} contract${riskContracts.length === 1 ? " needs" : "s need"} renewal review.`
                           : "Your contract portfolio is currently under control."
                         }
 

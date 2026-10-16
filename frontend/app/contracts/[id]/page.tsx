@@ -1,5 +1,8 @@
 "use client";
 
+import { currentContractTiming } from "@/lib/contractTiming";
+import { useUtcDay } from "@/lib/useContractTiming";
+
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
 import ContractSummaryDownload from "@/components/ContractSummaryDownload";
@@ -188,12 +191,15 @@ export default function ContractDetailPage() {
 
 
   const [
-    contract,
+    savedContract,
     setContract,
   ] =
     useState<Contract | null>(
       null
     );
+
+  const today = useUtcDay();
+  const contract = savedContract ? currentContractTiming(savedContract, today) : null;
 
 
   const [

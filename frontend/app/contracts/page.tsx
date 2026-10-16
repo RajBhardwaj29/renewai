@@ -1,5 +1,8 @@
 "use client";
 
+import { currentContractTiming } from "@/lib/contractTiming";
+import { useUtcDay } from "@/lib/useContractTiming";
+
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
 
@@ -73,10 +76,16 @@ export default function ContractsPage() {
 
 
   const [
-    contracts,
+    savedContracts,
     setContracts,
   ] =
     useState<Contract[]>([]);
+
+  const today = useUtcDay();
+  const contracts = useMemo(
+    () => savedContracts.map((contract) => currentContractTiming(contract, today)),
+    [savedContracts, today],
+  );
 
   
     const [
