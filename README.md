@@ -247,6 +247,12 @@ Security-sensitive changes should retest at least:
 
 ## P0 error handling and recovery
 
+Permanent contract deletion now uses a backend-only atomic database function so a
+later failure cannot leave a surviving contract without its reminders or decision
+history. Apply `backend/migrations/20261016_atomic_contract_delete.sql` before the
+backend release. See [contract data safety](docs/contract-data-safety.md) for
+workspace-access coverage, release checks and rollback limitations.
+
 API failures use friendly messages rather than provider/database exception text.
 The browser also filters error responses, including HTML gateway responses and
 errors from older API revisions. Safe GET/HEAD requests retry temporary

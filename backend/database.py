@@ -661,74 +661,16 @@ def delete_contract_permanently(
     organization_id: str,
     contract_id: str,
 ):
+    """Delete the owned contract and dependent records in one transaction.
+
+    Never fall back to separate deletes: a later failure would leave a
+    surviving contract without its reminders or decision history.
     """
-    Permanently deletes a contract and its dependent
-    reminders and renewal decision history.
-
-    The organization_id condition prevents cross-tenant
-    deletion.
-    """
-
-    existing = get_contract_by_id(
-        organization_id,
-        contract_id,
-    )
-
-    if not existing:
-        return None
-
-    # Delete reminders belonging to this contract.
-    (
-        supabase
-        .table("contract_reminders")
-        .delete()
-        .eq(
-            "organization_id",
-            organization_id,
-        )
-        .eq(
-            "contract_id",
-            contract_id,
-        )
-        .execute()
-    )
-
-    # Delete human renewal-decision audit history.
-    (
-        supabase
-        .table("contract_decision_history")
-        .delete()
-        .eq(
-            "organization_id",
-            organization_id,
-        )
-        .eq(
-            "contract_id",
-            contract_id,
-        )
-        .execute()
-    )
-
-    # Finally delete the contract itself.
-    response = (
-        supabase
-        .table("contracts")
-        .delete()
-        .eq(
-            "organization_id",
-            organization_id,
-        )
-        .eq(
-            "id",
-            contract_id,
-        )
-        .execute()
-    )
-
-    if not response.data:
-        return None
-
-    return response.data[0]
+    response = supabase.rpc("delete_contract_atomically", {
+        "p_organization_id": organization_id,
+        "p_contract_id": contract_id,
+    }).execute()
+    return {"id": response.data} if response.data else None
     
 
 # =========================================================
