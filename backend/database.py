@@ -173,6 +173,8 @@ def save_contract(
         "vendor_name":
             contract.vendor_name,
 
+        "customer_name": contract.customer_name,
+
         "contract_title":
             contract.contract_title,
 

@@ -298,8 +298,11 @@ non-cacheable PDF attachment; no public sharing link is created.
 
 The PDF uses existing PyMuPDF support, with no new dependency, schema migration,
 AI call, contract update, or reminder send. It works without AI insight. Missing
-details are marked **Not recorded**; the customer name is not currently stored as
-a separate field. Full clause text can span multiple pages. Dates describe the
+details are marked **Not recorded**. Customer name is extracted separately from
+the provider, editable during review, saved, and included in contract detail and
+the summary. Apply `backend/migrations/20261016_contract_customer_name.sql` before
+releasing the backend. Historical records remain unknown until reviewed again;
+no customer name is inferred from the workspace. Full clause text can span multiple pages. Dates describe the
 saved calculation snapshot; the days remaining are calculated at export time in
 UTC, and a past deadline prompts review rather than appearing actionable.
 

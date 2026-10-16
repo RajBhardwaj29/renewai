@@ -53,6 +53,15 @@ def pdf_text(pdf):
 
 
 class SummaryDocumentTests(unittest.TestCase):
+    def test_customer_is_exported_as_plain_text_and_not_guessed_when_missing(self):
+        customer = "CedarVale QA Enterprises <Customer>"
+        content = pdf_text(build_contract_summary({**sample_contract(), "customer_name": customer}, [], generated_at=NOW))
+        self.assertIn(customer, content)
+        self.assertIn("Orion Software Private Limited", content)
+        missing = pdf_text(build_contract_summary(sample_contract(), [], generated_at=NOW))
+        self.assertNotIn("CedarVale", missing)
+        self.assertIn("Not recorded", missing)
+
     def test_saved_facts_clauses_ai_human_decision_and_reminders_are_present(self):
         contract = sample_contract()
         original = deepcopy(contract)

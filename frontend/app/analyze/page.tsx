@@ -22,6 +22,7 @@ import {
 
 type ContractData = {
   vendor_name: string | null;
+  customer_name?: string | null;
   contract_title: string | null;
 
   contract_value: number | null;
@@ -1433,6 +1434,16 @@ export default function AnalyzeContractPage() {
 
                     </FormField>
 
+
+                    <FormField label="Customer Name">
+                      <input
+                        type="text"
+                        aria-label="Customer Name"
+                        value={reviewedContract.customer_name ?? ""}
+                        onChange={(event) => updateTextField("customer_name", event.target.value)}
+                        className="renewai-input"
+                      />
+                    </FormField>
 
                     <FormField
                       label="Contract Title"

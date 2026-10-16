@@ -36,6 +36,7 @@ type Contract = {
   filename: string;
 
   vendor_name: string | null;
+  customer_name?: string | null;
   contract_title: string | null;
 
   contract_value: number | null;
@@ -2715,6 +2716,11 @@ export default function ContractDetailPage() {
               eyebrow="Agreement"
               title="Contract Terms"
             >
+
+              <DetailRow
+                label="Customer"
+                value={contract.customer_name || "Not recorded"}
+              />
 
               <DetailRow
                 label="Effective Start"

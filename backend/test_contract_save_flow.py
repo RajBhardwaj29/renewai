@@ -141,6 +141,29 @@ class ContractSaveFlowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         return response.json()["contract"]
 
+    def test_customer_name_survives_reviewed_save_reload_and_pdf(self):
+        self.contract["customer_name"] = "CedarVale QA Enterprises Private Limited"
+        response = self.save()
+        self.assertEqual(response.status_code, 200)
+        saved = self.db.rows["contracts"][0]
+        self.assertEqual(saved["customer_name"], self.contract["customer_name"])
+        self.assertEqual(saved["vendor_name"], "Synthetic vendor")
+        loaded = self.load(saved["id"])
+        self.assertEqual(loaded["customer_name"], self.contract["customer_name"])
+        with patch.object(main, "get_contract_reminders", return_value=[]):
+            pdf = self.client.get(f"/contracts/{saved['id']}/summary.pdf",
+                                  headers={"Authorization": "Bearer test-token"})
+        self.assertEqual(pdf.status_code, 200)
+        with pymupdf.open(stream=pdf.content, filetype="pdf") as doc:
+            content = "\n".join(page.get_text() for page in doc)
+        self.assertIn(self.contract["customer_name"], content)
+        self.provider.assert_not_called()
+
+    def test_legacy_save_without_customer_remains_unknown(self):
+        self.contract.pop("customer_name", None)
+        self.assertEqual(self.save().status_code, 200)
+        self.assertIsNone(self.db.rows["contracts"][0]["customer_name"])
+
     def test_save_persists_without_calling_failing_ai(self):
         self.provider.side_effect = RuntimeError("Groq structured output failed")
         response = self.save()

@@ -122,7 +122,7 @@ def build_contract_summary(contract: dict, reminders: list[dict], *, generated_a
       <h2>1. Agreement at a glance</h2>
       {rows([
           ('Provider / vendor', contract.get('vendor_name')),
-          ('Customer / other contracting party', UNKNOWN),
+          ('Customer / other contracting party', contract.get('customer_name')),
           ('Agreement', contract.get('contract_title')),
           ('Tracked contract value', value_label(contract)),
           ('Renewal structure', label(contract.get('renewal_structure'))),

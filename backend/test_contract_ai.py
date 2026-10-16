@@ -79,3 +79,33 @@ class PaymentTermsReconciliationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CustomerExtractionTests(unittest.TestCase):
+    def test_customer_is_separate_nullable_and_prompt_does_not_infer_workspace(self):
+        contract = make_contract(vendor_name="Provider Ltd", customer_name="Buyer Ltd")
+        self.assertEqual(contract.customer_name, "Buyer Ltd")
+        self.assertEqual(contract.vendor_name, "Provider Ltd")
+        legacy = contract.model_dump()
+        legacy.pop("customer_name")
+        self.assertIsNone(ContractData.model_validate(legacy).customer_name)
+        prompt = build_prompt("Provider Ltd supplies software to Buyer Ltd (Customer).")
+        self.assertIn("customer_name", prompt)
+        self.assertIn("Do not substitute the workspace name", prompt)
+
+    def test_strict_provider_schema_requires_nullable_customer(self):
+        import json
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import contract_ai
+        payload = make_contract(customer_name="Buyer Ltd").model_dump_json()
+        provider = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=None)))
+        from unittest.mock import Mock
+        provider.chat.completions.create = Mock(return_value=SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content=payload))]))
+        with patch.object(contract_ai, "GROQ_API_KEY", "synthetic-key"), patch("groq.Groq", return_value=provider):
+            extracted = contract_ai.extract_with_groq("synthetic parties")
+        self.assertEqual(extracted.customer_name, "Buyer Ltd")
+        schema = provider.chat.completions.create.call_args.kwargs["response_format"]["json_schema"]["schema"]
+        self.assertIn("customer_name", schema["required"])
+        self.assertIn({"type": "null"}, schema["properties"]["customer_name"]["anyOf"])

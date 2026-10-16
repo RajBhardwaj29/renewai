@@ -48,6 +48,7 @@ class ContractData(BaseModel):
     )
 
     vendor_name: str | None
+    customer_name: str | None = None
     contract_title: str | None
 
     contract_value: float | None
@@ -127,6 +128,11 @@ IMPORTANT RULES:
 1. Extract only information explicitly supported by the contract.
 
 2. Never guess missing information.
+
+PARTIES: vendor_name is the provider/supplier. customer_name is the explicitly named
+customer, subscriber, buyer, or other party receiving the service. Keep the two
+parties separate. Do not substitute the workspace name, a signatory, or a contact.
+If the customer is not explicitly named or is ambiguous, return null.
 
 3. If information is unavailable, return null.
 
@@ -789,6 +795,7 @@ Return exactly one JSON object.
 Use exactly these keys:
 
 - vendor_name
+- customer_name
 - contract_title
 - contract_value
 - currency
@@ -904,6 +911,9 @@ def extract_with_groq(
         ContractData
         .model_json_schema()
     )
+    # Provider strict schemas require every property, including nullable defaults.
+    schema["required"] = list(schema["properties"])
+    schema["properties"]["customer_name"].pop("default", None)
 
     try:
         response = (
@@ -1336,6 +1346,9 @@ REVIEWED CONTRACT:
 
 Vendor:
 {contract.vendor_name}
+
+Customer:
+{contract.customer_name}
 
 
 Contract title:
