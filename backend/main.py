@@ -1065,35 +1065,16 @@ def extract_pdf_text(
     content: bytes,
 ):
     try:
-        document = pymupdf.open(
-            stream=content
-        )
-
-        extracted_pages = []
-
-        for page in document:
-            page_text = (
-                page.get_text()
-            )
-
-            if page_text:
-                extracted_pages.append(
-                    page_text
-                )
-
-        document.close()
-
-        extracted_text = "\n".join(
-            extracted_pages
-        )
-
-    except Exception as exc:
+        with pymupdf.open(stream=content, filetype="pdf") as document:
+            if document.needs_pass:
+                raise HTTPException(status_code=400, detail="This PDF is password-protected. Upload an unlocked copy.")
+            extracted_text = "\n".join(page.get_text() for page in document)
+    except HTTPException:
+        raise
+    except Exception:
         raise HTTPException(
-            status_code=500,
-            detail=(
-                "Could not process PDF: "
-                f"{str(exc)}"
-            ),
+            status_code=400,
+            detail="This PDF could not be read. It may be damaged. Export a new PDF and try again.",
         )
 
     if not extracted_text.strip():

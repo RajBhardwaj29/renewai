@@ -129,6 +129,11 @@ IMPORTANT RULES:
 
 2. Never guess missing information.
 
+Use the explicit agreement name in the opening sentence or main heading for
+contract_title. Do not use page footers, test references, filenames, or party names
+as the title. Preserve each evidence clause verbatim with its adjacent qualifying
+sentences, exceptions, consent requirements and limits; do not truncate after a cap.
+
 PARTIES: vendor_name is the provider/supplier. customer_name is the explicitly named
 customer, subscriber, buyer, or other party receiving the service. Keep the two
 parties separate. Do not substitute the workspace name, a signatory, or a contact.
@@ -1050,6 +1055,53 @@ def reconcile_grounded_payment_terms(
     return contract
 
 
+def reconcile_grounded_pdf_fields(contract: ContractData, source: str) -> ContractData:
+    """Copy explicit source text only; ambiguous matches remain for human review."""
+    updates = {}
+    normalized = " ".join(source.split())
+    titles = list(re.finditer(
+        r"\bThis\s+((?:[A-Za-z][\w&/-]*\s+){0,10}(?:Agreement|Contract))\s+(?:is|between|dated)",
+        normalized, re.IGNORECASE,
+    ))
+    title_names = {match.group(1) for match in titles}
+    if len(title_names) == 1:
+        source_title = next(iter(title_names))
+    else:
+        headings = {line.strip() for line in source.splitlines()[:30]
+                    if re.fullmatch(r"[A-Z][A-Z &/-]{4,90}(?:AGREEMENT|CONTRACT)", line.strip(), re.IGNORECASE)
+                    and not re.search(r"SYNTHETIC|TEST|DRAFT", line, re.I)}
+        source_title = next(iter(headings)) if not title_names and len(headings) == 1 else None
+    if source_title:
+        # An explicit introductory agreement name beats a footer/reference label.
+        existing = contract.contract_title or ""
+        if not existing or re.search(r"synthetic|QA[- ]|page \d|test agreement", existing, re.I):
+            updates["contract_title"] = source_title
+
+    # Numbered section headings and blank lines are trustworthy paragraph bounds.
+    # Never attach a qualifier from an unrelated section or competing amendment.
+    paragraphs = [" ".join(p.split()) for p in re.split(
+        r"(?m)^\s*\d+[.)]\s+[^\n]+\n|(?:\r?\n){2,}", source)]
+    paragraphs = [p for p in paragraphs if 40 <= len(p) <= 2500]
+    if len(paragraphs) < 2:
+        paragraphs = []  # An unstructured whole document is not one evidence clause.
+    for field in ("renewal_clause", "termination_clause", "payment_terms",
+                  "pricing_clause", "minimum_commitment", "refund_clause"):
+        current = getattr(contract, field) or ""
+        if not current:
+            continue
+        value = " ".join(current.split())
+        sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z])", value)
+        for sentence in sorted(sentences, key=len, reverse=True):
+            if len(sentence) < 50:
+                continue
+            matches = [p for p in paragraphs if sentence in p]
+            if len(matches) == 1 and matches[0] not in value:
+                value = value.replace(sentence, matches[0], 1)
+        if value != " ".join(current.split()):
+            updates[field] = value
+    return contract.model_copy(update=updates) if updates else contract
+
+
 def extract_contract_data(
     contract_text: str
 ) -> ContractData:
@@ -1076,8 +1128,8 @@ def extract_contract_data(
             )
         )
 
-    return reconcile_grounded_payment_terms(
-        extracted,
+    return reconcile_grounded_pdf_fields(
+        reconcile_grounded_payment_terms(extracted, contract_text),
         contract_text,
     )
 

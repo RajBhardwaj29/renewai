@@ -161,7 +161,7 @@ def build_contract_summary(contract: dict, reminders: list[dict], *, generated_a
       {paragraph('Renewal pricing and increases', contract.get('pricing_clause'))}
       {paragraph('Minimum commitments and licenses', contract.get('minimum_commitment'))}
       {paragraph('Refund restrictions', contract.get('refund_clause'))}
-      <h2 class="new-page">4. AI renewal insight - advisory</h2>
+      <h2>4. AI renewal insight - advisory</h2>
       <p class="muted">AI recommendations are separate from the organization's decision.
       They are based on saved inputs and may be incomplete. Exporting does not generate or refresh AI analysis.</p>
       {rows([
@@ -205,22 +205,22 @@ def build_contract_summary(contract: dict, reminders: list[dict], *, generated_a
       </body></html>"""
 
     css = """
-      body { font-family: sans-serif; font-size: 10pt; line-height: 1.45; color: #172033; }
+      body { font-family: sans-serif; font-size: 9.5pt; line-height: 1.35; color: #172033; }
       h1 { font-size: 23pt; line-height: 1.15; margin: 8pt 0; color: #101b36; }
-      h2 { font-size: 13pt; margin: 20pt 0 8pt; color: #2445a0; page-break-after: avoid; }
-      h3 { font-size: 10pt; margin: 12pt 0 4pt; page-break-after: avoid; }
-      p { margin: 5pt 0 9pt; } li { margin: 4pt 0; }
+      h2 { font-size: 13pt; margin: 16pt 0 7pt; color: #2445a0; page-break-after: avoid; }
+      h3 { font-size: 10pt; margin: 10pt 0 4pt; page-break-after: avoid; }
+      p { margin: 4pt 0 7pt; } li { margin: 4pt 0; }
       .eyebrow { font-size: 9pt; letter-spacing: 1pt; color: #2445a0; }
       .subtitle { font-size: 12pt; color: #475569; }
       .stamp, .muted { font-size: 8.5pt; color: #526075; }
       .callout { color: #2445a0; padding: 12pt 0; margin: 14pt 0; }
       table { width: 100%; border-collapse: collapse; }
       tr { page-break-inside: avoid; }
-      th, td { text-align: left; vertical-align: top; padding: 6pt 8pt; border-bottom: 0.5pt solid #dce3ec; }
+      th, td { text-align: left; vertical-align: top; padding: 5pt 8pt; border-bottom: 0.5pt solid #dce3ec; }
       th { width: 170pt; font-size: 9pt; }
       td { width: 280pt; font-size: 9pt; }
       .reminders th, .reminders td { width: 145pt; }
-      .new-page { page-break-before: always; }
+      p { orphans: 2; widows: 2; }
     """
     output = BytesIO()
     page = pymupdf.paper_rect("a4")
