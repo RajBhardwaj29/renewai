@@ -458,60 +458,6 @@ async def download_contract_summary(
     })
 
 
-@app.delete("/contracts/{contract_id}")
-def delete_single_contract(
-    contract_id: str,
-    authorization: str | None = Header(default=None),
-):
-    context = get_authenticated_context(
-        authorization
-    )
-
-    organization_id = (
-        context["organization_id"]
-    )
-
-    existing = get_contract_by_id(
-        organization_id,
-        contract_id,
-    )
-
-    if not existing:
-        raise HTTPException(
-            status_code=404,
-            detail="Contract not found.",
-        )
-
-    try:
-        deleted = delete_contract_permanently(
-            organization_id,
-            contract_id,
-        )
-
-        if not deleted:
-            raise HTTPException(
-                status_code=404,
-                detail="Contract not found.",
-            )
-
-        return {
-            "message":
-                "Contract permanently deleted."
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "Could not permanently delete contract: "
-                f"{str(exc)}"
-            ),
-        )
-
-
 @app.patch(
     "/contracts/{contract_id}/archive"
 )

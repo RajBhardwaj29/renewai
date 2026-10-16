@@ -25,6 +25,10 @@ def temporary_failure(request: Request, exc: Exception, status_code: int = 500):
         message = ("We couldn't confirm whether your contract was saved. "
                    "Check Contracts before trying again.")
         code = "save_status_unknown"
+    elif route == "/contracts/{contract_id}" and request.method == "DELETE":
+        message = ("We couldn't confirm whether this contract was deleted. "
+                   "Refresh Contracts to check its status before trying again.")
+        code = "delete_status_unknown"
     elif route == "/contracts/{contract_id}":
         message = "We couldn't load this contract right now. Please try again."
     elif route == "/contracts/{contract_id}/summary.pdf":
