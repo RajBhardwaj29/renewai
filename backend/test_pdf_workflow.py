@@ -40,6 +40,19 @@ class PdfGroundingTests(unittest.TestCase):
         self.assertNotIn('non-refundable', c.pricing_clause)
         self.assertNotIn('written agreement', original.pricing_clause)
 
+    def test_expanding_partial_paragraphs_never_repeats_existing_sentences(self):
+        first='Provider may increase subscription fees by up to 5% at renewal.'
+        second='Any increase above 5% requires written agreement of both parties.'
+        c=make_contract(pricing_clause=first+' '+second)
+        result=reconcile_grounded_pdf_fields(c,SOURCE)
+        self.assertEqual(result.pricing_clause.count(first),1)
+        self.assertEqual(result.pricing_clause.count(second),1)
+        self.assertEqual(reconcile_grounded_pdf_fields(result,SOURCE),result)
+        source=SOURCE.replace(first,first+' Additional annual billing applies.')
+        result=reconcile_grounded_pdf_fields(c,source)
+        self.assertEqual(result.pricing_clause.count(first),1)
+        self.assertEqual(result.pricing_clause.count(second),1)
+
     def test_ambiguous_or_paraphrased_matches_do_not_attach_another_clause(self):
         c = make_contract(pricing_clause='Provider may increase subscription fees by up to 5% at renewal.')
         repeated = SOURCE+'\n4. Amendment\n'+c.pricing_clause+' No consent is required.\n'

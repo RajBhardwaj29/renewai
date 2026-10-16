@@ -1091,12 +1091,23 @@ def reconcile_grounded_pdf_fields(contract: ContractData, source: str) -> Contra
             continue
         value = " ".join(current.split())
         sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z])", value)
-        for sentence in sorted(sentences, key=len, reverse=True):
-            if len(sentence) < 50:
+        blocks = []
+        covered = set()
+        for sentence in sentences:
+            if sentence in covered:
                 continue
-            matches = [p for p in paragraphs if sentence in p]
-            if len(matches) == 1 and matches[0] not in value:
-                value = value.replace(sentence, matches[0], 1)
+            matches = [p for p in paragraphs if sentence in p] if len(sentence) >= 50 else []
+            if len(matches) == 1:
+                paragraph = matches[0]
+                paragraph_sentences = set(re.split(r"(?<=[.!?])\s+(?=[A-Z])", paragraph))
+                # Earlier short sentences may already belong to this paragraph.
+                blocks = [block for block in blocks if block not in paragraph_sentences]
+                if paragraph not in blocks:
+                    blocks.append(paragraph)
+                covered.update(paragraph_sentences)
+            else:
+                blocks.append(sentence)
+        value = " ".join(blocks)
         if value != " ".join(current.split()):
             updates[field] = value
     return contract.model_copy(update=updates) if updates else contract
