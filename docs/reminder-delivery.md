@@ -2,6 +2,11 @@
 
 ## Delivery contract
 
+This guide describes the default Resend transport. The optional Gmail transport
+has a stricter single-dispatch policy and separate setup/migration; see
+[temporary Gmail sender](gmail-sender.md). It does not use Resend's retry window
+as authorization to repeat a Gmail send.
+
 Supabase Cron is the production scheduler. Its protected POST to
 `/internal/process-reminders` and the authenticated `/reminders/send-due` action
 use the same dispatcher. Keep `ENABLE_REMINDER_SCHEDULER=false` on Render.

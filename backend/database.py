@@ -1431,8 +1431,15 @@ def fail_reminder_delivery(organization_id, reminder_id, token, error_code):
     }).execute().data is True
 
 
+def begin_gmail_reminder_delivery(organization_id, reminder_id, token):
+    return supabase.rpc("begin_gmail_reminder_delivery", {
+        "p_organization_id": organization_id, "p_reminder_id": reminder_id,
+        "p_claim_token": token,
+    }).execute().data is True
+
+
 def get_reminder_delivery_health(organization_id):
     # Never select or expose the frozen payload or recipient through the API.
     return (supabase.table("reminder_deliveries")
-        .select("reminder_id,state,lease_until,first_attempt_at,attempt_count,last_error_code")
+        .select("reminder_id,state,lease_until,first_attempt_at,attempt_count,last_error_code,dispatched_at")
         .eq("organization_id", organization_id).execute().data or [])

@@ -3,7 +3,8 @@ from datetime import datetime, timedelta, timezone
 import logging
 
 import database
-from email_service import build_renewal_reminder_payload, send_reminder_payload, sender_uses_test_domain
+from email_service import build_renewal_reminder_payload, send_reminder_payload, sender_uses_test_domain, sender_status
+import gmail_mail
 from reminder_rules import delivery_reason
 
 logger = logging.getLogger("renewai.reminder_delivery")
@@ -36,7 +37,7 @@ def organization_recipient(organization_id):
 
 
 def failure_message(code):
-    if code in {"needs_review", "idempotency_window_expired"}:
+    if code in {"needs_review", "idempotency_window_expired", "gmail_delivery_unconfirmed"}:
         return "Delivery is unconfirmed and needs review. Check the email provider before sending again."
     if code == "receipt_unconfirmed":
         return "The email provider accepted this reminder, but its saved status could not be confirmed. Please check delivery status."
@@ -73,6 +74,7 @@ def deliver_due_reminders(organization_id, run_id):
         contract = reminder["contracts"]
         reminder_id = reminder["id"]
         claim = None
+        gmail_dispatch_started = False
         error_code = "provider_request_failed"
         try:
             payload = build_renewal_reminder_payload(
@@ -110,7 +112,16 @@ def deliver_due_reminders(organization_id, run_id):
             if now >= datetime.fromisoformat(claim["lease_until"].replace("Z", "+00:00")):
                 error_code = "claim_expired"
                 raise RuntimeError("Delivery claim expired before dispatch.")
-            response = send_reminder_payload(claim["payload"], claim["idempotency_key"])
+            if claim["payload"].get("_provider") == "gmail":
+                prepared = gmail_mail.prepare(claim["payload"], claim["idempotency_key"])
+                # Persist BEFORE the only Gmail POST. A lost RPC response also
+                # fails closed: the next claim sees the durable dispatch marker.
+                gmail_dispatch_started = True
+                if not database.begin_gmail_reminder_delivery(organization_id, reminder_id, claim["claim_token"]):
+                    raise RuntimeError("Gmail dispatch reservation could not be confirmed.")
+                response = send_reminder_payload(claim["payload"], claim["idempotency_key"], gmail_prepared=prepared)
+            else:
+                response = send_reminder_payload(claim["payload"], claim["idempotency_key"])
             provider_id = response.get("id") if isinstance(response, dict) else None
             if not isinstance(provider_id, str) or not provider_id.strip():
                 error_code = "invalid_provider_response"
@@ -133,6 +144,9 @@ def deliver_due_reminders(organization_id, run_id):
             logger.info("REMINDER_ACCEPTED run_id=%s organization_id=%s reminder_id=%s provider_email_id=%s",
                         run_id, organization_id, reminder_id, provider_id)
         except Exception as exc:
+            if gmail_dispatch_started:
+                error_code = "gmail_delivery_unconfirmed"
+                result["needs_review_count"] += 1
             if claim and claim.get("outcome") == "claimed" and claim.get("claim_token"):
                 try:
                     database.fail_reminder_delivery(organization_id, reminder_id, claim["claim_token"], error_code)
@@ -150,13 +164,14 @@ def deliver_due_reminders(organization_id, run_id):
 def delivery_health(organization_id):
     now = datetime.now(timezone.utc)
     result = {"processing": 0, "retryable": 0, "needs_review": 0, "accepted": 0,
-              "test_sender": sender_uses_test_domain()}
+              "test_sender": sender_uses_test_domain(), **sender_status()}
     for row in database.get_reminder_delivery_health(organization_id):
         state = row["state"]
         if state != "accepted":
             first = datetime.fromisoformat(row["first_attempt_at"].replace("Z", "+00:00"))
             lease = datetime.fromisoformat(row["lease_until"].replace("Z", "+00:00")) if row.get("lease_until") else None
-            if state == "needs_review" or first <= now - timedelta(hours=23):
+            if (state == "needs_review" or first <= now - timedelta(hours=23)
+                    or (row.get("dispatched_at") and (state != "processing" or not lease or lease <= now))):
                 state = "needs_review"
             elif state == "processing" and (not lease or lease <= now):
                 state = "retryable"

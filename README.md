@@ -210,10 +210,18 @@ Backend environment variables:
 - `OLLAMA_MODEL` — optional local fallback
 - `RESEND_API_KEY`
 - `EMAIL_FROM`
+- `EMAIL_PROVIDER` — `resend` by default; optional `gmail` service sender
+- `GMAIL_SENDER_ADDRESS`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` — Gmail only, server-side secrets
 - `ENABLE_REMINDER_SCHEDULER`
 - `CRON_SECRET`
 
 Never commit populated environment files or copy secrets into documentation, logs, frontend code, or public environment variables.
+
+An optional [temporary Gmail sender](docs/gmail-sender.md) uses the Gmail HTTPS
+API with sending and basic identity permissions. It requires a dedicated account,
+Google OAuth setup and `20261016_gmail_delivery.sql` before activation. Gmail
+attempts get one durable dispatch reservation; uncertain outcomes require review
+instead of automatic resend. Existing Resend delivery remains the default.
 
 ## Validation
 
