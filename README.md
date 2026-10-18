@@ -12,14 +12,16 @@ RenewAI is a production-deployed private beta in launch-readiness hardening.
 - Backend: https://renewai-ai.onrender.com
 - Health check: https://renewai-ai.onrender.com/health
 
-The documented BETA-001 through BETA-032 regression campaign has passed. The eight-character password policy is deployed and production-verified. Current launch work focuses on beta recruitment and onboarding, with monitoring and continued reliability checks.
+Current source includes independent contract saving and AI analysis, human decision tracking, live countdowns, reviewed customer names, guarded reminder delivery, atomic permanent deletion, and authenticated summary PDF export. Current priorities include reliability hardening, beta onboarding, and customer discovery.
+
+BETA-001 through BETA-032 are historical manual regression results, not a current automated test run or an extraction-accuracy benchmark. This README describes the repository; deployed versions, credentials, and service configuration must be checked separately.
 
 Raj maintains a local, private AGENTS.md with product decisions, architecture invariants, testing history, and current priorities. It is intentionally excluded from Git; collaborators should request the current copy before making substantial changes.
 
 ## Product workflow
 
 ```text
-Upload PDF
+Upload text-readable PDF
   -> AI extraction
   -> Human review
   -> Trusted contract record
@@ -37,6 +39,8 @@ Important behavior:
 - AI interprets contractual language, while deterministic code owns date arithmetic.
 - Recommendations and human renewal decisions remain separate.
 - Organization access is derived from the authenticated user, not a client-supplied organization ID.
+- Image-only PDFs need OCR outside the app; password-protected PDFs need an unlocked copy.
+- Original PDFs and full extracted text are processed in memory; the app stores reviewed fields and clause evidence, not an original-document archive.
 
 ## Architecture
 
@@ -49,7 +53,7 @@ Browser
         `-- FastAPI backend (Render)
               |-- Supabase PostgreSQL + RLS
               |-- Groq contract intelligence
-              `-- Resend email delivery
+              `-- Selected Gmail HTTPS API or Resend sender
 
 Supabase Cron + pg_net
   `-- protected FastAPI reminder endpoint
@@ -72,7 +76,7 @@ Supabase Cron + pg_net
 - Supabase Python client
 - PyMuPDF contract text extraction
 - Groq through an OpenAI-compatible API
-- Resend email delivery
+- Gmail HTTPS API or Resend email delivery, selected explicitly
 - Render hosting
 
 ### Data and authentication
@@ -97,16 +101,19 @@ Supabase Cron
   -> pg_net POST
   -> Render /internal/process-reminders
   -> process_due_reminders()
-  -> Resend
+  -> selected Gmail HTTPS API or Resend sender
   -> atomically record provider acceptance and reminder status
 ```
 
 Keep `ENABLE_REMINDER_SCHEDULER=false` on the Render web service unless this architecture is intentionally replaced.
 
 Cron and manual sends share organization-scoped eligibility checks, durable
-delivery claims, frozen payloads, and provider idempotency keys. Past deadlines
-and obsolete checkpoints are excluded. Unconfirmed outcomes outside the safe
-retry window require review. Provider acceptance is distinct from inbox delivery.
+delivery claims, and frozen payloads. Resend uses provider idempotency keys;
+Gmail reserves one dispatch durably before its provider request and requires
+review after an uncertain outcome. There is no automatic provider fallback.
+Pending checkpoints dated today or earlier remain eligible through the saved
+cancellation deadline; past deadlines and obsolete checkpoints are excluded.
+Provider acceptance is distinct from inbox delivery.
 Apply `backend/migrations/20261015_reminder_delivery_safety.sql` before releasing
 this dispatcher; reconcile ambiguous legacy sends first. See the
 [delivery operations guide](docs/reminder-delivery.md) for release order, recovery,
@@ -116,15 +123,18 @@ sender-domain requirements, rollback precautions and real PostgreSQL tests.
 
 ```text
 renewai/
-├── AGENTS.md                 Product and engineering operating manual
 ├── README.md                 Repository overview and setup
 ├── backend/
 │   ├── main.py               FastAPI application and routes
 │   ├── contract_ai.py        Contract extraction and AI intelligence
 │   ├── renewal_engine.py     Deterministic renewal calculations
 │   ├── database.py           Organization-scoped persistence
-│   ├── reminder_scheduler.py Reminder generation and dispatch
-│   └── email_service.py      Resend integration
+│   ├── reminder_scheduler.py Scheduled reminder processing
+│   ├── reminder_delivery.py  Shared guarded delivery dispatcher
+│   ├── email_service.py      Selected email provider integration
+│   ├── contract_summary.py   Private summary PDF rendering
+│   └── migrations/           Incremental SQL migrations
+├── docs/                     Workflow and operations guides
 └── frontend/
     ├── app/                  Next.js App Router pages
     ├── components/           Shared interface components
@@ -173,6 +183,7 @@ rollback, restore the older backend first; the added column can remain in place.
 cd frontend
 npm ci
 cp .env.example .env.local
+# Fill in .env.local with the browser-safe values below.
 npm run dev
 ```
 
@@ -194,10 +205,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+# Fill in .env; set ENABLE_REMINDER_SCHEDULER=false before starting.
 python -m uvicorn main:app --reload
 ```
 
-The local API runs at http://127.0.0.1:8000 by default.
+The local API runs at http://127.0.0.1:8000 by default. Use a separate development
+Supabase project. Set `ALLOWED_ORIGINS=http://localhost:3000` for the default local
+frontend, and keep the in-process scheduler disabled to avoid unintended sends.
 
 Backend environment variables:
 
@@ -207,7 +221,7 @@ Backend environment variables:
 - `AI_PROVIDER`
 - `GROQ_API_KEY`
 - `GROQ_MODEL`
-- `OLLAMA_MODEL` — optional local fallback
+- `OLLAMA_MODEL` — local model when `AI_PROVIDER=ollama`; no automatic provider fallback
 - `RESEND_API_KEY`
 - `EMAIL_FROM`
 - `EMAIL_PROVIDER` — `resend` by default; optional `gmail` service sender
@@ -217,22 +231,40 @@ Backend environment variables:
 
 Never commit populated environment files or copy secrets into documentation, logs, frontend code, or public environment variables.
 
-An optional [temporary Gmail sender](docs/gmail-sender.md) uses the Gmail HTTPS
-API with sending and basic identity permissions. It requires a dedicated account,
+The code and example configuration default to Resend; the deployed sender is
+selected by `EMAIL_PROVIDER` in the backend environment. An optional
+[temporary Gmail sender](docs/gmail-sender.md) uses the Gmail HTTPS API with
+sending and basic identity permissions. It requires a dedicated account,
 Google OAuth setup and `20261016_gmail_delivery.sql` before activation. Gmail
 attempts get one durable dispatch reservation; uncertain outcomes require review
-instead of automatic resend. Existing Resend delivery remains the default.
+instead of automatic resend.
 
 ## Validation
 
 Run frontend checks from `frontend/`:
 
 ```bash
+npm test
 npm run lint
+npx tsc --noEmit
 npm run build
 ```
 
-The backend has a small committed Python unittest suite. Run it from backend/ with python -m unittest discover -p 'test_*.py' when dependencies are installed. The historical beta test set described in the private AGENTS.md remains an important regression reference and should be preserved rather than reconstructed from memory.
+Run backend unit tests from `backend/`:
+
+```bash
+python -m unittest discover -p 'test_*.py'
+```
+
+Normal backend tests use synthetic data and mocked services. The PostgreSQL
+integration suites are opt-in: they require test-only `psycopg` and
+`RENEWAI_TEST_POSTGRES_URL` pointing to an owned, disposable loopback database
+named `renewai_reminder_test`. They create fixtures and truncate data. Never use
+a production or shared database; report skipped SQL tests separately from passes.
+See [reminder delivery tests](docs/reminder-delivery.md) and
+[contract data safety](docs/contract-data-safety.md). Frontend tests exercise
+helpers with Node's built-in runner; they are not a full browser end-to-end suite.
+Historical beta fixtures remain a separate regression reference.
 
 For meaningful changes, also test the relevant workflow manually. Production verification is required for changes involving authentication, deployment, reminders, CORS, API routing, tenant isolation, or other production-only configuration.
 
@@ -299,8 +331,8 @@ non-cancelled reminder schedule. Internal decision notes, owner, history, recipi
 details, and arbitrary database fields are excluded. The response is a private,
 non-cacheable PDF attachment; no public sharing link is created.
 
-The PDF uses existing PyMuPDF support, with no new dependency, schema migration,
-AI call, contract update, or reminder send. It works without AI insight. Missing
+The PDF renderer uses existing PyMuPDF support. Downloading a summary makes no
+AI call, contract update, or reminder send and works without AI insight. Missing
 details are marked **Not recorded**. Customer name is extracted separately from
 the provider, editable during review, saved, and included in contract detail and
 the summary. Apply `backend/migrations/20261016_contract_customer_name.sql` before
@@ -319,13 +351,21 @@ UTC, and a past deadline prompts review rather than appearing actionable.
 Before calling a release complete:
 
 1. Confirm a clean Git status.
-2. Run frontend lint and production build.
+2. Run the checks above for the affected backend/frontend.
 3. Verify backend health.
 4. Smoke-test the affected production workflow.
 5. Run tenant-isolation checks after security-sensitive changes.
 6. Record material architecture, security, testing, or product decisions in `AGENTS.md`.
 
 ## Product boundaries
+
+Human review remains required: source recovery does not guarantee complete
+extraction. Saved contract terms do not have a general editing/recalculation API;
+decisions, archive/restore, AI retry, and summary export are separate supported
+actions. Permanent contract deletion is atomic; save/reminder creation,
+archive/restore, and decision/history updates are not all single transactions.
+The complete base schema, live RLS/Auth settings, backups, retention, and
+end-to-end account erasure are not established by the checked-in migrations.
 
 RenewAI is contract and renewal intelligence—not legal advice, a generic chatbot, a full contract lifecycle management suite, or an autonomous procurement system. Sensitive actions remain human-approved.
 
