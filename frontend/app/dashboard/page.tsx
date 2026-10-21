@@ -470,6 +470,17 @@ export default function DashboardPage() {
     );
 
 
+  const attentionContracts = useMemo(
+    () => [...riskContracts]
+      .sort((a, b) =>
+        (a.days_until_cancellation_deadline ?? Number.MAX_SAFE_INTEGER)
+        - (b.days_until_cancellation_deadline ?? Number.MAX_SAFE_INTEGER)
+      )
+      .slice(0, 5),
+    [riskContracts],
+  );
+
+
   const autoRenewingContracts =
     useMemo(
       () => {
@@ -858,9 +869,8 @@ export default function DashboardPage() {
                   text-slate-600
                 "
               >
-                Monitor renewal exposure, upcoming
-                deadlines, and the contracts that need
-                attention across{" "}
+                Review the contracts that need attention, then
+                monitor renewal exposure and upcoming deadlines across{" "}
                 <span
                   className="
                     font-semibold
@@ -895,7 +905,7 @@ export default function DashboardPage() {
               <Link
                 href="/analyze"
                 className="
-                  renewai-button-primary
+                  renewai-button-secondary
                 "
               >
                 <span
@@ -1006,180 +1016,119 @@ export default function DashboardPage() {
 
               <>
 
-                {/* ==================================================
-                    HERO STATUS
-                    ================================================== */}
+                {/* NEEDS ATTENTION — EXISTING TIMING FLAGS FIRST */}
 
-                <section
-                  className="
-                    mb-6
-                    overflow-hidden
-                    rounded-3xl
-                    border
-                    border-slate-800
-                    bg-slate-950
-                    p-6
-                    text-white
-                    shadow-sm
-                    sm:p-7
-                    lg:p-8
-                  "
-                >
-
-                  <div
-                    className="
-                      flex
-                      flex-col
-                      justify-between
-                      gap-8
-                      lg:flex-row
-                      lg:items-center
-                    "
-                  >
-
-                    <div
-                      className="
-                        max-w-2xl
-                      "
-                    >
-
-                      <div
-                        className="
-                          inline-flex
-                          items-center
-                          gap-2
-                          rounded-full
-                          border
-                          border-white/10
-                          bg-white/[0.06]
-                          px-3
-                          py-1.5
-                          text-xs
-                          font-semibold
-                          text-slate-300
-                        "
-                      >
-
-                        <span
-                          className={
-                            (dueReminders.length > 0 || riskContracts.length > 0)
-                              ? `
-                                h-2
-                                w-2
-                                rounded-full
-                                bg-orange-400
-                              `
-                              : `
-                                h-2
-                                w-2
-                                rounded-full
-                                bg-emerald-400
-                              `
-                          }
-                        />
-
-
-                        {(dueReminders.length > 0 || riskContracts.length > 0)
-                          ? "Action required"
-                          : "Portfolio monitored"
-                        }
-
+                <section aria-labelledby="needs-attention-heading" className="mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-6 sm:p-7 lg:flex-row lg:items-center">
+                    <div>
+                      <p className="renewai-eyebrow">Renewal review</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <h2 id="needs-attention-heading" className="text-2xl font-bold tracking-tight text-slate-950">
+                          Needs Attention
+                        </h2>
+                        <span aria-live="polite" className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                          {riskContracts.length} {riskContracts.length === 1 ? "contract" : "contracts"}
+                        </span>
                       </div>
-
-
-                      <h2
-                        className="
-                          mt-5
-                          max-w-2xl
-                          text-2xl
-                          font-bold
-                          leading-tight
-                          tracking-[-0.03em]
-                          !text-white
-                          sm:text-3xl
-                        "
-                      >
-
-                        {contracts.length === 0
-                          ? "Your renewal workspace is ready."
-                          : dueReminders.length > 0
-                          ? `${dueReminders.length} renewal alert${
-                              dueReminders.length === 1
-                                ? ""
-                                : "s"
-                            } need your attention.`
-                          : riskContracts.length > 0
-                          ? `${riskContracts.length} contract${riskContracts.length === 1 ? " needs" : "s need"} renewal review.`
-                          : "Your contract portfolio is currently under control."
-                        }
-
-                      </h2>
-
-
-                      <p
-                        className="
-                          mt-3
-                          max-w-xl
-                          text-sm
-                          leading-6
-                          text-slate-300
-                        "
-                      >
-
-                        {contracts.length === 0
-                          ? "Analyze your first contract to start tracking renewal dates and cancellation deadlines."
-                          : dueReminders.length > 0
-                          ? "Review the alerts that have reached or passed their scheduled action date."
-                          : `${contracts.length} contract${
-                              contracts.length === 1
-                                ? ""
-                                : "s"
-                            } ${contracts.length === 1 ? "is" : "are"} being tracked with ${upcomingReminders.length} upcoming reminder${
-                              upcomingReminders.length === 1
-                                ? ""
-                                : "s"
-                            }.`
-                        }
-
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                        Current timing flags, ordered by cancel-by date. Review each contract before deciding.
                       </p>
-
                     </div>
-
-
-                    <div
-                      className="
-                        grid
-                        w-full
-                        gap-3
-                        sm:grid-cols-2
-                        lg:w-auto
-                        lg:min-w-[330px]
-                      "
-                    >
-
-                      <HeroMetric
-                        label="Portfolio value"
-                        value={
-                          formatContractTotal(
-                            contracts
-                          )
-                        }
-                      />
-
-
-                      <HeroMetric
-                        label="Upcoming alerts"
-                        value={
-                          upcomingReminders.length
-                            .toString()
-                        }
-                      />
-
-                    </div>
-
+                    {attentionContracts.length > 0 && (
+                      <Link href={`/contracts/${attentionContracts[0].id}`} className="renewai-button-primary shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
+                        Review next contract
+                      </Link>
+                    )}
                   </div>
 
+                  {attentionContracts.length > 0 ? (
+                    <>
+                      <ul aria-label="Contracts needing renewal review" className="divide-y divide-slate-100">
+                        {attentionContracts.map((contract) => (
+                          <li key={contract.id} className="grid gap-4 px-6 py-5 sm:px-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)_auto] lg:items-center lg:gap-6">
+                            <div className="min-w-0">
+                              <h3 className="break-words font-bold text-slate-950">
+                                {contract.vendor_name || "Unknown Vendor"}
+                              </h3>
+                              <p className="mt-1 break-words text-sm text-slate-500">
+                                {contract.contract_title || contract.filename}
+                              </p>
+                            </div>
+                            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                              <div>
+                                <dt className="text-xs font-medium text-slate-500">Cancel by</dt>
+                                <dd className="mt-1 text-sm font-semibold text-slate-950">
+                                  {formatDate(contract.cancellation_deadline)}
+                                  <span className="mt-1 block text-xs font-medium text-slate-600">
+                                    {formatDaysRemaining(contract.days_until_cancellation_deadline)}
+                                  </span>
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-xs font-medium text-slate-500">Contract value</dt>
+                                <dd className="mt-1 break-words text-sm font-semibold text-slate-950">
+                                  {formatCurrency(contract.contract_value, contract.currency)}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-xs font-medium text-slate-500">Timing risk</dt>
+                                <dd className="mt-1">
+                                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold capitalize ${riskClasses(contract.risk_level)}`}>
+                                    {contract.risk_level || "unknown"}
+                                  </span>
+                                </dd>
+                              </div>
+                            </dl>
+                            <Link
+                              href={`/contracts/${contract.id}`}
+                              aria-label={`Review contract for ${contract.vendor_name || "Unknown Vendor"}`}
+                              className="renewai-button-secondary w-full shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 lg:w-auto"
+                            >
+                              Review contract
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex flex-col justify-between gap-3 border-t border-slate-100 px-6 py-4 text-sm sm:flex-row sm:items-center sm:px-7">
+                        <p className="text-slate-500">
+                          Showing {attentionContracts.length} of {riskContracts.length} flagged contracts.
+                        </p>
+                        <Link href="/contracts" className="font-semibold text-blue-700 underline-offset-4 hover:underline">
+                          View all contracts →
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-6 sm:p-7">
+                      <h3 className="font-bold text-slate-950">
+                        {contracts.length === 0 ? "Your renewal workspace is ready" : "No contracts currently flagged"}
+                      </h3>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                        {contracts.length === 0
+                          ? "Analyze your first contract to start tracking renewal dates and cancellation deadlines."
+                          : "Timing flags cover known cancellation deadlines. Check contract details for missing dates or notice terms."}
+                      </p>
+                      <Link href={contracts.length === 0 ? "/analyze" : "/contracts"} className="renewai-button-primary mt-4">
+                        {contracts.length === 0 ? "Analyze first contract" : "View all contracts"}
+                      </Link>
+                    </div>
+                  )}
+
+                  <div className={`flex flex-col justify-between gap-3 border-t px-6 py-4 text-sm sm:flex-row sm:items-center sm:px-7 ${dueReminders.length > 0 ? "border-amber-200 bg-amber-50 text-amber-900" : "border-slate-100 bg-slate-50 text-slate-600"}`}>
+                    <p>
+                      <span className="font-bold">{dueReminders.length} due {dueReminders.length === 1 ? "alert" : "alerts"}</span>
+                      {dueReminders.length > 0 && " · Scheduled reminder dates reached or passed"}
+                    </p>
+                    <Link href="/reminders" className="shrink-0 font-semibold underline underline-offset-4">
+                      Review alerts →
+                    </Link>
+                  </div>
                 </section>
+
+                <div className="mb-4">
+                  <h2 className="text-2xl font-bold tracking-tight text-slate-950">Portfolio overview</h2>
+                  <p className="mt-2 text-sm text-slate-600">Tracked contract value, renewal coverage, and alerts.</p>
+                </div>
 
 
                 {/* ==================================================
@@ -1192,7 +1141,8 @@ export default function DashboardPage() {
                     grid
                     gap-4
                     sm:grid-cols-2
-                    lg:grid-cols-5
+                    lg:grid-cols-3
+                    xl:grid-cols-6
                   "
                 >
 
@@ -1250,6 +1200,12 @@ export default function DashboardPage() {
                     urgent={
                       dueReminders.length > 0
                     }
+                  />
+
+                  <StatCard
+                    label="Upcoming Alerts"
+                    value={upcomingReminders.length.toString()}
+                    description="Future reminders"
                   />
 
                 </section>
@@ -2115,53 +2071,6 @@ export default function DashboardPage() {
 /* =========================================================
    COMPONENTS
    ========================================================= */
-
-
-function HeroMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-
-  return (
-
-    <div
-      className="
-        rounded-2xl
-        border
-        border-white/10
-        bg-white/[0.06]
-        p-5
-      "
-    >
-
-      <p
-        className="
-          text-xs
-          font-medium
-          text-slate-400
-        "
-      >
-        {label}
-      </p>
-
-
-      <p
-        className="
-          mt-2
-          text-xl
-          font-bold
-          !text-white
-        "
-      >
-        {value}
-      </p>
-
-    </div>
-  );
-}
 
 
 function StatCard({
