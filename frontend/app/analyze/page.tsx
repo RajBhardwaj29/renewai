@@ -2,6 +2,7 @@
 
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
+import ProvenanceBadge from "@/components/ProvenanceBadge";
 
 import {
   useRef,
@@ -1335,9 +1336,7 @@ export default function AnalyzeContractPage() {
                     </div>
 
 
-                    <span className="inline-flex w-fit rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-bold text-blue-700">
-                      Human review
-                    </span>
+                    <ProvenanceBadge kind="extraction" />
 
                   </div>
 
@@ -2289,6 +2288,7 @@ export default function AnalyzeContractPage() {
                     <h2 className="mt-2 text-xl font-bold text-slate-950">
                       Calculation preview
                     </h2>
+                    <div className="mt-3"><ProvenanceBadge kind="rules" /></div>
 
 
                     <p className="mt-2 text-sm leading-6 text-slate-500">
@@ -2561,6 +2561,7 @@ export default function AnalyzeContractPage() {
                         <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
                           Contract saved
                         </p>
+                        <div className="mt-3"><ProvenanceBadge kind="saved" /></div>
 
 
                         <h2 className="mt-2 text-3xl font-bold tracking-tight text-emerald-950">

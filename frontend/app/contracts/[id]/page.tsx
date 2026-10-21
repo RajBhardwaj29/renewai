@@ -5,6 +5,7 @@ import { useUtcDay } from "@/lib/useContractTiming";
 
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
+import ProvenanceBadge, { type ProvenanceKind } from "@/components/ProvenanceBadge";
 import ContractSummaryDownload from "@/components/ContractSummaryDownload";
 
 import {
@@ -1689,9 +1690,7 @@ export default function ContractDetailPage() {
               </div>
 
               <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
-                  Recorded human decision
-                </p>
+                <ProvenanceBadge kind="human" />
                 <p className="mt-3 text-xl font-bold !text-white">
                   {formatHumanDecision(contract.renewal_decision)}
                 </p>
@@ -1710,6 +1709,7 @@ export default function ContractDetailPage() {
           <section aria-label="Key contract facts" className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <InfoCard
               label="Renewal date"
+              provenance="rules"
               value={contract.renewal_structure === "evergreen_indefinite"
                 ? "No fixed date"
                 : formatDate(contract.effective_renewal_date)}
@@ -1719,6 +1719,7 @@ export default function ContractDetailPage() {
             />
             <InfoCard
               label="Cancel by"
+              provenance="rules"
               value={contract.renewal_structure === "evergreen_indefinite"
                 ? "Rolling notice"
                 : formatDate(contract.cancellation_deadline)}
@@ -1729,11 +1730,13 @@ export default function ContractDetailPage() {
             />
             <InfoCard
               label="Contract value"
+              provenance="saved"
               value={formatCurrency(contract.contract_value, contract.currency)}
               description="Saved contract value"
             />
             <InfoCard
               label="Notice period"
+              provenance="saved"
               value={formatNoticeRequirement(
                 contract.notice_period_value,
                 contract.notice_period_unit,
@@ -1819,7 +1822,7 @@ export default function ContractDetailPage() {
                       contract.ai_action
                     )}`}
                   >
-                    AI suggestion
+                    AI advisory
                   </span>
 
 
@@ -2206,13 +2209,7 @@ export default function ContractDetailPage() {
                         </p>
 
 
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-bold text-blue-700">
-
-                          <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-
-                          AI analysis
-
-                        </span>
+                        <ProvenanceBadge kind="advisory" />
 
                       </div>
 
@@ -2454,6 +2451,7 @@ export default function ContractDetailPage() {
             <Panel
               eyebrow="Agreement"
               title="Contract Terms"
+              provenance="saved"
             >
 
               <DetailRow
@@ -2587,8 +2585,13 @@ export default function ContractDetailPage() {
             <Panel
               eyebrow="Date engine"
               title="Renewal Calculation"
+              provenance="rules"
             >
 
+              <p className="text-sm leading-6 text-slate-500">
+                Renewal rules resolve explicit and derived dates from saved terms.
+                Dates labeled “Extracted” are saved inputs and may include edits made during review.
+              </p>
               <DetailRow
                 label="Extracted Start Date"
                 value={
@@ -2900,7 +2903,7 @@ export default function ContractDetailPage() {
   <div>
 
     <p className="renewai-eyebrow">
-      Extracted evidence
+      Saved evidence
     </p>
 
 
@@ -2910,16 +2913,14 @@ export default function ContractDetailPage() {
 
 
     <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-      Source terms extracted from the agreement and used
-      by RenewAI to generate renewal and commercial intelligence.
+      Saved clause text, initially extracted from the agreement and editable during review.
+      Compare these saved terms with your agreement before relying on exact wording.
     </p>
 
   </div>
 
 
-  <span className="inline-flex w-fit rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
-    AI extracted
-  </span>
+  <ProvenanceBadge kind="saved" />
 
 </div>
 
@@ -3587,10 +3588,12 @@ function AIInsightList({
 function Panel({
   eyebrow,
   title,
+  provenance,
   children,
 }: {
   eyebrow: string;
   title: string;
+  provenance?: ProvenanceKind;
   children: React.ReactNode;
 }) {
 
@@ -3608,6 +3611,8 @@ function Panel({
       </h2>
 
 
+      {provenance && <div className="mt-3"><ProvenanceBadge kind={provenance} /></div>}
+
       <div className="mt-6 space-y-5">
         {children}
       </div>
@@ -3621,11 +3626,13 @@ function InfoCard({
   label,
   value,
   description,
+  provenance,
   urgent = false,
 }: {
   label: string;
   value: string;
   description: string;
+  provenance?: ProvenanceKind;
   urgent?: boolean;
 }) {
 
@@ -3671,6 +3678,7 @@ function InfoCard({
         {description}
       </p>
 
+      {provenance && <div className="mt-3"><ProvenanceBadge kind={provenance} /></div>}
     </div>
   );
 }
@@ -3777,7 +3785,7 @@ function EvidenceBlock({
 
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
 
         <h3 className="font-bold text-slate-950">
           {title}
@@ -3792,7 +3800,7 @@ function EvidenceBlock({
             className={`h-1.5 w-1.5 rounded-full ${style.dot}`}
           />
 
-          Extracted
+          Saved record
 
         </span>
 
