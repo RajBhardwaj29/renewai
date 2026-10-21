@@ -979,6 +979,9 @@ export default function AnalyzeContractPage() {
   }
 
 
+  const currentStep = savedResult || saving ? 3 : analysis && reviewedContract ? 2 : 1;
+
+
   return (
 
     <AuthGuard>
@@ -1038,136 +1041,110 @@ export default function AnalyzeContractPage() {
           </header>
 
 
-          {/* WORKFLOW HERO */}
+          {/* EXISTING WORKFLOW PROGRESS */}
 
-          <section className="mb-6 overflow-hidden rounded-[1.75rem] bg-slate-950 p-7 text-white shadow-sm lg:p-8">
+          <nav aria-label="Contract analysis progress" className="mb-6">
+            <ol className="grid gap-3 sm:grid-cols-3">
+              <StepCard
+                number="1"
+                title="Upload & extract"
+                description={analyzing ? "Reading your PDF…" : analysis || savedResult ? "PDF extraction complete" : "Choose a text-readable PDF"}
+                active={!savedResult && currentStep === 1}
+                complete={!!savedResult || currentStep > 1}
+              />
+              <StepCard
+                number="2"
+                title="Review terms"
+                description="Verify dates, notice and value"
+                active={!savedResult && currentStep === 2}
+                complete={!!savedResult || currentStep > 2}
+              />
+              <StepCard
+                number="3"
+                title="Save contract"
+                description={savedResult ? "Saved to your workspace" : saving ? "Saving reviewed terms…" : "Save your reviewed contract"}
+                active={!savedResult && currentStep === 3}
+                complete={!!savedResult}
+              />
+            </ol>
+          </nav>
 
-            <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
 
-              <div>
+              {
+                error
+                &&
+                (
 
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5">
+                  <div role="alert" className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5">
 
-                  <span className="h-2 w-2 rounded-full bg-blue-400" />
-
-                  <span className="text-xs font-semibold text-slate-300">
-                    Human-reviewed AI extraction
-                  </span>
-
-                </div>
+                    <p className="text-sm font-semibold text-red-800">
+                      {error}
+                    </p>
 
 
-                <h2 className="mt-5 max-w-xl text-2xl font-bold tracking-tight !text-white sm:text-3xl">
-                  Turn a contract PDF into actionable renewal intelligence.
+                    {
+                      duplicateContractId
+                      &&
+                      (
+
+                        <Link
+                          href={
+                            `/contracts/${duplicateContractId}`
+                          }
+
+                          className="mt-3 inline-flex text-sm font-bold text-red-900 underline underline-offset-4"
+                        >
+                          View existing contract →
+                        </Link>
+
+                      )
+                    }
+
+                  </div>
+
+                )
+              }
+
+
+          {/* SAVING */}
+
+          {
+            saving
+            &&
+            (
+
+              <section role="status" aria-live="polite" className="mb-6 renewai-card p-8 text-center">
+
+                <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+
+
+                <h2 className="text-lg font-bold text-slate-950">
+                  Saving reviewed contract
                 </h2>
 
 
-                <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
-                  RenewAI extracts key commercial terms, calculates renewal
-                  deadlines and lets you verify every important field before
-                  anything is saved.
+                <p className="mt-2 text-sm text-slate-500">
+                  Recalculating renewal intelligence and creating reminders.
                 </p>
 
-              </div>
+              </section>
 
-
-              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-
-                <WorkflowPoint
-                  number="01"
-                  title="Upload"
-                  description="Choose a readable PDF."
-                />
-
-
-                <WorkflowPoint
-                  number="02"
-                  title="Review"
-                  description="Verify AI-extracted terms."
-                />
-
-
-                <WorkflowPoint
-                  number="03"
-                  title="Save"
-                  description="Create reminders automatically."
-                />
-
-              </div>
-
-            </div>
-
-          </section>
-
-
-          {/* STEP INDICATOR */}
-
-          <section className="mb-6 grid gap-3 sm:grid-cols-3">
-
-            <StepCard
-              number="1"
-              title="Upload & Analyze"
-              active={
-                !analysis
-                &&
-                !savedResult
-              }
-              complete={
-                !!analysis
-              }
-            />
-
-
-            <StepCard
-              number="2"
-              title="Review Details"
-              active={
-                !!analysis
-                &&
-                !savedResult
-              }
-              complete={
-                !!savedResult
-              }
-            />
-
-
-            <StepCard
-              number="3"
-              title="Save Contract"
-              active={
-                !!savedResult
-              }
-              complete={
-                !!savedResult
-              }
-            />
-
-          </section>
+            )
+          }
 
 
           {/* UPLOAD */}
 
-          <section className="renewai-card overflow-hidden">
-
-            <div className="border-b border-slate-200 px-6 py-5 sm:px-7">
-
-              <p className="renewai-eyebrow">
-                Step 1
-              </p>
-
-
-              <h2 className="mt-2 text-xl font-bold text-slate-950">
-                Upload contract PDF
-              </h2>
-
-
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                RenewAI currently supports text-readable PDF contracts.
-              </p>
-
-            </div>
-
+          <details className="renewai-card overflow-hidden" open={!analysis && !savedResult}>
+            <summary className="cursor-pointer px-6 py-5 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-blue-600 sm:px-7">
+              <span className="font-bold text-slate-950">
+                {analysis || savedResult ? "Selected PDF" : "Upload contract PDF"}
+              </span>
+              <span className="mt-2 block break-words text-sm text-slate-600">
+                {file ? file.name : "Choose a text-readable PDF. Scanned PDFs need OCR before upload."}
+              </span>
+              {(analysis || savedResult) && <span className="mt-2 block text-xs text-slate-500">Expand to choose or analyze a PDF again.</span>}
+            </summary>
 
             <div className="p-6 sm:p-7">
 
@@ -1175,7 +1152,7 @@ export default function AnalyzeContractPage() {
 
                 <div>
 
-                  <label className="renewai-label">
+                  <label htmlFor="contract-pdf" className="renewai-label">
                     Contract PDF
                   </label>
 
@@ -1183,6 +1160,7 @@ export default function AnalyzeContractPage() {
                   <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 transition hover:border-slate-400">
 
                     <input
+                      id="contract-pdf"
                       type="file"
                       accept="application/pdf"
 
@@ -1236,7 +1214,7 @@ export default function AnalyzeContractPage() {
 
 
                           <p className="mt-0.5 text-xs text-slate-500">
-                            Ready for analysis
+                            {savedResult ? "Contract saved" : analysis ? "Extraction ready for review" : "Ready for analysis"}
                           </p>
 
                         </div>
@@ -1264,7 +1242,7 @@ export default function AnalyzeContractPage() {
                     !file
                   }
 
-                  className="renewai-button-primary min-w-[170px]"
+                  className={`${analysis || savedResult ? "renewai-button-secondary" : "renewai-button-primary"} min-w-[170px]`}
                 >
 
                   {
@@ -1278,46 +1256,13 @@ export default function AnalyzeContractPage() {
                 </button>
 
               </div>
-
-
-              {
-                error
-                &&
-                (
-
-                  <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-5">
-
-                    <p className="text-sm font-semibold text-red-800">
-                      {error}
-                    </p>
-
-
-                    {
-                      duplicateContractId
-                      &&
-                      (
-
-                        <Link
-                          href={
-                            `/contracts/${duplicateContractId}`
-                          }
-
-                          className="mt-3 inline-flex text-sm font-bold text-red-900 underline underline-offset-4"
-                        >
-                          View existing contract →
-                        </Link>
-
-                      )
-                    }
-
-                  </div>
-
-                )
-              }
+              {analysis && !savedResult && (
+                <p className="mt-4 text-sm text-slate-600">Analyzing again replaces the current unsaved review.</p>
+              )}
 
             </div>
 
-          </section>
+          </details>
 
 
           {/* ANALYZING */}
@@ -1327,7 +1272,7 @@ export default function AnalyzeContractPage() {
             &&
             (
 
-              <section className="mt-6 renewai-card p-12 text-center">
+              <section role="status" aria-live="polite" className="mt-6 renewai-card p-8 text-center">
 
                 <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
 
@@ -1338,8 +1283,8 @@ export default function AnalyzeContractPage() {
 
 
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                  Extracting commercial terms, renewal language,
-                  cancellation requirements and renewal intelligence.
+                  Identifying dates, notice requirements and commercial terms.
+                  You will review the extraction before anything is saved.
                 </p>
 
               </section>
@@ -1371,19 +1316,20 @@ export default function AnalyzeContractPage() {
                     <div>
 
                       <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">
-                        Review required
+                        Step 2 · Review required
                       </p>
 
 
                       <h2 className="mt-2 text-xl font-bold text-blue-950">
-                        Verify the AI-extracted information
+                        Review the terms before saving
                       </h2>
 
 
                       <p className="mt-2 max-w-3xl text-sm leading-6 text-blue-800">
-                        AI can make mistakes. Correct any field that does not
-                        match the uploaded agreement. RenewAI recalculates
-                        renewal intelligence after your reviewed values are saved.
+                        Start with dates, notice requirements and value, then confirm
+                        the contract language. AI can make mistakes. Blank fields
+                        may be unknown or not applicable; verify them in your agreement
+                        and leave unknown terms blank.
                       </p>
 
                     </div>
@@ -1398,25 +1344,37 @@ export default function AnalyzeContractPage() {
                 </section>
 
 
-                {/* CONTRACT INFORMATION */}
+                <p role="status" className="text-sm font-semibold text-slate-700">
+                  Extraction complete. Your contract has not been saved yet.
+                </p>
+                <nav aria-label="Review sections" className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold text-blue-700">
+                  <a href="#review-dates" className="underline underline-offset-4">Dates & value</a>
+                  <a href="#review-renewal" className="underline underline-offset-4">Renewal & notice</a>
+                  <a href="#review-identity" className="underline underline-offset-4">Contract identity</a>
+                  <a href="#review-evidence" className="underline underline-offset-4">Contract language</a>
+                  <a href="#review-preview" className="underline underline-offset-4">Calculation preview</a>
+                  <a href="#review-save" className="underline underline-offset-4">Save contract</a>
+                </nav>
+
+
+                {/* DATES AND VALUE */}
 
                 <ReviewSection
-                  eyebrow="Commercial terms"
-                  title="Contract Information"
-                  description="Confirm the core business information extracted from the agreement."
+                  id="review-dates"
+                  eyebrow="Key facts"
+                  title="Dates & value"
+                  description="Check the agreement's explicit dates and contract value. Calculated dates appear in the preview below."
                 >
-
-                  <div className="grid gap-5 md:grid-cols-2">
-
-                    <FormField
-                      label="Vendor Name"
+                  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                    <FormField htmlFor="review-explicit-renewal-date" help="Only enter a renewal date explicitly stated in the agreement."
+                      label="Explicit Renewal Date"
                     >
 
-                      <input
-                        type="text"
+                      <input id="review-explicit-renewal-date" aria-describedby="review-explicit-renewal-date-hint"
+                        type="date"
 
                         value={
-                          reviewedContract.vendor_name
+                          reviewedContract.renewal_date
                           ??
                           ""
                         }
@@ -1424,7 +1382,7 @@ export default function AnalyzeContractPage() {
                         onChange={
                           (event) =>
                             updateTextField(
-                              "vendor_name",
+                              "renewal_date",
                               event.target.value
                             )
                         }
@@ -1434,49 +1392,35 @@ export default function AnalyzeContractPage() {
 
                     </FormField>
 
+                    <FormField htmlFor="review-explicit-cancellation-deadline" help="Only enter an explicit deadline from the agreement. Calculated deadlines appear in the preview."
+  label="Explicit Cancellation Deadline"
+>
+  <input id="review-explicit-cancellation-deadline" aria-describedby="review-explicit-cancellation-deadline-hint"
+    type="date"
 
-                    <FormField label="Customer Name">
-                      <input
-                        type="text"
-                        aria-label="Customer Name"
-                        value={reviewedContract.customer_name ?? ""}
-                        onChange={(event) => updateTextField("customer_name", event.target.value)}
-                        className="renewai-input"
-                      />
-                    </FormField>
+    value={
+      reviewedContract.cancellation_deadline
+      ??
+      ""
+    }
 
-                    <FormField
-                      label="Contract Title"
-                    >
+    onChange={
+      (event) =>
+        updateTextField(
+          "cancellation_deadline",
+          event.target.value
+        )
+    }
 
-                      <input
-                        type="text"
+    className="renewai-input"
+  />
+</FormField>
 
-                        value={
-                          reviewedContract.contract_title
-                          ??
-                          ""
-                        }
-
-                        onChange={
-                          (event) =>
-                            updateTextField(
-                              "contract_title",
-                              event.target.value
-                            )
-                        }
-
-                        className="renewai-input"
-                      />
-
-                    </FormField>
-
-
-                    <FormField
+                    <FormField htmlFor="review-contract-value" help="Keep the stated amount; do not assume it is annual."
                       label="Contract Value"
                     >
 
-                      <input
+                      <input id="review-contract-value" aria-describedby="review-contract-value-hint"
                         type="number"
                         min="0"
                         step="0.01"
@@ -1500,12 +1444,11 @@ export default function AnalyzeContractPage() {
 
                     </FormField>
 
-
-                    <FormField
+                    <FormField htmlFor="review-currency" help="Use the currency stated in the agreement."
                       label="Currency"
                     >
 
-                      <input
+                      <input id="review-currency" aria-describedby="review-currency-hint"
                         type="text"
                         placeholder="INR, USD, EUR..."
 
@@ -1528,26 +1471,11 @@ export default function AnalyzeContractPage() {
 
                     </FormField>
 
-                  </div>
-
-                </ReviewSection>
-
-
-                {/* DATES */}
-
-                <ReviewSection
-                  eyebrow="Contract timeline"
-                  title="Dates"
-                  description="Review dates explicitly stated in the agreement."
-                >
-
-                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-
-                    <FormField
+                    <FormField htmlFor="review-start-date"
                       label="Start Date"
                     >
 
-                      <input
+                      <input id="review-start-date"
                         type="date"
 
                         value={
@@ -1569,12 +1497,11 @@ export default function AnalyzeContractPage() {
 
                     </FormField>
 
-
-                    <FormField
+                    <FormField htmlFor="review-end-date"
                       label="End Date"
                     >
 
-                      <input
+                      <input id="review-end-date"
                         type="date"
 
                         value={
@@ -1595,106 +1522,26 @@ export default function AnalyzeContractPage() {
                       />
 
                     </FormField>
-
-
-                    <FormField
-                      label="Explicit Renewal Date"
-                    >
-
-                      <input
-                        type="date"
-
-                        value={
-                          reviewedContract.renewal_date
-                          ??
-                          ""
-                        }
-
-                        onChange={
-                          (event) =>
-                            updateTextField(
-                              "renewal_date",
-                              event.target.value
-                            )
-                        }
-
-                        className="renewai-input"
-                      />
-
-                    </FormField>
-
-                    <FormField
-  label="Explicit Cancellation Deadline"
->
-  <input
-    type="date"
-
-    value={
-      reviewedContract.cancellation_deadline
-      ??
-      ""
-    }
-
-    onChange={
-      (event) =>
-        updateTextField(
-          "cancellation_deadline",
-          event.target.value
-        )
-    }
-
-    className="renewai-input"
-  />
-</FormField>
-
                   </div>
-
                 </ReviewSection>
 
 
                 {/* RENEWAL TERMS */}
 
                 <ReviewSection
+                  id="review-renewal"
                   eyebrow="Renewal mechanics"
-                  title="Renewal Terms"
+                  title="Renewal & notice terms"
                   description="These fields drive RenewAI's cancellation deadline and reminder calculations."
                 >
 
-                  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
 
-                    <FormField
-                      label="Initial Term (months)"
-                    >
-
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-
-                        value={
-                          reviewedContract.initial_term_months
-                          ??
-                          ""
-                        }
-
-                        onChange={
-                          (event) =>
-                            updateNumberField(
-                              "initial_term_months",
-                              event.target.value
-                            )
-                        }
-
-                        className="renewai-input"
-                      />
-
-                    </FormField>
-
-                    <FormField
+                    <FormField htmlFor="review-renewal-structure"
                       label="Renewal Structure"
                     >
 
-                      <select
+                      <select id="review-renewal-structure"
                         value={
                           reviewedContract
                             .renewal_structure
@@ -1732,33 +1579,54 @@ export default function AnalyzeContractPage() {
 
                     </FormField>
 
-                    <FormField
-                      label="Renewal Term (months)"
+                    <FormField htmlFor="review-auto-renewal"
+                      label="Auto Renewal"
                     >
 
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-
+                      <select id="review-auto-renewal"
                         value={
-                          reviewedContract.renewal_term_months
-                          ??
-                          ""
+                          reviewedContract.auto_renewal === null
+
+                            ? "unknown"
+
+                            : reviewedContract.auto_renewal
+
+                            ? "true"
+
+                            : "false"
                         }
 
                         onChange={
                           (event) =>
-                            updateNumberField(
-                              "renewal_term_months",
+                            updateBooleanField(
                               event.target.value
                             )
                         }
 
                         className="renewai-input"
-                      />
+                      >
+
+                        <option value="unknown">
+                          Unknown
+                        </option>
+
+                        <option value="true">
+                          Yes
+                        </option>
+
+                        <option value="false">
+                          No
+                        </option>
+
+                      </select>
 
                     </FormField>
+
+
+
+
+
+
 
 
                     {(
@@ -1766,14 +1634,14 @@ export default function AnalyzeContractPage() {
   ||
   reviewedContract.notice_window_end_value !== null
 ) && (
-  <div className="space-y-4">
+  <div className="space-y-4 md:col-span-2">
     <div className="text-sm font-medium text-slate-700">
       Notice Window
     </div>
 
-    <FormField label="Window Opens">
-      <div className="grid grid-cols-[1fr_140px] gap-3">
-        <input
+    <FormField htmlFor="review-window-opens" label="Window Opens">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+        <input id="review-window-opens"
           type="number"
           min="0"
           step="1"
@@ -1800,7 +1668,7 @@ export default function AnalyzeContractPage() {
           className="renewai-input"
         />
 
-        <select
+        <select id="review-window-opens-unit" aria-label="Window Opens unit"
           value={
             reviewedContract.notice_window_start_unit
             ?? "unknown"
@@ -1842,9 +1710,9 @@ export default function AnalyzeContractPage() {
       </div>
     </FormField>
 
-    <FormField label="Window Closes">
-      <div className="grid grid-cols-[1fr_140px] gap-3">
-        <input
+    <FormField htmlFor="review-window-closes" label="Window Closes">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+        <input id="review-window-closes"
           type="number"
           min="0"
           step="1"
@@ -1871,7 +1739,7 @@ export default function AnalyzeContractPage() {
           className="renewai-input"
         />
 
-        <select
+        <select id="review-window-closes-unit" aria-label="Window Closes unit"
           value={
             reviewedContract.notice_window_end_unit
             ?? "unknown"
@@ -1920,12 +1788,12 @@ export default function AnalyzeContractPage() {
   ||
   reviewedContract.notice_window_end_value !== null
 ) && (
-<FormField
+<FormField htmlFor="review-notice-period" help="Check the value and unit. Months and business days have distinct meanings."
   label="Notice Period"
 >
-                    <div className="grid grid-cols-[1fr_140px] gap-3">
+                    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
 
-                      <input
+                      <input id="review-notice-period" aria-describedby="review-notice-period-hint"
                         type="number"
                         min="0"
                         step="1"
@@ -1970,7 +1838,7 @@ export default function AnalyzeContractPage() {
                       />
 
 
-                      <select
+                      <select id="review-notice-period-unit" aria-label="Notice Period unit" aria-describedby="review-notice-period-hint"
                         value={
                           reviewedContract.notice_period_unit
                           ??
@@ -2041,10 +1909,10 @@ export default function AnalyzeContractPage() {
                   </FormField>
                 )}
 
-                    <FormField
+                    <FormField htmlFor="review-notice-based-on" help="Confirm which date the notice period is counted back from."
   label="Notice Based On"
 >
-  <select
+  <select id="review-notice-based-on" aria-describedby="review-notice-based-on-hint"
     value={
       reviewedContract.notice_period_anchor
       ?? "unknown"
@@ -2083,48 +1951,148 @@ export default function AnalyzeContractPage() {
 </FormField>
 
 
-                    <FormField
-                      label="Auto Renewal"
+
+
+                    <FormField htmlFor="review-initial-term-months"
+                      label="Initial Term (months)"
                     >
 
-                      <select
+                      <input id="review-initial-term-months"
+                        type="number"
+                        min="0"
+                        step="1"
+
                         value={
-                          reviewedContract.auto_renewal === null
-
-                            ? "unknown"
-
-                            : reviewedContract.auto_renewal
-
-                            ? "true"
-
-                            : "false"
+                          reviewedContract.initial_term_months
+                          ??
+                          ""
                         }
 
                         onChange={
                           (event) =>
-                            updateBooleanField(
+                            updateNumberField(
+                              "initial_term_months",
                               event.target.value
                             )
                         }
 
                         className="renewai-input"
-                      >
-
-                        <option value="unknown">
-                          Unknown
-                        </option>
-
-                        <option value="true">
-                          Yes
-                        </option>
-
-                        <option value="false">
-                          No
-                        </option>
-
-                      </select>
+                      />
 
                     </FormField>
+
+                    <FormField htmlFor="review-renewal-term-months"
+                      label="Renewal Term (months)"
+                    >
+
+                      <input id="review-renewal-term-months"
+                        type="number"
+                        min="0"
+                        step="1"
+
+                        value={
+                          reviewedContract.renewal_term_months
+                          ??
+                          ""
+                        }
+
+                        onChange={
+                          (event) =>
+                            updateNumberField(
+                              "renewal_term_months",
+                              event.target.value
+                            )
+                        }
+
+                        className="renewai-input"
+                      />
+
+                    </FormField>
+
+                  </div>
+
+                </ReviewSection>
+
+
+                {/* CONTRACT INFORMATION */}
+
+                <ReviewSection
+                  id="review-identity"
+                  eyebrow="Agreement"
+                  title="Contract identity"
+                  description="Confirm the core business information extracted from the agreement."
+                >
+
+                  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+
+                    <FormField htmlFor="review-vendor-name"
+                      label="Vendor Name"
+                    >
+
+                      <input id="review-vendor-name"
+                        type="text"
+
+                        value={
+                          reviewedContract.vendor_name
+                          ??
+                          ""
+                        }
+
+                        onChange={
+                          (event) =>
+                            updateTextField(
+                              "vendor_name",
+                              event.target.value
+                            )
+                        }
+
+                        className="renewai-input"
+                      />
+
+                    </FormField>
+
+
+                    <FormField htmlFor="review-customer-name" label="Customer Name">
+                      <input id="review-customer-name"
+                        type="text"
+                        aria-label="Customer Name"
+                        value={reviewedContract.customer_name ?? ""}
+                        onChange={(event) => updateTextField("customer_name", event.target.value)}
+                        className="renewai-input"
+                      />
+                    </FormField>
+
+                    <FormField htmlFor="review-contract-title"
+                      label="Contract Title"
+                    >
+
+                      <input id="review-contract-title"
+                        type="text"
+
+                        value={
+                          reviewedContract.contract_title
+                          ??
+                          ""
+                        }
+
+                        onChange={
+                          (event) =>
+                            updateTextField(
+                              "contract_title",
+                              event.target.value
+                            )
+                        }
+
+                        className="renewai-input"
+                      />
+
+                    </FormField>
+
+
+
+
+
+
 
                   </div>
 
@@ -2134,6 +2102,7 @@ export default function AnalyzeContractPage() {
                 {/* CONTRACT LANGUAGE */}
 
                 <ReviewSection
+                  id="review-evidence"
                   eyebrow="Contract evidence"
                   title="Extracted Contract Language"
                   description="Keep these fields aligned with the actual language in the agreement."
@@ -2141,11 +2110,11 @@ export default function AnalyzeContractPage() {
 
                   <div className="space-y-6">
 
-                    <FormField
+                    <FormField htmlFor="review-renewal-clause"
                       label="Renewal Clause"
                     >
 
-                      <textarea
+                      <textarea id="review-renewal-clause"
                         rows={5}
 
                         value={
@@ -2168,11 +2137,11 @@ export default function AnalyzeContractPage() {
                     </FormField>
 
 
-                    <FormField
+                    <FormField htmlFor="review-termination-cancellation-clause"
                       label="Termination / Cancellation Clause"
                     >
 
-                      <textarea
+                      <textarea id="review-termination-cancellation-clause"
                         rows={5}
 
                         value={
@@ -2195,11 +2164,11 @@ export default function AnalyzeContractPage() {
                     </FormField>
 
 
-                    <FormField
+                    <FormField htmlFor="review-payment-terms"
                       label="Payment Terms"
                     >
 
-                      <textarea
+                      <textarea id="review-payment-terms"
                         rows={3}
 
                         value={
@@ -2221,11 +2190,11 @@ export default function AnalyzeContractPage() {
 
                     </FormField>
 
-                    <FormField
+                    <FormField htmlFor="review-pricing-clause"
                       label="Pricing Clause"
                     >
 
-                      <textarea
+                      <textarea id="review-pricing-clause"
                         rows={4}
 
                         value={
@@ -2248,11 +2217,11 @@ export default function AnalyzeContractPage() {
                     </FormField>
 
 
-                    <FormField
+                    <FormField htmlFor="review-minimum-commitment"
                       label="Minimum Commitment"
                     >
 
-                      <textarea
+                      <textarea id="review-minimum-commitment"
                         rows={4}
 
                         value={
@@ -2275,11 +2244,11 @@ export default function AnalyzeContractPage() {
                     </FormField>
 
 
-                    <FormField
+                    <FormField htmlFor="review-refund-clause"
                       label="Refund Clause"
                     >
 
-                      <textarea
+                      <textarea id="review-refund-clause"
                         rows={4}
 
                         value={
@@ -2308,7 +2277,7 @@ export default function AnalyzeContractPage() {
 
                 {/* AI PREVIEW */}
 
-                <section className="grid gap-6 lg:grid-cols-2">
+                <section id="review-preview" tabIndex={-1} aria-label="Calculation preview" className="grid scroll-mt-6 gap-6 lg:grid-cols-2">
 
                   <div className="renewai-card p-6 sm:p-7">
 
@@ -2318,13 +2287,13 @@ export default function AnalyzeContractPage() {
 
 
                     <h2 className="mt-2 text-xl font-bold text-slate-950">
-                      AI Analysis Preview
+                      Calculation preview
                     </h2>
 
 
                     <p className="mt-2 text-sm leading-6 text-slate-500">
-                      These values were calculated from the original extraction.
-                      They will be recalculated after your reviewed values are saved.
+                      This preview uses the original extraction and does not update as you edit.
+                      Saving recalculates the dates and timing risk from your reviewed terms.
                     </p>
 
 
@@ -2478,14 +2447,14 @@ export default function AnalyzeContractPage() {
 
                 {/* SAVE */}
 
-                <section className="rounded-[1.5rem] bg-slate-950 p-6 text-white shadow-sm sm:p-7">
+                <section id="review-save" tabIndex={-1} aria-label="Save reviewed contract" className="scroll-mt-6 rounded-[1.5rem] bg-slate-950 p-6 text-white shadow-sm sm:p-7">
 
                   <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
 
                     <div>
 
                       <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
-                        Final review
+                        Step 3 · Save reviewed terms
                       </p>
 
 
@@ -2495,11 +2464,9 @@ export default function AnalyzeContractPage() {
 
 
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-                      RenewAI will use your reviewed values to recalculate
-renewal dates, cancellation deadlines, deadline risk
-and reminder schedules before saving. Commercial
-renewal intelligence will be generated from the
-reviewed contract evidence.
+                      Save the reviewed terms and recalculate renewal dates and deadlines.
+                      Reminder creation and AI renewal analysis have their own status
+                      after the contract is saved.
                       </p>
 
                     </div>
@@ -2566,33 +2533,6 @@ reviewed contract evidence.
                 </section>
 
               </div>
-
-            )
-          }
-
-
-          {/* SAVING */}
-
-          {
-            saving
-            &&
-            (
-
-              <section className="mt-6 renewai-card p-12 text-center">
-
-                <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
-
-
-                <h2 className="text-lg font-bold text-slate-950">
-                  Saving reviewed contract
-                </h2>
-
-
-                <p className="mt-2 text-sm text-slate-500">
-                  Recalculating renewal intelligence and creating reminders.
-                </p>
-
-              </section>
 
             )
           }
@@ -2859,105 +2799,50 @@ reviewed contract evidence.
 }
 
 
-function WorkflowPoint({
-  number,
-  title,
-  description,
-}: {
-  number: string;
-  title: string;
-  description: string;
-}) {
-
-  return (
-
-    <div className="flex items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3">
-
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-xs font-bold text-slate-950">
-        {number}
-      </div>
-
-
-      <div>
-
-        <p className="text-sm font-bold text-white">
-          {title}
-        </p>
-
-
-        <p className="mt-0.5 text-xs text-slate-400">
-          {description}
-        </p>
-
-      </div>
-
-    </div>
-  );
-}
-
-
 function StepCard({
   number,
   title,
+  description,
   active,
   complete,
 }: {
   number: string;
   title: string;
+  description: string;
   active: boolean;
   complete: boolean;
 }) {
-
   return (
-
-    <div
-      className={
-        active
-          ? "rounded-2xl border border-blue-600 bg-blue-600 p-4 text-white shadow-sm"
-          : complete
-          ? "rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900"
-          : "rounded-2xl border border-slate-200 bg-white p-4 text-slate-600"
-      }
-    >
-
-      <div className="flex items-center gap-3">
-
-        <span
-          className={
-            active
-              ? "flex h-8 w-8 items-center justify-center rounded-full bg-white text-sm font-bold text-blue-700"
-              : complete
-              ? "flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white"
-              : "flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600"
-          }
-        >
-
-          {
-            complete
-              ? "✓"
-              : number
-          }
-
+    <li aria-current={active ? "step" : undefined} className={`rounded-2xl border p-4 ${
+      complete ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+        : active ? "border-slate-950 bg-slate-950 text-white"
+        : "border-slate-200 bg-white text-slate-500"
+    }`}>
+      <div className="flex items-start gap-3">
+        <span aria-hidden="true" className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+          complete ? "bg-emerald-600 text-white" : active ? "bg-white text-slate-950" : "bg-slate-100 text-slate-600"
+        }`}>
+          {complete ? "✓" : number}
         </span>
-
-
-        <span className="text-sm font-bold">
-          {title}
-        </span>
-
+        <div>
+          <p className="text-sm font-bold">{title}</p>
+          <p className={`mt-1 text-xs leading-5 ${active ? "text-slate-300" : ""}`}>{description}</p>
+          <p className="mt-2 text-xs font-semibold">{complete ? "Completed" : active ? "Current step" : "Upcoming"}</p>
+        </div>
       </div>
-
-    </div>
+    </li>
   );
 }
 
 
 function ReviewSection({
+  id,
   eyebrow,
   title,
   description,
   children,
 }: {
+  id: string;
   eyebrow: string;
   title: string;
   description: string;
@@ -2966,7 +2851,7 @@ function ReviewSection({
 
   return (
 
-    <section className="renewai-card p-6 sm:p-7">
+    <section id={id} tabIndex={-1} aria-labelledby={`${id}-heading`} className="renewai-card scroll-mt-6 p-6 sm:p-7">
 
       <div>
 
@@ -2975,7 +2860,7 @@ function ReviewSection({
         </p>
 
 
-        <h2 className="mt-2 text-xl font-bold text-slate-950">
+        <h2 id={`${id}-heading`} className="mt-2 text-xl font-bold text-slate-950">
           {title}
         </h2>
 
@@ -2997,24 +2882,21 @@ function ReviewSection({
 
 
 function FormField({
+  htmlFor,
   label,
+  help,
   children,
 }: {
+  htmlFor: string;
   label: string;
+  help?: string;
   children: React.ReactNode;
 }) {
-
   return (
-
-    <div>
-
-      <label className="renewai-label">
-        {label}
-      </label>
-
-
+    <div className="min-w-0">
+      <label htmlFor={htmlFor} className="renewai-label">{label}</label>
       {children}
-
+      {help && <p id={`${htmlFor}-hint`} className="mt-2 text-xs leading-5 text-slate-500">{help}</p>}
     </div>
   );
 }
