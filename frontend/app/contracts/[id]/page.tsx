@@ -1516,66 +1516,7 @@ export default function ContractDetailPage() {
               </Link>
 
 
-              <div className="flex flex-wrap gap-3">
 
-  <button
-    type="button"
-    onClick={
-      handleArchive
-    }
-    disabled={
-      archiving
-      ||
-      deleting
-    }
-    className="renewai-button-secondary"
-  >
-    {
-      archiving
-        ? "Archiving..."
-        : "Archive Contract"
-    }
-  </button>
-
-
-  <button
-    type="button"
-    onClick={
-      handleDeleteContract
-    }
-    disabled={
-      deleting
-      ||
-      archiving
-    }
-    className="
-      inline-flex
-      items-center
-      justify-center
-      rounded-xl
-      border
-      border-red-300
-      bg-red-50
-      px-5
-      py-2.5
-      text-sm
-      font-bold
-      text-red-700
-      transition
-      hover:border-red-400
-      hover:bg-red-100
-      disabled:cursor-not-allowed
-      disabled:opacity-50
-    "
-  >
-    {
-      deleting
-        ? "Deleting..."
-        : "Delete Permanently"
-    }
-  </button>
-
-</div>
 
             </div>
 
@@ -1710,446 +1651,101 @@ export default function ContractDetailPage() {
             </div>
 
 
-            <Link
-              href="/analyze"
-              className="renewai-button-primary"
-            >
-              + Analyze Another Contract
-            </Link>
+
 
           </header>
 
 
-          {/* DETERMINISTIC RENEWAL POSITION */}
+          {/* RENEWAL POSITION AND RECORDED HUMAN DECISION */}
 
-          <section className="mb-6 overflow-hidden rounded-[1.75rem] bg-slate-950 p-7 text-white shadow-sm lg:p-8">
-
-            <div className="grid gap-8 lg:grid-cols-[1.45fr_1fr] lg:items-center">
-
+          <section aria-labelledby="renewal-position-heading" className="mb-6 overflow-hidden rounded-[1.75rem] bg-slate-950 p-6 text-white shadow-sm sm:p-7 lg:p-8">
+            <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr] lg:items-start">
               <div>
-
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5">
-
-                  <span
-                    className={
-                      deadlineStatus ===
-                      "urgent"
-
-                        ? "h-2 w-2 rounded-full bg-orange-400"
-
-                        : "h-2 w-2 rounded-full bg-emerald-400"
-                    }
-                  />
-
-
-                  <span className="text-xs font-semibold text-slate-300">
-                    Renewal position
-                  </span>
-
-                </div>
-
-
-                <h2 className="mt-5 max-w-2xl text-2xl font-bold tracking-tight !text-white sm:text-3xl">
-
-                  {
-                    recommendationHeading(
-                      contract.risk_level,
-                      contract
-                        .days_until_cancellation_deadline,
-                      contract.renewal_structure
-                    )
-                  }
-
-                </h2>
-
-
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-
-                  {
-                    contract.recommendation
-                    ||
-                    "Review the contract terms and renewal position before the cancellation deadline."
-                  }
-
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
+                  Renewal position · Current timing
                 </p>
-
+                <h2 id="renewal-position-heading" className="mt-3 max-w-2xl text-2xl font-bold tracking-tight !text-white sm:text-3xl">
+                  {recommendationHeading(
+                    contract.risk_level,
+                    contract.days_until_cancellation_deadline,
+                    contract.renewal_structure
+                  )}
+                </h2>
+                <p className="mt-3 text-base font-semibold text-slate-200">
+                  {contract.renewal_structure === "evergreen_indefinite"
+                    ? "No fixed cancellation deadline · Rolling notice"
+                    : `Cancel by ${formatDate(contract.cancellation_deadline)} · ${formatDeadline(contract.days_until_cancellation_deadline)}`}
+                </p>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+                  {contract.recommendation ||
+                    "Review the contract terms and renewal position before the cancellation deadline."}
+                </p>
+                <a
+                  href="#renewalDecision"
+                  className="renewai-button-primary mt-6 !border-white !bg-white !text-slate-950 hover:!bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                >
+                  Review renewal decision
+                </a>
               </div>
 
-
-              <div className="grid gap-3 sm:grid-cols-2">
-
-                <DarkMetric
-                  label={
-                    contract.renewal_structure ===
-                    "evergreen_indefinite"
-                      ? "Renewal structure"
-                      : "Renewal date"
-                  }
-                  value={
-                    contract.renewal_structure ===
-                    "evergreen_indefinite"
-                      ? "Evergreen / Indefinite"
-                      : formatDate(
-                          contract
-                            .effective_renewal_date
-                        )
-                  }
-                />
-
-
-                <DarkMetric
-                  label={
-                    contract.renewal_structure ===
-                    "evergreen_indefinite"
-                      ? "Termination timing"
-                      : "Cancel by"
-                  }
-                  value={
-                    contract.renewal_structure ===
-                    "evergreen_indefinite"
-                      ? "Rolling notice"
-                      : formatDate(
-                          contract
-                            .cancellation_deadline
-                        )
-                  }
-                />
-
-
-                <DarkMetric
-                  label={
-                    contract.renewal_structure ===
-                    "evergreen_indefinite"
-                      ? "Fixed deadline"
-                      : "Time until deadline"
-                  }
-                  value={
-                    contract.renewal_structure ===
-                    "evergreen_indefinite"
-                      ? "None"
-                      : formatDeadline(
-                          contract
-                            .days_until_cancellation_deadline
-                        )
-                  }
-                />
-
-
-                <DarkMetric
-                  label="Notice period"
-                  value={
-                    formatNoticeRequirement(
-                      contract.notice_period_value,
-                      contract.notice_period_unit,
-                      contract.notice_period_days,
-                      contract.notice_window_start_value,
-                      contract.notice_window_start_unit,
-                      contract.notice_window_end_value,
-                      contract.notice_window_end_unit
-                    )
-                  }
-                />
-
+              <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
+                  Recorded human decision
+                </p>
+                <p className="mt-3 text-xl font-bold !text-white">
+                  {formatHumanDecision(contract.renewal_decision)}
+                </p>
+                <div className="mt-3">
+                  <DecisionStatusBadge status={contract.renewal_status || "under_review"} />
+                </div>
+                <p className="mt-4 text-sm leading-6 text-slate-300">
+                  RenewAI recommends. Your organization decides. AI analysis is advisory.
+                </p>
               </div>
-
             </div>
-
           </section>
 
+          {/* FOUR KEY FACTS — SAVED VALUES, NO ANNUALIZATION */}
 
-          {/* EXECUTIVE CARDS */}
-
-          <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-
+          <section aria-label="Key contract facts" className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <InfoCard
-              label="Contract Value"
-
-              value={
-                formatCurrency(
-                  contract.contract_value,
-                  contract.currency
-                )
-              }
-
-              description="Tracked value"
+              label="Renewal date"
+              value={contract.renewal_structure === "evergreen_indefinite"
+                ? "No fixed date"
+                : formatDate(contract.effective_renewal_date)}
+              description={contract.renewal_structure === "evergreen_indefinite"
+                ? "Continues indefinitely"
+                : "Saved effective date · Calculation below"}
             />
-
-
             <InfoCard
-              label="Renewal Structure"
-
-              value={
-                formatRenewalStructure(
-                  contract.renewal_structure,
-                  contract.auto_renewal
-                )
-              }
-
-              description="Lifecycle model"
+              label="Cancel by"
+              value={contract.renewal_structure === "evergreen_indefinite"
+                ? "Rolling notice"
+                : formatDate(contract.cancellation_deadline)}
+              description={contract.renewal_structure === "evergreen_indefinite"
+                ? "No fixed cancellation deadline"
+                : "Saved notice deadline · Calculation below"}
+              urgent={contract.renewal_structure !== "evergreen_indefinite" && deadlineStatus === "urgent"}
             />
-
-
             <InfoCard
-              label="Renewal Date"
-
-              value={
-                contract.renewal_structure ===
-                "evergreen_indefinite"
-                  ? "No fixed date"
-                  : formatDate(
-                      contract
-                        .effective_renewal_date
-                    )
-              }
-
-              description={
-                contract.renewal_structure ===
-                "evergreen_indefinite"
-                  ? "Continues indefinitely"
-                  : "Next renewal"
-              }
+              label="Contract value"
+              value={formatCurrency(contract.contract_value, contract.currency)}
+              description="Saved contract value"
             />
-
-
             <InfoCard
-              label={
-                contract.renewal_structure ===
-                "evergreen_indefinite"
-                  ? "Termination"
-                  : "Cancel By"
-              }
-
-              value={
-                contract.renewal_structure ===
-                "evergreen_indefinite"
-                  ? "Rolling notice"
-                  : formatDate(
-                      contract
-                        .cancellation_deadline
-                    )
-              }
-
-              description={
-                contract.renewal_structure ===
-                "evergreen_indefinite"
-                  ? "No fixed cancellation deadline"
-                  : "Notice deadline"
-              }
-
-              urgent={
-                contract.renewal_structure !==
-                "evergreen_indefinite"
-                &&
-                deadlineStatus ===
-                "urgent"
-              }
+              label="Notice period"
+              value={formatNoticeRequirement(
+                contract.notice_period_value,
+                contract.notice_period_unit,
+                contract.notice_period_days,
+                contract.notice_window_start_value,
+                contract.notice_window_start_unit,
+                contract.notice_window_end_value,
+                contract.notice_window_end_unit
+              )}
+              description="Saved notice requirement"
             />
-
-
-            <InfoCard
-              label="Deadline"
-
-              value={
-                contract.renewal_structure ===
-                "evergreen_indefinite"
-                  ? "No fixed deadline"
-                  : formatDeadline(
-                      contract
-                        .days_until_cancellation_deadline
-                    )
-              }
-
-              description={
-                contract.renewal_structure ===
-                "evergreen_indefinite"
-                  ? "Rolling termination right"
-                  : contract
-                      .days_until_cancellation_deadline
-                    !==
-                    null
-                    &&
-                    contract
-                      .days_until_cancellation_deadline
-                    <
-                    0
-
-                      ? "Window already passed"
-
-                      : "Time remaining"
-              }
-
-              urgent={
-                contract.renewal_structure !==
-                "evergreen_indefinite"
-                &&
-                deadlineStatus ===
-                "urgent"
-              }
-            />
-
-
-            <InfoCard
-              label="Notice Period"
-
-              value={
-                formatNoticeRequirement(
-                  contract.notice_period_value,
-                  contract.notice_period_unit,
-                  contract.notice_period_days,
-                  contract.notice_window_start_value,
-                  contract.notice_window_start_unit,
-                  contract.notice_window_end_value,
-                  contract.notice_window_end_unit
-                )
-              }
-
-              description="Required notice"
-            />
-
           </section>
-
-
-          {/* AI RENEWAL INTELLIGENCE */}
-
-          {!hasAIInsight && (
-            <section className="mb-8 renewai-card p-6 sm:p-7">
-              <h2 className="text-xl font-bold text-slate-950">AI Renewal Intelligence</h2>
-              <p role="status" aria-live="polite" className="mt-3 text-sm leading-6 text-slate-600">
-                {aiAnalyzing
-                  ? "AI renewal analysis is in progress. Your contract and renewal dates are saved."
-                  : aiError || (contract.ai_analysis_status === "failed"
-                    ? AI_ANALYSIS_UNAVAILABLE
-                    : "Your contract and renewal dates are saved. AI renewal analysis has not completed yet.")}
-              </p>
-              <button
-                type="button"
-                onClick={() => void handleAIAnalysis()}
-                disabled={aiAnalyzing || contract.archived}
-                className="renewai-button-secondary mt-4"
-              >
-                {aiAnalyzing ? "Analyzing..." : contract.ai_analysis_status === "failed" || aiError
-                  ? "Retry AI analysis" : "Generate AI analysis"}
-              </button>
-            </section>
-          )}
-
-          {
-            hasAIInsight
-            &&
-            (
-
-              <section className="mb-8 overflow-hidden rounded-[1.75rem] border border-blue-200 bg-white shadow-sm">
-
-                <div className="border-b border-blue-100 bg-blue-50/70 p-6 sm:p-7">
-
-                  <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
-
-                    <div>
-
-                      <div className="flex flex-wrap items-center gap-3">
-
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
-                          AI Renewal Intelligence
-                        </p>
-
-
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-bold text-blue-700">
-
-                          <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-
-                          AI analysis
-
-                        </span>
-
-                      </div>
-
-
-                      <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-950">
-                        {
-                          formatAIAction(
-                            contract.ai_action
-                          )
-                        }
-                      </h2>
-
-
-                      <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-700">
-                        {
-                          contract.ai_summary
-                          ||
-                          "RenewAI analyzed the reviewed contract for renewal and commercial considerations."
-                        }
-                      </p>
-
-                    </div>
-
-
-                    <div className="shrink-0 rounded-2xl border border-blue-200 bg-white px-5 py-4">
-
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        AI confidence
-                      </p>
-
-
-                      <p className="mt-1 text-2xl font-bold text-slate-950">
-                        {
-                          formatConfidence(
-                            contract.ai_confidence
-                          )
-                        }
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-
-                <div className="grid gap-0 lg:grid-cols-2">
-
-                  <AIInsightList
-                    eyebrow="Why"
-                    title="Key Findings"
-                    items={
-                      contract.ai_key_findings
-                      ||
-                      []
-                    }
-                    emptyText="No additional key findings were identified."
-                  />
-
-
-                  <AIInsightList
-                    eyebrow="Commercial review"
-                    title="Commercial Flags"
-                    items={
-                      contract.ai_commercial_flags
-                      ||
-                      []
-                    }
-                    emptyText="No material commercial flags were identified."
-                    flagged
-                  />
-
-                </div>
-
-
-                <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 sm:px-7">
-
-                  <p className="text-xs leading-5 text-slate-500">
-                    AI intelligence is generated from the human-reviewed
-                    contract and RenewAI&apos;s deterministic renewal
-                    calculations. Verify important commercial or legal
-                    conclusions before acting.
-                  </p>
-
-                </div>
-
-              </section>
-
-            )
-          }
 
 
           {/* RENEWAL DECISION WORKSPACE */}
@@ -2313,7 +1909,7 @@ export default function ContractDetailPage() {
                         }
                       }
 
-                      className="renewai-input"
+                      className="scroll-mt-8 renewai-input"
                     >
                       <option value="undecided">
                         Undecided
@@ -2566,6 +2162,149 @@ export default function ContractDetailPage() {
           </section>
 
 
+          {/* AI RENEWAL INTELLIGENCE */}
+
+          {!hasAIInsight && (
+            <section className="mb-8 renewai-card p-6 sm:p-7">
+              <h2 className="text-xl font-bold text-slate-950">AI Renewal Intelligence</h2>
+              <p role="status" aria-live="polite" className="mt-3 text-sm leading-6 text-slate-600">
+                {aiAnalyzing
+                  ? "AI renewal analysis is in progress. Your contract and renewal dates are saved."
+                  : aiError || (contract.ai_analysis_status === "failed"
+                    ? AI_ANALYSIS_UNAVAILABLE
+                    : "Your contract and renewal dates are saved. AI renewal analysis has not completed yet.")}
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleAIAnalysis()}
+                disabled={aiAnalyzing || contract.archived}
+                className="renewai-button-secondary mt-4"
+              >
+                {aiAnalyzing ? "Analyzing..." : contract.ai_analysis_status === "failed" || aiError
+                  ? "Retry AI analysis" : "Generate AI analysis"}
+              </button>
+            </section>
+          )}
+
+          {
+            hasAIInsight
+            &&
+            (
+
+              <section className="mb-8 overflow-hidden rounded-[1.75rem] border border-blue-200 bg-white shadow-sm">
+
+                <div className="border-b border-blue-100 bg-blue-50/70 p-6 sm:p-7">
+
+                  <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
+
+                    <div>
+
+                      <div className="flex flex-wrap items-center gap-3">
+
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
+                          AI Renewal Intelligence
+                        </p>
+
+
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-bold text-blue-700">
+
+                          <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+
+                          AI analysis
+
+                        </span>
+
+                      </div>
+
+
+                      <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-950">
+                        {
+                          formatAIAction(
+                            contract.ai_action
+                          )
+                        }
+                      </h2>
+
+
+                      <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-700">
+                        {
+                          contract.ai_summary
+                          ||
+                          "RenewAI analyzed the reviewed contract for renewal and commercial considerations."
+                        }
+                      </p>
+
+                    </div>
+
+
+                    <div className="shrink-0 rounded-2xl border border-blue-200 bg-white px-5 py-4">
+
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        AI confidence
+                      </p>
+
+
+                      <p className="mt-1 text-2xl font-bold text-slate-950">
+                        {
+                          formatConfidence(
+                            contract.ai_confidence
+                          )
+                        }
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+                <div className="grid gap-0 lg:grid-cols-2">
+
+                  <AIInsightList
+                    eyebrow="Why"
+                    title="Key Findings"
+                    items={
+                      contract.ai_key_findings
+                      ||
+                      []
+                    }
+                    emptyText="No additional key findings were identified."
+                  />
+
+
+                  <AIInsightList
+                    eyebrow="Commercial review"
+                    title="Commercial Flags"
+                    items={
+                      contract.ai_commercial_flags
+                      ||
+                      []
+                    }
+                    emptyText="No material commercial flags were identified."
+                    flagged
+                  />
+
+                </div>
+
+
+                <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 sm:px-7">
+
+                  <p className="text-xs leading-5 text-slate-500">
+                    AI intelligence is generated from the human-reviewed
+                    contract and RenewAI&apos;s deterministic renewal
+                    calculations. Verify important commercial or legal
+                    conclusions before acting.
+                  </p>
+
+                </div>
+
+              </section>
+
+            )
+          }
+
+
           {/* DECISION HISTORY */}
 
           <section className="mb-8 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
@@ -2716,6 +2455,11 @@ export default function ContractDetailPage() {
               eyebrow="Agreement"
               title="Contract Terms"
             >
+
+              <DetailRow
+                label="Contract Value"
+                value={formatCurrency(contract.contract_value, contract.currency)}
+              />
 
               <DetailRow
                 label="Customer"
@@ -3302,6 +3046,83 @@ export default function ContractDetailPage() {
 </section>
 
 
+          {/* EXISTING CONTRACT ACTIONS */}
+
+          <section aria-labelledby="contract-actions-heading" className="mb-8 renewai-card p-6 sm:p-7">
+            <h2 id="contract-actions-heading" className="text-xl font-bold text-slate-950">
+              Contract actions
+            </h2>
+            <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/analyze"
+              className="renewai-button-secondary"
+            >
+              + Analyze Another Contract
+            </Link>
+              <div className="flex flex-wrap gap-3">
+
+  <button
+    type="button"
+    onClick={
+      handleArchive
+    }
+    disabled={
+      archiving
+      ||
+      deleting
+    }
+    className="renewai-button-secondary"
+  >
+    {
+      archiving
+        ? "Archiving..."
+        : "Archive Contract"
+    }
+  </button>
+
+
+  <button
+    type="button"
+    onClick={
+      handleDeleteContract
+    }
+    disabled={
+      deleting
+      ||
+      archiving
+    }
+    className="
+      inline-flex
+      items-center
+      justify-center
+      rounded-xl
+      border
+      border-red-300
+      bg-red-50
+      px-5
+      py-2.5
+      text-sm
+      font-bold
+      text-red-700
+      transition
+      hover:border-red-400
+      hover:bg-red-100
+      disabled:cursor-not-allowed
+      disabled:opacity-50
+    "
+  >
+    {
+      deleting
+        ? "Deleting..."
+        : "Delete Permanently"
+    }
+  </button>
+
+</div>
+            </div>
+          </section>
+
+
           {/* METADATA */}
 
           <section className="renewai-card p-6 sm:p-7">
@@ -3757,32 +3578,6 @@ function AIInsightList({
 
           )
       }
-
-    </div>
-  );
-}
-
-
-function DarkMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-
-  return (
-
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-
-      <p className="text-xs font-medium text-slate-400">
-        {label}
-      </p>
-
-
-      <p className="mt-2 text-lg font-bold !text-white">
-        {value}
-      </p>
 
     </div>
   );
