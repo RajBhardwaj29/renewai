@@ -2,6 +2,7 @@
 
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
 
 import {
   useEffect,
@@ -163,22 +164,14 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50">
-
-        <div className="text-center">
-
-          <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-slate-950" />
-
-          <p className="text-sm font-medium text-slate-600">
-            Loading settings...
-          </p>
-
+      <main className="min-h-screen bg-slate-50">
+        <AppNavbar />
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+          <LoadingSkeleton label="Loading settings…" variant="settings" />
         </div>
-
       </main>
     );
   }
-
 
   return (
     <AuthGuard>

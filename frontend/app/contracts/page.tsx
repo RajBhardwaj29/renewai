@@ -7,6 +7,9 @@ import { useUtcDay } from "@/lib/useContractTiming";
 
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
+import Toast from "@/components/Toast";
+import { useConfirmation } from "@/components/ConfirmationDialog";
 
 import {
   useEffect,
@@ -72,6 +75,9 @@ type ContractsResponse = {
 
 
 export default function ContractsPage() {
+
+  const { requestConfirmation, confirmationDialog } = useConfirmation();
+  const [feedback, setFeedback] = useState("");
 
   const router =
     useRouter();
@@ -642,27 +648,16 @@ export default function ContractsPage() {
         "this contract";
     
     
-      const confirmation =
-        window.prompt(
-          `Permanently delete "${contractName}"?\n\n`
-          +
-          "This will permanently delete the contract, "
-          +
-          "its reminders and decision history.\n\n"
-          +
-          "This action cannot be undone.\n\n"
-          +
-          "Type DELETE to confirm."
-        );
-    
-    
-      if (
-        confirmation !== "DELETE"
-      ) {
-        return;
-      }
-    
-    
+      const confirmed = await requestConfirmation({
+        title: `Permanently delete "${contractName}"?`,
+        description: "This will permanently delete the contract, its reminders and decision history.\n\nThis action cannot be undone.",
+        confirmLabel: "Delete permanently",
+        requiredText: "DELETE",
+        destructive: true,
+      });
+      if (!confirmed) return;
+      setFeedback("");
+
       setDeletingContractId(
         contract.id
       );
@@ -732,6 +727,8 @@ export default function ContractsPage() {
         );
     
     
+        setFeedback("Contract permanently deleted.");
+
       } catch (
         err
       ) {
@@ -761,6 +758,7 @@ export default function ContractsPage() {
       contract: Contract
     ) {
     
+      setFeedback("");
       setRestoringContractId(
         contract.id
       );
@@ -829,6 +827,8 @@ export default function ContractsPage() {
         );
     
     
+        setFeedback("Contract restored to the active portfolio.");
+
       } catch (
         err
       ) {
@@ -861,6 +861,9 @@ export default function ContractsPage() {
       <main className="min-h-screen bg-slate-50 text-slate-950">
 
         <AppNavbar />
+        {confirmationDialog}
+        {feedback && <Toast message={feedback} />}
+
 
 
         <div className="mx-auto max-w-7xl px-6 py-10 lg:py-12">
@@ -1453,24 +1456,11 @@ export default function ContractsPage() {
             </div>
 
 
-            {loading && (
-
-              <div className="p-16 text-center">
-
-                <div className="mx-auto mb-4 h-7 w-7 animate-spin rounded-full border-4 border-slate-200 border-t-slate-950" />
-
-                <p className="text-sm font-medium text-slate-600">
-                  Loading contract portfolio...
-                </p>
-
-              </div>
-
-            )}
-
+            {loading && <LoadingSkeleton label="Loading contract portfolio…" variant="portfolio" />}
 
             {error && (
 
-              <div className="m-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+              <div role="alert" className="m-6 rounded-2xl border border-red-200 bg-red-50 p-5">
 
                 <p className="font-semibold text-red-800">
                   Portfolio unavailable

@@ -4,6 +4,7 @@ import { formatTimingRisk } from "@/lib/statusLabels";
 
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
 
 import {
   useCallback,
@@ -806,7 +807,7 @@ export default function RemindersPage() {
 
             {success && (
 
-              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-800">
+              <div role="status" className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-800">
                 {success}
               </div>
 
@@ -815,7 +816,7 @@ export default function RemindersPage() {
 
             {error && (
 
-              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700">
+              <div role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700">
                 {error}
               </div>
 
@@ -826,20 +827,7 @@ export default function RemindersPage() {
 
           {/* LOADING */}
 
-          {loading && (
-
-            <section className="renewai-card p-12 text-center">
-
-              <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
-
-              <p className="text-sm font-medium text-slate-600">
-                Loading renewal alerts...
-              </p>
-
-            </section>
-
-          )}
-
+          {loading && <LoadingSkeleton label="Loading renewal alerts…" variant="list" />}
 
           {/* EMPTY */}
 

@@ -7,6 +7,9 @@ import { useUtcDay } from "@/lib/useContractTiming";
 
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
+import Toast from "@/components/Toast";
+import { useConfirmation } from "@/components/ConfirmationDialog";
 import ProvenanceBadge, { type ProvenanceKind } from "@/components/ProvenanceBadge";
 import ContractSummaryDownload from "@/components/ContractSummaryDownload";
 
@@ -177,6 +180,8 @@ type DecisionHistoryResponse = {
 
 
 export default function ContractDetailPage() {
+
+  const { requestConfirmation, confirmationDialog } = useConfirmation();
 
   const params =
     useParams();
@@ -1095,23 +1100,12 @@ export default function ContractDetailPage() {
     }
 
 
-    const confirmed =
-      window.confirm(
-        `Archive ${
-          contract.vendor_name
-          ||
-          "this contract"
-        }?`
-      );
-
-
-    if (
-      !confirmed
-    ) {
-
-      return;
-    }
-
+    const confirmed = await requestConfirmation({
+      title: `Archive ${contract.vendor_name || "this contract"}?`,
+      description: "Move this contract to the archived portfolio. You can restore it from Archived contracts.",
+      confirmLabel: "Archive contract",
+    });
+    if (!confirmed) return;
 
     setArchiving(
       true
@@ -1242,27 +1236,15 @@ export default function ContractDetailPage() {
       "this contract";
   
   
-    const confirmation =
-      window.prompt(
-        `Permanently delete "${contractName}"?\n\n`
-        +
-        "This will permanently delete the contract, "
-        +
-        "its reminders and decision history.\n\n"
-        +
-        "This action cannot be undone.\n\n"
-        +
-        "Type DELETE to confirm."
-      );
-  
-  
-    if (
-      confirmation !== "DELETE"
-    ) {
-      return;
-    }
-  
-  
+    const confirmed = await requestConfirmation({
+      title: `Permanently delete "${contractName}"?`,
+      description: "This will permanently delete the contract, its reminders and decision history.\n\nThis action cannot be undone.",
+      confirmLabel: "Delete permanently",
+      requiredText: "DELETE",
+      destructive: true,
+    });
+    if (!confirmed) return;
+
     setDeleting(
       true
     );
@@ -1383,15 +1365,8 @@ export default function ContractDetailPage() {
         <AppNavbar />
 
 
-        <div className="mx-auto max-w-7xl px-6 py-20 text-center">
-
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
-
-
-          <p className="text-sm font-medium text-slate-600">
-            Loading contract intelligence...
-          </p>
-
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+          <LoadingSkeleton label="Loading contract intelligence…" variant="detail" />
         </div>
 
       </main>
@@ -1490,6 +1465,8 @@ export default function ContractDetailPage() {
       <main className="min-h-screen bg-slate-50 text-slate-950">
 
         <AppNavbar />
+        {confirmationDialog}
+
 
 
         <div className="mx-auto max-w-7xl px-6 py-10 lg:py-12">
@@ -2095,9 +2072,7 @@ formatTimingRisk(contract.risk_level)
                   &&
                   (
 
-                    <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
-                      {decisionSuccess}
-                    </div>
+                    <Toast message={decisionSuccess} />
 
                   )
                 }
@@ -2108,7 +2083,7 @@ formatTimingRisk(contract.risk_level)
                   &&
                   (
 
-                    <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                    <div role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
                       {decisionError}
                     </div>
 

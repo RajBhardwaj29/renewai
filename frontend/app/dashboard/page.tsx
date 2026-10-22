@@ -7,6 +7,7 @@ import { useUtcDay } from "@/lib/useContractTiming";
 
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
 
 import {
   useCallback,
@@ -970,45 +971,7 @@ export default function DashboardPage() {
               LOADING
               ================================================== */}
 
-          {loading && (
-
-            <section
-              className="
-                renewai-card
-                p-14
-                text-center
-              "
-            >
-
-              <div
-                className="
-                  mx-auto
-                  mb-4
-                  h-8
-                  w-8
-                  animate-spin
-                  rounded-full
-                  border-4
-                  border-slate-200
-                  border-t-slate-950
-                "
-              />
-
-
-              <p
-                className="
-                  text-sm
-                  font-medium
-                  text-slate-600
-                "
-              >
-                Loading your RenewAI dashboard...
-              </p>
-
-            </section>
-
-          )}
-
+          {loading && <LoadingSkeleton label="Loading your RenewAI dashboard…" variant="dashboard" />}
 
           {!loading
             &&
