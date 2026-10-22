@@ -1478,7 +1478,7 @@ export default function ContractDetailPage() {
 
             <Link
               href="/contracts"
-              className="text-sm font-semibold text-slate-500 transition hover:text-slate-950"
+              className="renewai-touch-target text-sm font-semibold text-slate-500 transition hover:text-slate-950"
             >
               ← Back to Contracts
             </Link>
@@ -3666,14 +3666,14 @@ function DetailRow({
 
   return (
 
-    <div className="flex items-start justify-between gap-6 border-b border-slate-100 pb-4 last:border-0 last:pb-0">
+    <div className="flex min-w-0 flex-col items-start justify-between gap-1 border-b border-slate-100 pb-4 last:border-0 last:pb-0 sm:flex-row sm:gap-6">
 
       <span className="text-sm font-medium text-slate-500">
         {label}
       </span>
 
 
-      <span className="max-w-sm break-words text-right text-sm font-bold text-slate-800">
+      <span className="min-w-0 max-w-full [overflow-wrap:anywhere] text-sm font-bold text-slate-800 sm:max-w-sm sm:text-right">
         {value}
       </span>
 

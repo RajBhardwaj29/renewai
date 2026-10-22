@@ -1349,12 +1349,12 @@ export default function AnalyzeContractPage() {
                   Extraction complete. Your contract has not been saved yet.
                 </p>
                 <nav aria-label="Review sections" className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold text-blue-700">
-                  <a href="#review-dates" className="underline underline-offset-4">Dates & value</a>
-                  <a href="#review-renewal" className="underline underline-offset-4">Renewal & notice</a>
-                  <a href="#review-identity" className="underline underline-offset-4">Contract identity</a>
-                  <a href="#review-evidence" className="underline underline-offset-4">Contract language</a>
-                  <a href="#review-preview" className="underline underline-offset-4">Calculation preview</a>
-                  <a href="#review-save" className="underline underline-offset-4">Save contract</a>
+                  <a href="#review-dates" className="renewai-touch-target underline underline-offset-4">Dates & value</a>
+                  <a href="#review-renewal" className="renewai-touch-target underline underline-offset-4">Renewal & notice</a>
+                  <a href="#review-identity" className="renewai-touch-target underline underline-offset-4">Contract identity</a>
+                  <a href="#review-evidence" className="renewai-touch-target underline underline-offset-4">Contract language</a>
+                  <a href="#review-preview" className="renewai-touch-target underline underline-offset-4">Calculation preview</a>
+                  <a href="#review-save" className="renewai-touch-target underline underline-offset-4">Save contract</a>
                 </nav>
 
 
@@ -1641,7 +1641,7 @@ export default function AnalyzeContractPage() {
     </div>
 
     <FormField htmlFor="review-window-opens" label="Window Opens">
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <input id="review-window-opens"
           type="number"
           min="0"
@@ -1712,7 +1712,7 @@ export default function AnalyzeContractPage() {
     </FormField>
 
     <FormField htmlFor="review-window-closes" label="Window Closes">
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <input id="review-window-closes"
           type="number"
           min="0"
@@ -1792,7 +1792,7 @@ export default function AnalyzeContractPage() {
 <FormField htmlFor="review-notice-period" help="Check the value and unit. Months and business days have distinct meanings."
   label="Notice Period"
 >
-                    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 
                       <input id="review-notice-period" aria-describedby="review-notice-period-hint"
                         type="number"
@@ -2938,14 +2938,14 @@ function DetailRow({
 
   return (
 
-    <div className="flex items-start justify-between gap-6 border-b border-slate-100 pb-4 last:border-0 last:pb-0">
+    <div className="flex min-w-0 flex-col items-start justify-between gap-1 border-b border-slate-100 pb-4 last:border-0 last:pb-0 sm:flex-row sm:gap-6">
 
       <span className="text-sm font-medium text-slate-500">
         {label}
       </span>
 
 
-      <span className="max-w-sm text-right text-sm font-bold text-slate-800">
+      <span className="min-w-0 max-w-full [overflow-wrap:anywhere] text-sm font-bold text-slate-800 sm:max-w-sm sm:text-right">
         {value}
       </span>
 

@@ -1037,7 +1037,7 @@ export default function ContractsPage() {
               </div>
 
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid min-w-0 grid-cols-1 gap-3 min-[400px]:grid-cols-2">
 
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
@@ -1599,18 +1599,18 @@ export default function ContractsPage() {
               (
 
                 <>
-                <div className="grid gap-4 p-4 md:hidden">
+                <div className="grid min-w-0 gap-4 p-4 md:hidden">
                   {filteredContracts.map((contract) => (
                     <article
                       key={contract.id}
-                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                      className="min-w-0 [overflow-wrap:anywhere] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="truncate font-bold text-slate-950">
+                      <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:gap-4">
+                        <div className="min-w-0 max-w-full">
+                          <p className="break-words font-bold text-slate-950">
                             {contract.vendor_name || "Unknown Vendor"}
                           </p>
-                          <p className="mt-1 truncate text-sm text-slate-500">
+                          <p className="mt-1 break-words text-sm text-slate-500">
                             {contract.contract_title || contract.filename}
                           </p>
                         </div>
@@ -1623,7 +1623,7 @@ export default function ContractsPage() {
                         </span>
                       </div>
 
-                      <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
+                      <dl className="mt-5 grid min-w-0 grid-cols-1 gap-4 text-sm min-[400px]:grid-cols-2">
                         <div>
                           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Value</dt>
                           <dd className="mt-1 font-bold text-slate-900">
@@ -1656,7 +1656,7 @@ export default function ContractsPage() {
                         <WorkflowStatusBadge status={contract.renewal_status} />
                       </div>
 
-                      <div className="mt-5 grid grid-cols-2 gap-2">
+                      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
 
                       {
   viewMode === "archived"

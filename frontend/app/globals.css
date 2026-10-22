@@ -1053,6 +1053,45 @@ select.renewai-input {
 }
 
 
+/* Keep phone layouts readable without changing desktop density. */
+@media (max-width: 1023px) {
+  .renewai-touch-target {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .renewai-workspace {
+    overflow-wrap: anywhere;
+  }
+
+  .renewai-confirmation button {
+    min-height: 44px;
+  }
+
+  .renewai-workspace input,
+  .renewai-workspace select,
+  .renewai-workspace textarea,
+  .renewai-confirmation input {
+    font-size: 16px;
+  }
+
+  .renewai-toast {
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 639px) {
+  .renewai-workspace {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .renewai-page-header > div {
+    min-width: 0;
+  }
+}
+
+
 /* =========================================================
    REDUCED MOTION
    ========================================================= */

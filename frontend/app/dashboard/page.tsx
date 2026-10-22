@@ -1028,7 +1028,7 @@ export default function DashboardPage() {
                         <p className="text-slate-500">
                           Showing {attentionContracts.length} of {riskContracts.length} flagged contracts.
                         </p>
-                        <Link href="/contracts" className="font-semibold text-blue-700 underline-offset-4 hover:underline">
+                        <Link href="/contracts" className="renewai-touch-target font-semibold text-blue-700 underline-offset-4 hover:underline">
                           View all contracts →
                         </Link>
                       </div>
@@ -1054,7 +1054,7 @@ export default function DashboardPage() {
                       <span className="font-bold">{dueReminders.length} due {dueReminders.length === 1 ? "alert" : "alerts"}</span>
                       {dueReminders.length > 0 && " · Scheduled reminder dates reached or passed"}
                     </p>
-                    <Link href="/reminders" className="shrink-0 font-semibold underline underline-offset-4">
+                    <Link href="/reminders" className="renewai-touch-target shrink-0 font-semibold underline underline-offset-4">
                       Review alerts →
                     </Link>
                   </div>
@@ -1210,14 +1210,7 @@ export default function DashboardPage() {
 
                     <Link
                       href="/contracts"
-                      className="
-                        shrink-0
-                        text-sm
-                        font-semibold
-                        text-blue-700
-                        transition
-                        hover:text-blue-800
-                      "
+                      className="renewai-touch-target shrink-0 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
                     >
                       Open renewal work queue →
                     </Link>
@@ -1583,13 +1576,7 @@ export default function DashboardPage() {
 
                     <Link
                       href="/contracts"
-                      className="
-                        text-sm
-                        font-semibold
-                        text-blue-700
-                        transition
-                        hover:text-blue-800
-                      "
+                      className="renewai-touch-target text-sm font-semibold text-blue-700 transition hover:text-blue-800"
                     >
                       Open portfolio →
                     </Link>
@@ -1670,6 +1657,9 @@ export default function DashboardPage() {
                     : (
 
                       <div
+                        role="region"
+                        aria-label="Recently analyzed contracts; scroll horizontally for all columns"
+                        tabIndex={0}
                         className="
                           overflow-x-auto
                         "
@@ -1882,21 +1872,7 @@ export default function DashboardPage() {
                                       href={
                                         `/contracts/${contract.id}`
                                       }
-                                      className="
-                                        inline-flex
-                                        rounded-lg
-                                        border
-                                        border-slate-300
-                                        bg-white
-                                        px-3
-                                        py-2
-                                        text-xs
-                                        font-semibold
-                                        text-slate-800
-                                        transition
-                                        hover:border-slate-400
-                                        hover:bg-slate-50
-                                      "
+                                      className="renewai-touch-target inline-flex rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
                                     >
                                       View
                                     </Link>
@@ -2359,14 +2335,7 @@ function DashboardPanel({
           href={
             href
           }
-          className="
-            shrink-0
-            text-sm
-            font-semibold
-            text-blue-700
-            transition
-            hover:text-blue-800
-          "
+          className="renewai-touch-target shrink-0 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
         >
           {action} →
         </Link>

@@ -799,7 +799,7 @@ export default function RemindersPage() {
                   </p>
                 )}
                 <button type="button" onClick={() => { setError(""); void loadReminders(); }} disabled={sendingEmails || backfilling}
-                  className="font-semibold text-blue-700 underline underline-offset-4 disabled:opacity-50">
+                  className="renewai-touch-target font-semibold text-blue-700 underline underline-offset-4 disabled:opacity-50">
                   Refresh delivery status
                 </button>
               </div>
