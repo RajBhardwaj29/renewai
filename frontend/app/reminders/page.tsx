@@ -478,12 +478,12 @@ export default function RemindersPage() {
         <AppNavbar />
 
 
-        <div className="mx-auto max-w-7xl px-6 py-10 lg:py-12">
+        <div className="renewai-workspace">
 
 
           {/* HEADER */}
 
-          <header className="mb-8 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <header className="renewai-page-header">
 
             <div>
 
@@ -491,11 +491,11 @@ export default function RemindersPage() {
                 Renewal operations
               </p>
 
-              <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="renewai-page-title">
                 Renewal Alerts
               </h1>
 
-              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+              <p className="renewai-page-description">
                 Monitor every renewal action before
                 cancellation windows close.
               </p>
@@ -693,7 +693,7 @@ export default function RemindersPage() {
                   Automation
                 </p>
 
-                <h2 className="mt-2 text-xl font-bold text-slate-950">
+                <h2 className="renewai-card-title mt-2">
                   Reminder Engine
                 </h2>
 
@@ -843,7 +843,7 @@ export default function RemindersPage() {
                     !
                   </div>
 
-                  <h2 className="mt-5 text-xl font-bold text-slate-950">
+                  <h2 className="renewai-card-title mt-5">
                     No renewal alerts yet
                   </h2>
 
@@ -986,7 +986,7 @@ function ReminderSection({
             {eyebrow}
           </p>
 
-          <h2 className="mt-2 text-xl font-bold text-slate-950">
+          <h2 className="renewai-card-title mt-2">
             {title}
           </h2>
 
@@ -1057,7 +1057,7 @@ function SentReminderSection({
             Delivery history
           </p>
 
-          <h2 className="mt-2 text-xl font-bold text-slate-950">
+          <h2 className="renewai-card-title mt-2">
             Sent Reminder Emails
           </h2>
 

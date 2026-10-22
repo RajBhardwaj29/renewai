@@ -994,12 +994,12 @@ export default function AnalyzeContractPage() {
         <AppNavbar />
 
 
-        <div className="mx-auto max-w-7xl px-6 py-10 lg:py-12">
+        <div className="renewai-workspace">
 
 
           {/* HEADER */}
 
-          <header className="mb-8 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <header className="renewai-page-header">
 
             <div>
 
@@ -1008,12 +1008,12 @@ export default function AnalyzeContractPage() {
               </p>
 
 
-              <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="renewai-page-title">
                 Analyze Contract
               </h1>
 
 
-              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+              <p className="renewai-page-description">
                 Upload a PDF, review the information extracted by AI,
                 correct anything that needs attention and save the
                 final contract to your workspace.
@@ -1323,7 +1323,7 @@ export default function AnalyzeContractPage() {
                       </p>
 
 
-                      <h2 className="mt-2 text-xl font-bold text-blue-950">
+                      <h2 className="renewai-card-title mt-2 text-blue-950">
                         Review the terms before saving
                       </h2>
 
@@ -2287,7 +2287,7 @@ export default function AnalyzeContractPage() {
                     </p>
 
 
-                    <h2 className="mt-2 text-xl font-bold text-slate-950">
+                    <h2 className="renewai-card-title mt-2">
                       Calculation preview
                     </h2>
                     <div className="mt-3"><ProvenanceBadge kind="rules" /></div>
@@ -2389,7 +2389,7 @@ export default function AnalyzeContractPage() {
   Deadline intelligence
 </p>
 
-<h2 className="mt-2 text-xl font-bold text-slate-950">
+<h2 className="renewai-card-title mt-2">
   Renewal Deadline Risk
 </h2>
 
@@ -2458,7 +2458,7 @@ export default function AnalyzeContractPage() {
                       </p>
 
 
-                      <h2 className="mt-2 text-xl font-bold !text-white">
+                      <h2 className="renewai-card-title mt-2 !text-white">
                         Ready to save this contract?
                       </h2>
 
@@ -2860,7 +2860,7 @@ function ReviewSection({
         </p>
 
 
-        <h2 id={`${id}-heading`} className="mt-2 text-xl font-bold text-slate-950">
+        <h2 id={`${id}-heading`} className="renewai-card-title mt-2">
           {title}
         </h2>
 

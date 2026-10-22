@@ -993,6 +993,66 @@ select.renewai-input {
 }
 
 
+/* Workspace rhythm: opt-in so public and authentication pages keep their layout. */
+.renewai-workspace {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.renewai-page-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.renewai-page-title {
+  margin-top: 0.5rem;
+  color: var(--text-primary);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+.renewai-page-description {
+  max-width: 42rem;
+  margin-top: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.renewai-section-title,
+.renewai-card-title {
+  color: var(--text-primary);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+
+.renewai-section-title { font-size: 1.5rem; }
+.renewai-card-title { font-size: 1.25rem; }
+
+@media (min-width: 640px) {
+  .renewai-page-title { font-size: 3rem; }
+}
+
+@media (min-width: 1024px) {
+  .renewai-workspace { padding-inline: 2rem; }
+  .renewai-page-header {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+}
+
+
 /* =========================================================
    REDUCED MOTION
    ========================================================= */

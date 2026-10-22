@@ -810,16 +810,7 @@ export default function DashboardPage() {
 
 
         <div
-          className="
-            mx-auto
-            max-w-7xl
-            px-5
-            pb-16
-            pt-8
-            sm:px-6
-            lg:px-8
-            lg:pt-10
-          "
+          className="renewai-workspace"
         >
 
           {/* ==================================================
@@ -827,15 +818,7 @@ export default function DashboardPage() {
               ================================================== */}
 
           <header
-            className="
-              mb-8
-              flex
-              flex-col
-              justify-between
-              gap-6
-              lg:flex-row
-              lg:items-end
-            "
+            className="renewai-page-header"
           >
 
             <div>
@@ -850,27 +833,14 @@ export default function DashboardPage() {
 
 
               <h1
-                className="
-                  mt-3
-                  text-4xl
-                  font-bold
-                  tracking-[-0.04em]
-                  text-slate-950
-                  sm:text-5xl
-                "
+                className="renewai-page-title"
               >
                 Dashboard
               </h1>
 
 
               <p
-                className="
-                  mt-3
-                  max-w-2xl
-                  text-[15px]
-                  leading-6
-                  text-slate-600
-                "
+                className="renewai-page-description"
               >
                 Review the contracts that need attention, then
                 monitor renewal exposure and upcoming deadlines across{" "}
@@ -988,7 +958,7 @@ export default function DashboardPage() {
                     <div>
                       <p className="renewai-eyebrow">Renewal review</p>
                       <div className="mt-2 flex flex-wrap items-center gap-3">
-                        <h2 id="needs-attention-heading" className="text-2xl font-bold tracking-tight text-slate-950">
+                        <h2 id="needs-attention-heading" className="renewai-section-title">
                           Needs Attention
                         </h2>
                         <span aria-live="polite" className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
@@ -1091,7 +1061,7 @@ export default function DashboardPage() {
                 </section>
 
                 <div className="mb-4">
-                  <h2 className="text-2xl font-bold tracking-tight text-slate-950">Portfolio overview</h2>
+                  <h2 className="renewai-section-title">Portfolio overview</h2>
                   <p className="mt-2 text-sm text-slate-600">Tracked contract value, renewal coverage, and alerts.</p>
                 </div>
 
@@ -1215,13 +1185,7 @@ export default function DashboardPage() {
 
 
                       <h2
-                        className="
-                          mt-2
-                          text-2xl
-                          font-bold
-                          tracking-[-0.025em]
-                          text-slate-950
-                        "
+                        className="renewai-section-title mt-2"
                       >
                         Renewal decision overview
                       </h2>
@@ -1381,13 +1345,7 @@ export default function DashboardPage() {
 
 
                       <h2
-                        className="
-                          mt-2
-                          text-2xl
-                          font-bold
-                          tracking-[-0.025em]
-                          text-slate-950
-                        "
+                        className="renewai-section-title mt-2"
                       >
                         Keep your renewal portfolio moving
                       </h2>
@@ -1615,12 +1573,7 @@ export default function DashboardPage() {
 
 
                       <h2
-                        className="
-                          mt-2
-                          text-xl
-                          font-bold
-                          text-slate-950
-                        "
+                        className="renewai-card-title mt-2"
                       >
                         Recently analyzed contracts
                       </h2>
@@ -2394,12 +2347,7 @@ function DashboardPanel({
 
 
           <h2
-            className="
-              mt-2
-              text-xl
-              font-bold
-              text-slate-950
-            "
+            className="renewai-card-title mt-2"
           >
             {title}
           </h2>

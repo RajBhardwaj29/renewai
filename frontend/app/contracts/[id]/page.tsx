@@ -1365,7 +1365,7 @@ export default function ContractDetailPage() {
         <AppNavbar />
 
 
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+        <div className="renewai-workspace">
           <LoadingSkeleton label="Loading contract intelligence…" variant="detail" />
         </div>
 
@@ -1469,7 +1469,7 @@ export default function ContractDetailPage() {
 
 
 
-        <div className="mx-auto max-w-7xl px-6 py-10 lg:py-12">
+        <div className="renewai-workspace">
 
 
           {/* TOP NAVIGATION */}
@@ -1505,7 +1505,7 @@ export default function ContractDetailPage() {
 
           {/* HEADER */}
 
-          <header className="mb-8 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <header className="renewai-page-header">
 
             <div>
 
@@ -1514,7 +1514,7 @@ export default function ContractDetailPage() {
               </p>
 
 
-              <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="renewai-page-title">
                 {
                   contract.vendor_name
                   ||
@@ -1523,7 +1523,7 @@ export default function ContractDetailPage() {
               </h1>
 
 
-              <p className="mt-3 max-w-2xl text-lg text-slate-600">
+              <p className="renewai-page-description">
                 {
                   contract.contract_title
                   ||
@@ -1743,7 +1743,7 @@ formatTimingRisk(contract.risk_level)
                   </p>
 
 
-                  <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                  <h2 className="renewai-section-title mt-2">
                     Renewal Decision Workspace
                   </h2>
 
@@ -2144,7 +2144,7 @@ formatTimingRisk(contract.risk_level)
 
           {!hasAIInsight && (
             <section className="mb-8 renewai-card p-6 sm:p-7">
-              <h2 className="text-xl font-bold text-slate-950">AI Renewal Intelligence</h2>
+              <h2 className="renewai-card-title">AI Renewal Intelligence</h2>
               <p className="mt-3 text-xs font-semibold text-slate-600">AI analysis: {formatAIAnalysisStatus(aiAnalyzing ? "running" : aiError ? "failed" : contract.ai_analysis_status || "pending")}</p>
               <p role="status" aria-live="polite" className="mt-3 text-sm leading-6 text-slate-600">
                 {aiAnalyzing
@@ -2191,7 +2191,7 @@ formatTimingRisk(contract.risk_level)
                       </div>
 
 
-                      <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-950">
+                      <h2 className="renewai-section-title mt-3">
                         {
                           formatAIAction(
                             contract.ai_action
@@ -2292,7 +2292,7 @@ formatTimingRisk(contract.risk_level)
                 </p>
 
 
-                <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                <h2 className="renewai-section-title mt-2">
                   Decision History
                 </h2>
 
@@ -2699,7 +2699,7 @@ formatTimingRisk(contract.risk_level)
                 </p>
 
 
-                <h2 className="mt-2 text-xl font-bold text-slate-950">
+                <h2 className="renewai-card-title mt-2">
                   Renewal Reminder Timeline
                 </h2>
 
@@ -2884,7 +2884,7 @@ formatTimingRisk(contract.risk_level)
     </p>
 
 
-    <h2 className="mt-2 text-xl font-bold text-slate-950">
+    <h2 className="renewai-card-title mt-2">
       Contract Evidence
     </h2>
 
@@ -3027,7 +3027,7 @@ formatTimingRisk(contract.risk_level)
           {/* EXISTING CONTRACT ACTIONS */}
 
           <section aria-labelledby="contract-actions-heading" className="mb-8 renewai-card p-6 sm:p-7">
-            <h2 id="contract-actions-heading" className="text-xl font-bold text-slate-950">
+            <h2 id="contract-actions-heading" className="renewai-card-title">
               Contract actions
             </h2>
             <div className="mt-5 flex flex-wrap gap-3">
@@ -3110,7 +3110,7 @@ formatTimingRisk(contract.risk_level)
             </p>
 
 
-            <h2 className="mt-2 text-xl font-bold text-slate-950">
+            <h2 className="renewai-card-title mt-2">
               Analysis Metadata
             </h2>
 
@@ -3578,7 +3578,7 @@ function Panel({
       </p>
 
 
-      <h2 className="mt-2 text-xl font-bold text-slate-950">
+      <h2 className="renewai-card-title mt-2">
         {title}
       </h2>
 

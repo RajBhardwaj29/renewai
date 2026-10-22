@@ -166,7 +166,7 @@ export default function SettingsPage() {
     return (
       <main className="min-h-screen bg-slate-50">
         <AppNavbar />
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+        <div className="renewai-workspace">
           <LoadingSkeleton label="Loading settings…" variant="settings" />
         </div>
       </main>
@@ -181,24 +181,24 @@ export default function SettingsPage() {
         <AppNavbar />
 
 
-        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 lg:py-14">
+        <div className="renewai-workspace">
 
 
           {/* PAGE HEADER */}
 
-          <div className="mb-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <div className="renewai-page-header">
 
             <div>
 
-              <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-600">
+              <p className="renewai-eyebrow">
                 Workspace Configuration
               </p>
 
-              <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="renewai-page-title">
                 Settings
               </h1>
 
-              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+              <p className="renewai-page-description">
                 Manage your RenewAI account, workspace information,
                 renewal monitoring and security.
               </p>
@@ -344,7 +344,7 @@ export default function SettingsPage() {
                   Account
                 </p>
 
-                <h2 className="mt-2 text-xl font-bold text-slate-950">
+                <h2 className="renewai-card-title mt-2">
                   User Profile
                 </h2>
 
@@ -396,7 +396,7 @@ export default function SettingsPage() {
                   Workspace
                 </p>
 
-                <h2 className="mt-2 text-xl font-bold text-slate-950">
+                <h2 className="renewai-card-title mt-2">
                   Organization
                 </h2>
 
@@ -469,7 +469,7 @@ export default function SettingsPage() {
                   Automation
                 </p>
 
-                <h2 className="mt-2 text-xl font-bold text-slate-950">
+                <h2 className="renewai-card-title mt-2">
                   Renewal Reminder Engine
                 </h2>
 
@@ -571,7 +571,7 @@ export default function SettingsPage() {
                 Security
               </p>
 
-              <h2 className="mt-2 text-xl font-bold text-slate-950">
+              <h2 className="renewai-card-title mt-2">
                 Account Session
               </h2>
 
