@@ -1,5 +1,7 @@
 "use client";
 
+import { formatTimingRisk } from "@/lib/statusLabels";
+
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
 
@@ -1279,12 +1281,12 @@ function ReminderRow({
               (
 
                 <span
-                  className={`rounded-full border px-3 py-1 text-xs font-bold uppercase ${riskClasses(
+                  className={`rounded-full border px-3 py-1 text-xs font-bold ${riskClasses(
                     contract.risk_level
                   )}`}
                 >
                   {
-                    contract.risk_level
+                    formatTimingRisk(contract.risk_level)
                   }
                 </span>
 

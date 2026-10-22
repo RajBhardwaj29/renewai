@@ -1,5 +1,7 @@
 "use client";
 
+import { formatTimingRisk } from "@/lib/statusLabels";
+
 import { currentContractTiming } from "@/lib/contractTiming";
 import { useUtcDay } from "@/lib/useContractTiming";
 
@@ -1073,8 +1075,8 @@ export default function DashboardPage() {
                               <div>
                                 <dt className="text-xs font-medium text-slate-500">Timing risk</dt>
                                 <dd className="mt-1">
-                                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold capitalize ${riskClasses(contract.risk_level)}`}>
-                                    {contract.risk_level || "unknown"}
+                                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${riskClasses(contract.risk_level)}`}>
+                                    {formatTimingRisk(contract.risk_level)}
                                   </span>
                                 </dd>
                               </div>
@@ -1168,7 +1170,7 @@ export default function DashboardPage() {
 
 
                   <StatCard
-                    label="Need Attention"
+                    label="Needs attention"
                     value={
                       riskContracts.length
                         .toString()
@@ -1181,7 +1183,7 @@ export default function DashboardPage() {
 
 
                   <StatCard
-                    label="Auto Renewing"
+                    label="Auto-renewing"
                     value={
                       autoRenewingContracts.length
                         .toString()
@@ -1817,7 +1819,7 @@ export default function DashboardPage() {
                                   font-semibold
                                 "
                               >
-                                Risk
+                                Timing risk
                               </th>
 
 
@@ -1941,17 +1943,12 @@ export default function DashboardPage() {
                                         py-1
                                         text-xs
                                         font-bold
-                                        uppercase
-                                        tracking-wide
                                         ${riskClasses(
                                           contract.risk_level
                                         )}
                                       `}
                                     >
-                                      {contract.risk_level
-                                        ||
-                                        "unknown"
-                                      }
+                                      {formatTimingRisk(contract.risk_level)}
                                     </span>
 
                                   </td>

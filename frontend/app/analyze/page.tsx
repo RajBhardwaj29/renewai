@@ -1,5 +1,7 @@
 "use client";
 
+import { formatTimingRisk, formatAIAnalysisStatus } from "@/lib/statusLabels";
+
 import AuthGuard from "@/components/AuthGuard";
 import AppNavbar from "@/components/AppNavbar";
 import ProvenanceBadge from "@/components/ProvenanceBadge";
@@ -2400,11 +2402,9 @@ export default function AnalyzeContractPage() {
                       )}`}
                     >
 
-                      <p className="text-xs font-bold uppercase tracking-[0.14em]">
+                      <p className="text-xs font-bold">
                         {
-                          analysis
-                            .renewal_intelligence
-                            .risk_level
+                          formatTimingRisk(analysis.renewal_intelligence.risk_level)
                         }
                       </p>
 
@@ -2602,6 +2602,7 @@ export default function AnalyzeContractPage() {
                     }
 
                     <div role="status" aria-live="polite" className="mt-5 text-sm leading-6 text-emerald-900">
+                      <p className="mb-2 text-xs font-semibold">AI analysis: {formatAIAnalysisStatus(aiStatus)}</p>
                       {aiStatus === "running" && "Your contract is saved. AI renewal analysis is in progress."}
                       {aiStatus === "completed" && "AI renewal analysis is ready. Open the contract to view it."}
                       {aiStatus === "failed" && aiError}
@@ -2730,11 +2731,9 @@ export default function AnalyzeContractPage() {
 
 
                   <InfoCard
-                    label="Risk"
+                    label="Timing risk"
                     value={
-                      savedResult
-                        .renewal_intelligence
-                        .risk_level
+                      formatTimingRisk(savedResult.renewal_intelligence.risk_level)
                     }
                   />
 

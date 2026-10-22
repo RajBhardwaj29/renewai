@@ -1,5 +1,7 @@
 "use client";
 
+import { formatTimingRisk, formatAIActionLabel as formatAIAction, formatDecisionLabel as formatDecision, formatWorkflowLabel as formatStatus } from "@/lib/statusLabels";
+
 import { currentContractTiming } from "@/lib/contractTiming";
 import { useUtcDay } from "@/lib/useContractTiming";
 
@@ -1054,7 +1056,7 @@ export default function ContractsPage() {
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
                   <p className="text-xs font-medium text-slate-400">
-                    Auto renewing
+                    Auto-renewing
                   </p>
 
                   <p className="mt-2 text-2xl font-bold tracking-tight text-white">
@@ -1095,7 +1097,7 @@ export default function ContractsPage() {
 
 
             <StatCard
-              label="Need Attention"
+              label="Needs attention"
               value={
                 attentionCount.toString()
               }
@@ -1107,7 +1109,7 @@ export default function ContractsPage() {
 
 
             <StatCard
-              label="Auto Renewing"
+              label="Auto-renewing"
               value={
                 autoRenewCount.toString()
               }
@@ -1623,11 +1625,11 @@ export default function ContractsPage() {
                           </p>
                         </div>
                         <span
-                          className={`inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${riskClasses(
+                          className={`inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-bold ${riskClasses(
                             contract.risk_level
                           )}`}
                         >
-                          {contract.risk_level || "unknown"}
+                          {formatTimingRisk(contract.risk_level)}
                         </span>
                       </div>
 
@@ -1782,19 +1784,19 @@ export default function ContractsPage() {
                         </th>
 
                         <th className="px-6 py-4">
-  Risk
+  Timing risk
 </th>
 
 <th className="px-6 py-4">
-  AI Recommendation
+  AI advice
 </th>
 
 <th className="px-6 py-4">
-  Human Decision
+  Human decision
 </th>
 
 <th className="px-6 py-4">
-  Status
+  Workflow status
 </th>
 
 <th className="px-6 py-4 text-right">
@@ -1942,7 +1944,7 @@ export default function ContractsPage() {
 
                                         <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
 
-                                        Auto renew
+                                        Auto-renewing
 
                                       </span>
 
@@ -1951,7 +1953,7 @@ export default function ContractsPage() {
                                     ? (
 
                                       <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                                        Manual
+                                        Not auto-renewing
                                       </span>
 
                                     )
@@ -1970,14 +1972,12 @@ export default function ContractsPage() {
                               <td className="px-6 py-5">
 
                                 <span
-                                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${riskClasses(
+                                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${riskClasses(
                                     contract.risk_level
                                   )}`}
                                 >
                                   {
-                                    contract.risk_level
-                                    ||
-                                    "unknown"
+                                    formatTimingRisk(contract.risk_level)
                                   }
                                 </span>
 
@@ -2637,30 +2637,6 @@ function deadlineLabel(
   );
 }
 
-function formatAIAction(
-  action: string | null
-) {
-
-  switch (action) {
-
-    case "monitor":
-      return "Monitor";
-
-    case "review":
-      return "Review";
-
-    case "renegotiate":
-      return "Renegotiate";
-
-    case "consider_cancellation":
-      return "Consider cancellation";
-
-    default:
-      return "Not analyzed";
-  }
-}
-
-
 function aiActionClasses(
   action: string | null
 ) {
@@ -2685,28 +2661,6 @@ function aiActionClasses(
 }
 
 
-function formatDecision(
-  decision: string | null
-) {
-
-  switch (decision) {
-
-    case "renew":
-      return "Renew";
-
-    case "renegotiate":
-      return "Renegotiate";
-
-    case "cancel":
-      return "Cancel";
-
-    case "undecided":
-    default:
-      return "Undecided";
-  }
-}
-
-
 function decisionClasses(
   decision: string | null
 ) {
@@ -2724,25 +2678,6 @@ function decisionClasses(
 
     default:
       return "border-slate-200 bg-slate-100 text-slate-600";
-  }
-}
-
-
-function formatStatus(
-  status: string | null
-) {
-
-  switch (status) {
-
-    case "decision_made":
-      return "Decision made";
-
-    case "completed":
-      return "Completed";
-
-    case "under_review":
-    default:
-      return "Under review";
   }
 }
 

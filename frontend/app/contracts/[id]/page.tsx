@@ -1,5 +1,7 @@
 "use client";
 
+import { formatTimingRisk, formatAIActionLabel as formatAIAction, formatDecisionLabel as formatHumanDecision, formatWorkflowLabel as formatWorkflowStatus, formatAIAnalysisStatus } from "@/lib/statusLabels";
+
 import { currentContractTiming } from "@/lib/contractTiming";
 import { useUtcDay } from "@/lib/useContractTiming";
 
@@ -1556,14 +1558,12 @@ export default function ContractDetailPage() {
               <div className="mt-5 flex flex-wrap gap-2">
 
                 <span
-                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${riskClasses(
+                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${riskClasses(
                     contract.risk_level
                   )}`}
                 >
                   {
-                    contract.risk_level
-                    ||
-                    "unknown risk"
+formatTimingRisk(contract.risk_level)
                   }
                 </span>
 
@@ -2170,6 +2170,7 @@ export default function ContractDetailPage() {
           {!hasAIInsight && (
             <section className="mb-8 renewai-card p-6 sm:p-7">
               <h2 className="text-xl font-bold text-slate-950">AI Renewal Intelligence</h2>
+              <p className="mt-3 text-xs font-semibold text-slate-600">AI analysis: {formatAIAnalysisStatus(aiAnalyzing ? "running" : aiError ? "failed" : contract.ai_analysis_status || "pending")}</p>
               <p role="status" aria-live="polite" className="mt-3 text-sm leading-6 text-slate-600">
                 {aiAnalyzing
                   ? "AI renewal analysis is in progress. Your contract and renewal dates are saved."
@@ -2210,6 +2211,7 @@ export default function ContractDetailPage() {
 
 
                         <ProvenanceBadge kind="advisory" />
+                        <span className="text-xs font-semibold text-slate-600">AI analysis: {formatAIAnalysisStatus("completed")}</span>
 
                       </div>
 
@@ -3460,12 +3462,7 @@ function DecisionStatusBadge({
   status: string;
 }) {
 
-  const label =
-    status === "decision_made"
-      ? "Decision made"
-      : status === "completed"
-      ? "Completed"
-      : "Under review";
+  const label = formatWorkflowStatus(status);
 
 
   const classes =
@@ -4530,29 +4527,6 @@ function recommendationHeading(
 }
 
 
-function formatHumanDecision(
-  decision: string | null
-) {
-
-  switch (
-    decision
-  ) {
-
-    case "renew":
-      return "Renew";
-
-    case "renegotiate":
-      return "Renegotiate";
-
-    case "cancel":
-      return "Cancel";
-
-    default:
-      return "Undecided";
-  }
-}
-
-
 function humanDecisionClasses(
   decision: string | null
 ) {
@@ -4572,26 +4546,6 @@ function humanDecisionClasses(
 
     default:
       return "border-slate-200 bg-slate-100 text-slate-600";
-  }
-}
-
-
-function formatWorkflowStatus(
-  status: string | null
-) {
-
-  switch (
-    status
-  ) {
-
-    case "decision_made":
-      return "Decision made";
-
-    case "completed":
-      return "Completed";
-
-    default:
-      return "Under review";
   }
 }
 
@@ -4618,41 +4572,6 @@ function decisionActionClasses(
 
     default:
       return "border-slate-200 bg-slate-100 text-slate-600";
-  }
-}
-
-
-function formatAIAction(
-  action: string | null
-) {
-
-  switch (
-    action
-  ) {
-
-    case "monitor":
-
-      return "Continue monitoring";
-
-
-    case "review":
-
-      return "Review before renewal";
-
-
-    case "renegotiate":
-
-      return "Consider renegotiation";
-
-
-    case "consider_cancellation":
-
-      return "Evaluate cancellation options";
-
-
-    default:
-
-      return "AI renewal assessment";
   }
 }
 
