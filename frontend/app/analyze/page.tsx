@@ -2912,7 +2912,7 @@ function InfoCard({
 
   return (
 
-    <div className="renewai-card p-5">
+    <div className="renewai-wrap-value renewai-card p-5">
 
       <p className="text-sm font-medium text-slate-500">
         {label}

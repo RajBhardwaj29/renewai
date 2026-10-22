@@ -3613,8 +3613,8 @@ function InfoCard({
     <div
       className={
         urgent
-          ? "rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm"
-          : "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+          ? "renewai-wrap-value rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm"
+          : "renewai-wrap-value rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
       }
     >
 

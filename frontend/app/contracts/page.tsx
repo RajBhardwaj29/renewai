@@ -1039,7 +1039,7 @@ export default function ContractsPage() {
 
               <div className="grid min-w-0 grid-cols-1 gap-3 min-[400px]:grid-cols-2">
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+                <div className="renewai-wrap-value rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
                   <p className="text-xs font-medium text-slate-400">
                     Portfolio value
@@ -1056,7 +1056,7 @@ export default function ContractsPage() {
                 </div>
 
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+                <div className="renewai-wrap-value rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
                   <p className="text-xs font-medium text-slate-400">
                     Auto-renewing
@@ -2342,7 +2342,7 @@ function DecisionQueueCard({
 
   return (
 
-    <div className={`border-b p-6 sm:border-r xl:border-b-0 ${style.shell}`}>
+    <div className={`renewai-wrap-value border-b p-6 sm:border-r xl:border-b-0 ${style.shell}`}>
 
       <div className="flex items-center justify-between gap-3">
 
@@ -2384,7 +2384,7 @@ function QueueSignal({
 
   return (
 
-    <div>
+    <div className="renewai-wrap-value">
 
       <p className="text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
         {label}
@@ -2422,8 +2422,8 @@ function StatCard({
     <div
       className={
         urgent
-          ? "rounded-2xl border border-orange-200 bg-orange-50 p-5 shadow-sm"
-          : "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+          ? "renewai-wrap-value rounded-2xl border border-orange-200 bg-orange-50 p-5 shadow-sm"
+          : "renewai-wrap-value rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
       }
     >
 

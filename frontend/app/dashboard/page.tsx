@@ -1979,7 +1979,7 @@ function StatCard({
     <div
       className={
         urgent
-          ? `
+          ? `renewai-wrap-value
             rounded-2xl
             border
             border-orange-200
@@ -1987,7 +1987,7 @@ function StatCard({
             p-5
             shadow-sm
           `
-          : `
+          : `renewai-wrap-value
             rounded-2xl
             border
             border-slate-200
@@ -2080,7 +2080,7 @@ function IntelligenceMetric({
     <div
       className={
         urgent
-          ? `
+          ? `renewai-wrap-value
             border-b
             border-orange-100
             bg-orange-50/60
@@ -2088,7 +2088,7 @@ function IntelligenceMetric({
             sm:border-r
             xl:border-b-0
           `
-          : `
+          : `renewai-wrap-value
             border-b
             border-slate-100
             bg-white
@@ -2386,7 +2386,7 @@ function ContractDeadlineRow({
       >
 
         <p
-          className="
+          className="renewai-wrap-value
             font-semibold
             text-slate-950
           "
