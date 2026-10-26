@@ -14,6 +14,9 @@ from fastapi import (
 )
 
 from api_errors import register_error_handlers
+from pilot_observability import (
+    emit as pilot_event, identify_workspace, register_pilot_observability, stage,
+)
 
 from pydantic import BaseModel
 
@@ -99,6 +102,7 @@ app = FastAPI(
 
 
 register_error_handlers(app)
+register_pilot_observability(app)
 
 default_origins = [
     "http://localhost:3000",
@@ -192,6 +196,8 @@ def get_authenticated_context(
                 "a RenewAI organization."
             ),
         )
+
+    identify_workspace(organization["id"])
 
     return {
         "user": user,
@@ -377,9 +383,11 @@ def list_contracts(
                 )
             )
 
+        presented_contracts = current_contract_countdowns(contracts)
+        pilot_event("portfolio_loaded", organization_id=organization_id)
         return {
             "contracts":
-                current_contract_countdowns(contracts),
+                presented_contracts,
 
             "count":
                 len(contracts),
@@ -761,6 +769,10 @@ def update_single_contract_decision(
                 detail="Contract not found.",
             )
 
+        pilot_event(
+            "decision_saved", organization_id=organization_id, contract_id=contract_id,
+            decision_recorded=payload.renewal_decision != "undecided",
+        )
         return {
             "contract":
                 updated_contract,
@@ -1208,16 +1220,12 @@ async def analyze_contract(
         file_hash,
     )
 
-    extracted_text = extract_pdf_text(
-        content
-    )
+    with stage("pdf_text", organization_id):
+        extracted_text = extract_pdf_text(content)
 
     try:
-        contract_data = (
-            extract_contract_data(
-                extracted_text
-            )
-        )
+        with stage("extraction", organization_id):
+            contract_data = extract_contract_data(extracted_text)
 
     except Exception as exc:
         raise HTTPException(
@@ -1307,9 +1315,8 @@ async def save_reviewed_contract(
         file_hash,
     )
 
-    extracted_text = extract_pdf_text(
-        content
-    )
+    with stage("pdf_text", organization_id):
+        extracted_text = extract_pdf_text(content)
 
     try:
         reviewed_contract = (
@@ -1382,6 +1389,11 @@ async def save_reviewed_contract(
             ),
         )
 
+    pilot_event(
+        "contract_saved", organization_id=organization_id,
+        contract_id=saved_contract["id"],
+    )
+
     # Reminder errors must not turn a confirmed insert into a failed save.
     reminders = []
     reminder_status = "not_applicable"
@@ -1397,6 +1409,8 @@ async def save_reviewed_contract(
             )
             reminder_status = "created"
         except Exception as exc:
+            pilot_event("reminder_generation_failed", organization_id=organization_id,
+                        outcome="failure")
             reminder_status = "failed"
             reminder_warning = (
                 "Your contract is saved, but reminders could not be created. "
