@@ -8,7 +8,7 @@ export default function PrivacyPage() {
           ← Back to RenewAI
         </Link>
         <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
-          Private beta · Effective 15 September 2026
+          Private beta · Updated 26 October 2026
         </p>
         <h1 className="mt-3 text-4xl font-bold tracking-tight">Privacy Notice</h1>
         <p className="mt-5 leading-7 text-slate-600">
@@ -24,6 +24,14 @@ export default function PrivacyPage() {
               This may include your email address, workspace name, uploaded contract
               files and extracted contract data, renewal decisions, reminder records,
               and basic technical logs needed to keep the service reliable and secure.
+            </p>
+            <p className="mt-2">
+              We also record workflow outcomes, such as successful contract saves and
+              decision updates, to understand beta activation and reliability. These
+              events use pseudonymous workspace and contract references and exclude
+              contract text, filenames, email addresses, and decision notes. They are
+              stored in our hosting service logs; we do not use advertising trackers
+              or session recordings for this measurement.
             </p>
           </section>
           <section>

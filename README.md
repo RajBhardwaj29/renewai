@@ -14,6 +14,11 @@ RenewAI is a production-deployed private beta in launch-readiness hardening.
 
 Current source includes independent contract saving and AI analysis, human decision tracking, live countdowns, reviewed customer names, guarded reminder delivery, atomic permanent deletion, and authenticated summary PDF export. Current priorities include reliability hardening, beta onboarding, and customer discovery.
 
+The [pilot readiness guide](docs/pilot-readiness.md) covers structured workflow
+logs, observed save/decision milestones, local aggregate reporting, a usability
+session script, and the still-pending physical iPhone/Android checks. These logs
+support manual operational review; automatic incident alerts are not configured.
+
 BETA-001 through BETA-032 are historical manual regression results, not a current automated test run or an extraction-accuracy benchmark. This README describes the repository; deployed versions, credentials, and service configuration must be checked separately.
 
 Raj maintains a local, private AGENTS.md with product decisions, architecture invariants, testing history, and current priorities. It is intentionally excluded from Git; collaborators should request the current copy before making substantial changes.
