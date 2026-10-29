@@ -159,6 +159,7 @@ def save_contract(
     character_count: int,
     contract,
     renewal_intelligence: dict,
+    source_evidence: dict | None = None,
 ):
     record = {
         "organization_id":
@@ -326,6 +327,9 @@ def save_contract(
         "archived":
             False,
     }
+
+    if source_evidence is not None:
+        record["source_evidence"] = source_evidence
 
     response = (
         supabase

@@ -121,6 +121,9 @@ def register_pilot_observability(app):
             return response
         finally:
             route = getattr(request.scope.get("route"), "path", None)
+            # Upload authentication/budget failures occur before routing.
+            if route is None and request.method == "POST" and request.url.path.rstrip("/") in {"/contracts/analyze", "/contracts/save"}:
+                route = request.url.path.rstrip("/")
             operation = OPERATIONS.get((request.method, route))
             if operation:
                 emit("workflow_request", operation=operation, status_code=status,
