@@ -1,11 +1,13 @@
 # Upload security and clause evidence — 29 October 2026
 
-This batch is implemented and tested locally from `1e64cf980fcba788a518c097b75c10e00e10282e`.
-It has **not** been applied to production. The security migration is independently
-releasable before the evidence feature. Do not equate local remediation with a
-closed production vulnerability.
+This batch was implemented and tested from `1e64cf980fcba788a518c097b75c10e00e10282e`.
+The browser-write lockdown was applied and verified in production on 29 October
+2026 before source publication. Forbidden membership/contract writes were denied;
+onboarding succeeded in a rollback-only transaction, with organization, membership,
+contract and reminder counts unchanged. The release order below remains mandatory
+for other environments. Backend deployment must follow the evidence-column migration.
 
-## Critical live finding
+## Confirmed pre-release finding and remediation
 
 Read-only inspection of the existing Supabase project confirmed:
 

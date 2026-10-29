@@ -53,9 +53,10 @@ final deletion must also roll back rather than report success.
 These tests do not certify live Supabase authentication settings or every base-table
 RLS policy. They make no production data changes, send no email and use no live AI.
 
-## October 29 security and evidence batch (local, unreleased)
+## October 29 security and evidence batch
 
 See [upload security and clause evidence](security-evidence-foundation.md) for the
 confirmed membership self-enrollment policy flaw, the independently releasable
 browser-write lockdown, bounded PDF processing, source-quote schema, tests and
-database-first release order. Production remains unchanged until release.
+database-first release order. The browser-write lockdown was applied and verified
+in production before this source was published.
