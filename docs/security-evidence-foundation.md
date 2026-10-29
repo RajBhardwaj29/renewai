@@ -91,6 +91,33 @@ the framework. Quotes cannot replace a retained source document for audit purpos
 No UI for the new evidence bundle, OCR, numeric term provenance, clause applicability
 resolver, automatic action or independent extraction benchmark is added in this batch.
 
+### Contract-detail evidence view — frontend follow-up, 29 October 2026
+
+The frontend follow-up replaces the existing clause cards with a source-aware
+view using the unchanged authenticated contract-detail response. Each of the six
+saved clauses retains its text and shows grounded (text found), ambiguous,
+unverified or missing status. Grounded terms have keyboard-operable disclosures
+with exact quotes and 1-based PDF page references. Human review is always required;
+matching does not prove completeness, applicability or legal accuracy. Originals
+are not archived, so there is no link to open or highlight an original PDF.
+
+Legacy, unsupported or draft evidence shows "Source evidence unavailable" while
+preserving saved terms. Inconsistent text, duplicate field entries, malformed
+spans or unsupported statuses cannot display a grounded badge. The browser checks
+display consistency, not the original document's authenticity. Quotes are rendered
+as plain React text; hashes, internal offsets and review-signal metadata stay out
+of the presentation. No new fetch, write, provider call or migration is introduced.
+
+Local validation: all 19 frontend tests passed (13 existing, six evidence/rendering
+tests), lint and the optimized webpack build including TypeScript/static generation
+passed. A temporary synthetic page checked the actual component at desktop and
+390px mobile widths, click/keyboard disclosure operation, all status labels and
+legacy fallback; inspected browser logs had no warnings/errors. The temporary
+route was removed before the final build. A stale generated preview validator was
+moved to private temporary storage before rebuilding. This does not establish a
+new authenticated browser-to-production workflow or physical-device pass. This
+release and deployed verification are tracked separately from these local checks.
+
 ## Release order and readiness
 
 1. Confirm target project and current revisions. Run the read-only catalog checks
