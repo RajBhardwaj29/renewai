@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 
 export default function HomePage() {
   return (
@@ -7,12 +8,13 @@ export default function HomePage() {
       <div className="mx-auto max-w-7xl px-6">
 
         {/* NAVBAR */}
-        <header className="flex items-center justify-between py-6">
+        <header className="flex flex-wrap items-center justify-between gap-4 py-6">
           <Link
             href="/"
-            className="text-xl font-bold tracking-tight !text-white"
+            aria-label="RenewAI home"
+            className="inline-flex shrink-0"
           >
-            RenewAI
+            <Logo tone="light" />
           </Link>
 
           <nav className="flex items-center gap-3">

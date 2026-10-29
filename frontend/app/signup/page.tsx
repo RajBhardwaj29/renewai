@@ -9,6 +9,7 @@ import {
 } from "next/navigation";
 
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import GuestGuard from "@/components/GuestGuard";
 
 import {
@@ -235,37 +236,7 @@ export default function SignupPage() {
           "
         >
 
-          <div
-            className="
-              flex
-              h-10
-              w-10
-              items-center
-              justify-center
-              rounded-xl
-              border
-              border-white/10
-              bg-white
-              text-sm
-              font-bold
-              text-slate-950
-              shadow-sm
-            "
-          >
-            R
-          </div>
-
-
-          <span
-            className="
-              text-lg
-              font-bold
-              tracking-tight
-              text-white
-            "
-          >
-            RenewAI
-          </span>
+          <Logo tone="light" />
 
         </Link>
 
@@ -454,34 +425,7 @@ export default function SignupPage() {
             "
           >
 
-            <div
-              className="
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                rounded-xl
-                bg-slate-950
-                text-sm
-                font-bold
-                text-white
-              "
-            >
-              R
-            </div>
-
-
-            <span
-              className="
-                text-lg
-                font-bold
-                tracking-tight
-                text-slate-950
-              "
-            >
-              RenewAI
-            </span>
+            <Logo />
 
           </Link>
 

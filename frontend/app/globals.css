@@ -1132,3 +1132,16 @@ select.renewai-input {
       1 !important;
   }
 }
+/* Official marketing identity. Keep these tokens scoped to the logo so the
+   application's existing interface colors remain independent. */
+.renewai-logo,
+.renewai-logo-mark {
+  --primary: oklch(0.63 0.19 265);
+  --primary-foreground: oklch(0.99 0 0);
+}
+
+.renewai-logo {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  white-space: nowrap;
+}

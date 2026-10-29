@@ -9,6 +9,7 @@ import {
 } from "next/navigation";
 
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 
 import {
   supabase,
@@ -225,33 +226,7 @@ export default function ResetPasswordPage() {
           "
         >
 
-          <div
-            className="
-              flex
-              h-10
-              w-10
-              items-center
-              justify-center
-              rounded-xl
-              bg-white
-              text-sm
-              font-bold
-              text-slate-950
-            "
-          >
-            R
-          </div>
-
-
-          <span
-            className="
-              text-lg
-              font-bold
-              text-white
-            "
-          >
-            RenewAI
-          </span>
+          <Logo tone="light" />
 
         </Link>
 
@@ -431,33 +406,7 @@ export default function ResetPasswordPage() {
             "
           >
 
-            <div
-              className="
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                rounded-xl
-                bg-slate-950
-                text-sm
-                font-bold
-                text-white
-              "
-            >
-              R
-            </div>
-
-
-            <span
-              className="
-                text-lg
-                font-bold
-                text-slate-950
-              "
-            >
-              RenewAI
-            </span>
+            <Logo />
 
           </Link>
 

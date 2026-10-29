@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Logo, LogoMark } from "@/components/Logo";
 
 import {
   usePathname,
@@ -217,21 +218,11 @@ export default function AppNavbar() {
           className="flex min-w-0 shrink items-center gap-3 sm:shrink-0 sm:gap-4"
         >
 
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-base font-bold text-white shadow-sm sm:h-14 sm:w-14 sm:rounded-2xl sm:text-xl">
-            R
-          </div>
-
-
           <div className="min-w-0">
-
-            <div className="text-lg font-bold tracking-[0.18em] text-slate-800">
-              RENEWAI
-            </div>
-
+            <Logo />
             <div className="mt-1 hidden text-sm text-slate-500 sm:block">
               Contract renewal intelligence
             </div>
-
           </div>
 
         </Link>
@@ -330,9 +321,7 @@ export default function AppNavbar() {
               className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 hover:bg-slate-50 hover:text-slate-950"
             >
 
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-950 text-xs font-bold text-white">
-                R
-              </span>
+              <LogoMark />
 
               <span>
                 Account
