@@ -1139,7 +1139,7 @@ export default function AnalyzeContractPage() {
           {/* UPLOAD */}
 
           <details className="renewai-card overflow-hidden" open={!analysis && !savedResult}>
-            <summary className="cursor-pointer px-6 py-5 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-blue-600 sm:px-7">
+            <summary className="cursor-pointer px-6 py-5 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-brand-action sm:px-7">
               <span className="font-bold text-slate-950">
                 {analysis || savedResult ? "Selected PDF" : "Upload contract PDF"}
               </span>
@@ -1186,7 +1186,7 @@ export default function AnalyzeContractPage() {
                         }
                       }
 
-                      className="block w-full text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
+                      className="block w-full text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-brand-action file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-hover"
                     />
 
 
@@ -1348,13 +1348,13 @@ export default function AnalyzeContractPage() {
                 <p role="status" className="text-sm font-semibold text-slate-700">
                   Extraction complete. Your contract has not been saved yet.
                 </p>
-                <nav aria-label="Review sections" className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold text-blue-700">
-                  <a href="#review-dates" className="renewai-touch-target underline underline-offset-4">Dates & value</a>
-                  <a href="#review-renewal" className="renewai-touch-target underline underline-offset-4">Renewal & notice</a>
-                  <a href="#review-identity" className="renewai-touch-target underline underline-offset-4">Contract identity</a>
-                  <a href="#review-evidence" className="renewai-touch-target underline underline-offset-4">Contract language</a>
-                  <a href="#review-preview" className="renewai-touch-target underline underline-offset-4">Calculation preview</a>
-                  <a href="#review-save" className="renewai-touch-target underline underline-offset-4">Save contract</a>
+                <nav aria-label="Review sections" className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold text-brand-link">
+                  <a href="#review-dates" className="renewai-link renewai-touch-target underline underline-offset-4">Dates & value</a>
+                  <a href="#review-renewal" className="renewai-link renewai-touch-target underline underline-offset-4">Renewal & notice</a>
+                  <a href="#review-identity" className="renewai-link renewai-touch-target underline underline-offset-4">Contract identity</a>
+                  <a href="#review-evidence" className="renewai-link renewai-touch-target underline underline-offset-4">Contract language</a>
+                  <a href="#review-preview" className="renewai-link renewai-touch-target underline underline-offset-4">Calculation preview</a>
+                  <a href="#review-save" className="renewai-link renewai-touch-target underline underline-offset-4">Save contract</a>
                 </nav>
 
 
@@ -2515,7 +2515,7 @@ export default function AnalyzeContractPage() {
                           saving
                         }
 
-                        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-action px-6 py-3 text-sm font-bold text-white transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
                       >
 
                         {
@@ -2594,7 +2594,7 @@ export default function AnalyzeContractPage() {
                       savedResult.reminder_warning && (
                         <div role="status" className="mt-5 text-sm leading-6 text-amber-900">
                           {savedResult.reminder_warning}{" "}
-                          <Link href="/reminders" className="font-semibold underline">
+                          <Link href="/reminders" className="renewai-link font-semibold underline">
                             Open Reminders
                           </Link>
                         </div>
@@ -2815,18 +2815,18 @@ function StepCard({
   return (
     <li aria-current={active ? "step" : undefined} className={`rounded-2xl border p-4 ${
       complete ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-        : active ? "border-slate-950 bg-slate-950 text-white"
+        : active ? "border-brand-border bg-brand-soft text-brand-link"
         : "border-slate-200 bg-white text-slate-500"
     }`}>
       <div className="flex items-start gap-3">
         <span aria-hidden="true" className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-          complete ? "bg-emerald-600 text-white" : active ? "bg-white text-slate-950" : "bg-slate-100 text-slate-600"
+          complete ? "bg-emerald-600 text-white" : active ? "bg-white text-brand-link" : "bg-slate-100 text-slate-600"
         }`}>
           {complete ? "✓" : number}
         </span>
         <div>
           <p className="text-sm font-bold">{title}</p>
-          <p className={`mt-1 text-xs leading-5 ${active ? "text-slate-300" : ""}`}>{description}</p>
+          <p className={`mt-1 text-xs leading-5 ${active ? "text-brand-link" : ""}`}>{description}</p>
           <p className="mt-2 text-xs font-semibold">{complete ? "Completed" : active ? "Current step" : "Upcoming"}</p>
         </div>
       </div>

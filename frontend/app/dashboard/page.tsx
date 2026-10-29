@@ -970,7 +970,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     {attentionContracts.length > 0 && (
-                      <Link href={`/contracts/${attentionContracts[0].id}`} className="renewai-button-primary shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
+                      <Link href={`/contracts/${attentionContracts[0].id}`} className="renewai-button-primary shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-action">
                         Review next contract
                       </Link>
                     )}
@@ -1017,7 +1017,7 @@ export default function DashboardPage() {
                             <Link
                               href={`/contracts/${contract.id}`}
                               aria-label={`Review contract for ${contract.vendor_name || "Unknown Vendor"}`}
-                              className="renewai-button-secondary w-full shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 lg:w-auto"
+                              className="renewai-button-secondary w-full shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-action lg:w-auto"
                             >
                               Review contract
                             </Link>
@@ -1028,7 +1028,7 @@ export default function DashboardPage() {
                         <p className="text-slate-500">
                           Showing {attentionContracts.length} of {riskContracts.length} flagged contracts.
                         </p>
-                        <Link href="/contracts" className="renewai-touch-target font-semibold text-blue-700 underline-offset-4 hover:underline">
+                        <Link href="/contracts" className="renewai-touch-target font-semibold renewai-link underline-offset-4 hover:underline">
                           View all contracts →
                         </Link>
                       </div>
@@ -1054,7 +1054,7 @@ export default function DashboardPage() {
                       <span className="font-bold">{dueReminders.length} due {dueReminders.length === 1 ? "alert" : "alerts"}</span>
                       {dueReminders.length > 0 && " · Scheduled reminder dates reached or passed"}
                     </p>
-                    <Link href="/reminders" className="renewai-touch-target shrink-0 font-semibold underline underline-offset-4">
+                    <Link href="/reminders" className="renewai-link renewai-touch-target shrink-0 font-semibold underline underline-offset-4">
                       Review alerts →
                     </Link>
                   </div>
@@ -1210,7 +1210,7 @@ export default function DashboardPage() {
 
                     <Link
                       href="/contracts"
-                      className="renewai-touch-target shrink-0 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
+                      className="renewai-touch-target shrink-0 text-sm font-semibold renewai-link transition "
                     >
                       Open renewal work queue →
                     </Link>
@@ -1576,7 +1576,7 @@ export default function DashboardPage() {
 
                     <Link
                       href="/contracts"
-                      className="renewai-touch-target text-sm font-semibold text-blue-700 transition hover:text-blue-800"
+                      className="renewai-touch-target text-sm font-semibold renewai-link transition "
                     >
                       Open portfolio →
                     </Link>
@@ -2252,7 +2252,7 @@ function QuickAction({
           mt-5
           text-sm
           font-semibold
-          text-blue-700
+          text-brand-link
         "
       >
         {action}
@@ -2335,7 +2335,7 @@ function DashboardPanel({
           href={
             href
           }
-          className="renewai-touch-target shrink-0 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
+          className="renewai-touch-target shrink-0 text-sm font-semibold renewai-link transition "
         >
           {action} →
         </Link>

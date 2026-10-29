@@ -618,9 +618,8 @@ export default function LoginPage() {
                   className="
                     text-sm
                     font-semibold
-                    text-blue-700
+                    renewai-link
                     transition
-                    hover:text-blue-800
                     hover:underline
                     hover:underline-offset-4
                   "
@@ -726,12 +725,12 @@ export default function LoginPage() {
                 href="/signup"
                 className="
                   font-semibold
-                  text-slate-950
+                  renewai-link
                   underline
                   decoration-slate-300
                   underline-offset-4
                   transition
-                  hover:decoration-slate-950
+                  hover:decoration-brand-link
                 "
               >
                 Create an account
@@ -750,9 +749,9 @@ export default function LoginPage() {
               visible in one place.
             </p>
             <p className="mt-2">
-              <Link href="/privacy" className="font-semibold underline underline-offset-4">Privacy</Link>
+              <Link href="/privacy" className="renewai-link font-semibold underline underline-offset-4">Privacy</Link>
               {" · "}
-              <Link href="/terms" className="font-semibold underline underline-offset-4">Terms</Link>
+              <Link href="/terms" className="renewai-link font-semibold underline underline-offset-4">Terms</Link>
             </p>
           </div>
 

@@ -27,7 +27,7 @@ export default function HomePage() {
 
             <Link
               href="/signup"
-              className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold !text-slate-950 transition hover:bg-slate-200"
+              className="renewai-action rounded-xl bg-brand-action px-5 py-2.5 text-sm font-semibold !text-white transition hover:bg-brand-hover"
             >
               Get Started
             </Link>
@@ -58,7 +58,7 @@ export default function HomePage() {
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
                 href="/signup"
-                className="rounded-xl bg-white px-6 py-3 font-semibold !text-slate-950 transition hover:bg-slate-200"
+                className="renewai-action rounded-xl bg-brand-action px-6 py-3 font-semibold !text-white transition hover:bg-brand-hover"
               >
                 Start Free
               </Link>
@@ -240,7 +240,7 @@ export default function HomePage() {
             <div className="mt-8 flex justify-center gap-4">
               <Link
                 href="/signup"
-                className="rounded-xl bg-white px-6 py-3 font-semibold !text-slate-950 transition hover:bg-slate-200"
+                className="renewai-action rounded-xl bg-brand-action px-6 py-3 font-semibold !text-white transition hover:bg-brand-hover"
               >
                 Get Started
               </Link>
@@ -259,10 +259,10 @@ export default function HomePage() {
         <footer className="flex flex-col justify-between gap-3 border-t border-white/10 py-8 text-sm !text-slate-400 sm:flex-row">
           <p>© 2026 RenewAI</p>
           <div className="flex flex-wrap gap-4">
-            <Link href="/privacy" className="transition hover:!text-white">
+            <Link href="/privacy" className="text-brand-on-dark transition hover:!text-white">
               Privacy
             </Link>
-            <Link href="/terms" className="transition hover:!text-white">
+            <Link href="/terms" className="text-brand-on-dark transition hover:!text-white">
               Terms
             </Link>
           </div>

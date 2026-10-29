@@ -1478,7 +1478,7 @@ export default function ContractDetailPage() {
 
             <Link
               href="/contracts"
-              className="renewai-touch-target text-sm font-semibold text-slate-500 transition hover:text-slate-950"
+              className="renewai-touch-target text-sm font-semibold renewai-link transition "
             >
               ← Back to Contracts
             </Link>
@@ -1660,7 +1660,7 @@ formatTimingRisk(contract.risk_level)
                 </p>
                 <a
                   href="#renewalDecision"
-                  className="renewai-button-primary mt-6 !border-white !bg-white !text-slate-950 hover:!bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                  className="renewai-button-primary mt-6 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
                 >
                   Review renewal decision
                 </a>

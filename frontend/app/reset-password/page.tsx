@@ -639,12 +639,12 @@ export default function ResetPasswordPage() {
                 href="/login"
                 className="
                   font-semibold
-                  text-slate-950
+                  renewai-link
                   underline
                   decoration-slate-300
                   underline-offset-4
                   transition
-                  hover:decoration-slate-950
+                  hover:decoration-brand-link
                 "
               >
                 sign in

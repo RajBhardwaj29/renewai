@@ -55,28 +55,34 @@
   /* Brand */
 
   --brand:
-    #0f172a;
+    oklch(0.56 0.21 265);
 
   --brand-hover:
-    #1e293b;
+    oklch(0.50 0.21 265);
 
   --brand-soft:
-    #f1f5f9;
+    #eef3ff;
+
+  --brand-link: oklch(0.50 0.20 265);
+  --brand-link-hover: oklch(0.45 0.20 265);
+  --brand-border: #c4d3ff;
+  --brand-focus: #8daaff;
+  --brand-on-dark: #a4baff;
 
 
   /* Accent */
 
   --accent:
-    #2563eb;
+    var(--brand);
 
   --accent-hover:
-    #1d4ed8;
+    var(--brand-hover);
 
   --accent-soft:
-    #eff6ff;
+    var(--brand-soft);
 
   --accent-border:
-    #bfdbfe;
+    var(--brand-border);
 
 
   /* Status */
@@ -129,11 +135,20 @@
   /* Focus */
 
   --focus-ring:
-    rgba(37, 99, 235, 0.16);
+    oklch(0.63 0.19 265 / 0.22);
 }
 
 
 @theme inline {
+
+  --color-brand-action: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-link: var(--brand-link);
+  --color-brand-link-hover: var(--brand-link-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-border: var(--brand-border);
+  --color-brand-focus: var(--brand-focus);
+  --color-brand-on-dark: var(--brand-on-dark);
 
   --color-background:
     var(--background);
@@ -1144,4 +1159,29 @@ select.renewai-input {
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "ss01", "cv11";
   white-space: nowrap;
+}
+
+/* Shared interaction accents. Secondary controls and semantic statuses retain
+   their existing neutral, success, warning and danger treatments. */
+.renewai-link {
+  color: var(--brand-link);
+}
+
+.renewai-link:hover {
+  color: var(--brand-link-hover);
+}
+
+.renewai-nav-active {
+  color: var(--brand-link);
+  background-color: var(--brand-soft);
+}
+
+/* Explicit colors also override the unlayered global link inheritance rule. */
+.renewai-action {
+  color: #ffffff;
+  background-color: var(--brand);
+}
+
+.renewai-action:hover {
+  background-color: var(--brand-hover);
 }

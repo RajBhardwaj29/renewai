@@ -41,3 +41,24 @@ the component uses its original OKLCH tokens, exactly as in the marketing projec
 
 Brand links retain their existing destinations and click handlers. Authentication,
 API requests, contract workflows, backend and stored data are outside this change.
+
+
+## Interaction palette — 29 October 2026
+
+The approved blue-accent preview is applied through shared tokens in
+`frontend/app/globals.css`. The original logo component and favicon are unchanged.
+
+- Primary actions: `oklch(0.56 0.21 265)` (the marketing palette's deeper blue).
+- Primary hover: `oklch(0.50 0.21 265)`.
+- Links and active navigation text: `oklch(0.50 0.20 265)`.
+- Active navigation surface: `#eef3ff`.
+
+White button labels have approximately 4.88:1 contrast at rest and 6.34:1 on
+hover. Shared `renewai-action`, `renewai-link` and `renewai-nav-active` classes
+explicitly handle the application's global link inheritance rule. Existing
+`renewai-button-primary` controls use the same action tokens. Tailwind brand
+utilities cover file pickers, workflow steps and other interaction accents.
+
+Secondary controls, dark content panels, success/warning/danger indicators,
+logo assets, data and application behavior retain their existing treatments.
+No application-wide dark mode was introduced.

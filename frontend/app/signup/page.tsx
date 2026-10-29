@@ -685,12 +685,12 @@ export default function SignupPage() {
                 href="/login"
                 className="
                   font-semibold
-                  text-slate-950
+                  renewai-link
                   underline
                   decoration-slate-300
                   underline-offset-4
                   transition
-                  hover:decoration-slate-950
+                  hover:decoration-brand-link
                 "
               >
                 Sign in
@@ -705,9 +705,9 @@ export default function SignupPage() {
             <p>Your first workspace is created during onboarding.</p>
             <p className="mt-2">
               By creating an account, you agree to the{" "}
-              <Link href="/terms" className="font-semibold underline underline-offset-4">Terms</Link>
+              <Link href="/terms" className="renewai-link font-semibold underline underline-offset-4">Terms</Link>
               {" and acknowledge the "}
-              <Link href="/privacy" className="font-semibold underline underline-offset-4">Privacy Notice</Link>.
+              <Link href="/privacy" className="renewai-link font-semibold underline underline-offset-4">Privacy Notice</Link>.
             </p>
           </div>
 

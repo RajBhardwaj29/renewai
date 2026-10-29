@@ -4,7 +4,7 @@ export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-12 text-slate-950">
       <article className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-10">
-        <Link href="/" className="text-sm font-semibold text-blue-700 hover:text-blue-800">
+        <Link href="/" className="text-sm font-semibold renewai-link ">
           ← Back to RenewAI
         </Link>
         <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">

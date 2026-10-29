@@ -950,7 +950,7 @@ export default function ContractsPage() {
     }}
     className={`rounded-lg px-5 py-2.5 text-sm font-bold transition ${
       viewMode === "active"
-        ? "bg-slate-950 text-white"
+        ? "bg-brand-soft text-brand-link"
         : "text-slate-600 hover:bg-slate-100"
     }`}
   >
@@ -966,7 +966,7 @@ export default function ContractsPage() {
     }}
     className={`rounded-lg px-5 py-2.5 text-sm font-bold transition ${
       viewMode === "archived"
-        ? "bg-slate-950 text-white"
+        ? "bg-brand-soft text-brand-link"
         : "text-slate-600 hover:bg-slate-100"
     }`}
   >
@@ -1841,7 +1841,7 @@ export default function ContractsPage() {
 
                                     <div className="min-w-0">
 
-                                      <div className="font-bold text-slate-950 transition group-hover:text-blue-600">
+                                      <div className="font-bold text-slate-950 transition group-hover:text-brand-link">
                                         {
                                           contract.vendor_name
                                           ||

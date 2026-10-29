@@ -218,7 +218,7 @@ export default function SettingsPage() {
 
               <Link
   href="/reminders"
-  className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white transition hover:bg-slate-800"
+  className="renewai-action rounded-xl bg-brand-action px-5 py-3 text-sm font-semibold !text-white transition hover:bg-brand-hover"
 >
   Renewal Alerts
 </Link>

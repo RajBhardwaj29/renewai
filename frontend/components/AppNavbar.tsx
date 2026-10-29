@@ -255,7 +255,7 @@ export default function AppNavbar() {
                         px-5
                         py-3
                         text-sm
-                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600
+                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-action
                         font-semibold
                         transition-all
                         duration-200
@@ -263,8 +263,7 @@ export default function AppNavbar() {
                         ${
                           active
                             ? `
-                              bg-slate-100
-                              text-slate-950
+                              renewai-nav-active
                             `
                             : `
                               text-slate-600
@@ -292,7 +291,7 @@ export default function AppNavbar() {
           <Link
             href="/analyze"
             aria-current={pathname === "/analyze" ? "page" : undefined}
-            className="ml-2 hidden rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md lg:inline-flex"
+            className="renewai-action ml-2 hidden rounded-xl bg-brand-action px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-brand-hover hover:shadow-md lg:inline-flex"
           >
             + Add contract
           </Link>
@@ -318,7 +317,7 @@ export default function AppNavbar() {
               aria-label={accountMenuOpen ? "Close account menu" : "Open account menu"}
               aria-controls="account-navigation"
               aria-expanded={accountMenuOpen}
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 hover:bg-slate-50 hover:text-slate-950"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-action hover:bg-slate-50 hover:text-slate-950"
             >
 
               <LogoMark />
@@ -381,7 +380,7 @@ export default function AppNavbar() {
                     onClick={() =>
                       setAccountMenuOpen(false)
                     }
-                    className="mt-2 block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 hover:bg-slate-50 hover:text-slate-950"
+                    className="mt-2 block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-action hover:bg-slate-50 hover:text-slate-950"
                   >
                     Settings
                   </Link>
@@ -395,7 +394,7 @@ export default function AppNavbar() {
                     type="button"
                     onClick={handleSignOut}
                     disabled={signingOut}
-                    className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 hover:bg-slate-50 hover:text-slate-950"
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-action hover:bg-slate-50 hover:text-slate-950"
                   >
                     {signingOut ? "Signing out…" : "Sign out"}
                   </button>
@@ -424,7 +423,7 @@ export default function AppNavbar() {
               setAccountMenuOpen(false);
               setMenuOpen((open) => !open);
             }}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-action hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-focus focus:ring-offset-2 lg:hidden"
           >
 
             {
@@ -501,7 +500,7 @@ export default function AppNavbar() {
                         }
                         className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
                           active
-                            ? "bg-slate-100 text-slate-950"
+                            ? "renewai-nav-active"
                             : "text-slate-700 hover:bg-slate-50 hover:text-slate-950"
                         }`}
                       >
@@ -522,7 +521,7 @@ export default function AppNavbar() {
                 onClick={() =>
                   setMenuOpen(false)
                 }
-                className="mt-1 rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+                className="renewai-action mt-1 rounded-xl bg-brand-action px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-brand-hover"
               >
                 + Add contract
               </Link>
@@ -557,7 +556,7 @@ export default function AppNavbar() {
                 onClick={() =>
                   setMenuOpen(false)
                 }
-                className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 hover:bg-slate-50 hover:text-slate-950"
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-action hover:bg-slate-50 hover:text-slate-950"
               >
                 Settings
               </Link>
@@ -571,7 +570,7 @@ export default function AppNavbar() {
                 type="button"
                 onClick={handleSignOut}
                     disabled={signingOut}
-                className="rounded-xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 hover:bg-slate-50 hover:text-slate-950"
+                className="rounded-xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-action hover:bg-slate-50 hover:text-slate-950"
               >
                 {signingOut ? "Signing out…" : "Sign out"}
               </button>
