@@ -2,15 +2,21 @@ import hashlib
 import os
 import hmac
 import logging
-import pymupdf
 
 from fastapi import (
     FastAPI,
+    Request,
     UploadFile,
     File,
     Form,
     HTTPException,
     Header,
+)
+
+from pdf_input import extract_pdf_pages, extract_pdf_text
+from contract_evidence import build_contract_evidence
+from upload_security import (
+    ContractUploadGuard, PrivateResponseHeaders, MAX_PDF_BYTES, MAX_REVIEW_JSON_BYTES,
 )
 
 from api_errors import register_error_handlers
@@ -102,7 +108,6 @@ app = FastAPI(
 
 
 register_error_handlers(app)
-register_pilot_observability(app)
 
 default_origins = [
     "http://localhost:3000",
@@ -127,6 +132,12 @@ else:
 
 
 app.add_middleware(
+    ContractUploadGuard,
+    authenticate=lambda authorization: get_authenticated_context(authorization),
+)
+register_pilot_observability(app)
+
+app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
@@ -134,6 +145,9 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition"],
 )
+
+
+app.add_middleware(PrivateResponseHeaders)
 
 
 def get_authenticated_context(
@@ -1073,34 +1087,6 @@ def list_contract_reminders(
         )
 
 
-def extract_pdf_text(
-    content: bytes,
-):
-    try:
-        with pymupdf.open(stream=content, filetype="pdf") as document:
-            if document.needs_pass:
-                raise HTTPException(status_code=400, detail="This PDF is password-protected. Upload an unlocked copy.")
-            extracted_text = "\n".join(page.get_text() for page in document)
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(
-            status_code=400,
-            detail="This PDF could not be read. It may be damaged. Export a new PDF and try again.",
-        )
-
-    if not extracted_text.strip():
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "No readable text was found. "
-                "This document may require OCR."
-            ),
-        )
-
-    return extracted_text
-
-
 def validate_pdf_content(
     file: UploadFile,
     content: bytes,
@@ -1115,6 +1101,9 @@ def validate_pdf_content(
                 "Only PDF files are supported."
             ),
         )
+
+    if len(content) > MAX_PDF_BYTES:
+        raise HTTPException(status_code=413, detail="PDF exceeds the 10 MiB limit.")
 
     if not content:
         raise HTTPException(
@@ -1188,23 +1177,20 @@ def ensure_contract_not_duplicate(
 
 @app.post("/contracts/analyze")
 async def analyze_contract(
+    request: Request,
     file: UploadFile = File(...),
 
     authorization: str | None = Header(
         default=None
     ),
 ):
-    context = (
-        get_authenticated_context(
-            authorization
-        )
-    )
+    context = request.state.contract_upload_context
 
     organization_id = (
         context["organization_id"]
     )
 
-    content = await file.read()
+    content = await file.read(MAX_PDF_BYTES + 1)
 
     validate_pdf_content(
         file,
@@ -1221,7 +1207,8 @@ async def analyze_contract(
     )
 
     with stage("pdf_text", organization_id):
-        extracted_text = extract_pdf_text(content)
+        pages = extract_pdf_pages(content)
+        extracted_text = "\n".join(pages)
 
     try:
         with stage("extraction", organization_id):
@@ -1252,7 +1239,12 @@ async def analyze_contract(
             ),
         )
 
+    evidence = build_contract_evidence(
+        pages, file_hash, contract_data, stage="extracted_draft",
+    )
+
     return {
+        "source_evidence": evidence.model_dump(),
         "filename":
             file.filename,
 
@@ -1276,6 +1268,7 @@ async def analyze_contract(
 
 @app.post("/contracts/save")
 async def save_reviewed_contract(
+    request: Request,
     file: UploadFile = File(...),
 
     contract_json: str = Form(...),
@@ -1284,17 +1277,16 @@ async def save_reviewed_contract(
         default=None
     ),
 ):
-    context = (
-        get_authenticated_context(
-            authorization
-        )
-    )
+    context = request.state.contract_upload_context
 
     organization_id = (
         context["organization_id"]
     )
 
-    content = await file.read()
+    if len(contract_json.encode("utf-8")) > MAX_REVIEW_JSON_BYTES:
+        raise HTTPException(413, "Reviewed details exceed the 128 KiB limit.")
+
+    content = await file.read(MAX_PDF_BYTES + 1)
 
     validate_pdf_content(
         file,
@@ -1316,7 +1308,8 @@ async def save_reviewed_contract(
     )
 
     with stage("pdf_text", organization_id):
-        extracted_text = extract_pdf_text(content)
+        pages = extract_pdf_pages(content)
+        extracted_text = "\n".join(pages)
 
     try:
         reviewed_contract = (
@@ -1333,6 +1326,10 @@ async def save_reviewed_contract(
                 "Some reviewed contract details are invalid. Review them and try again."
             ),
         )
+
+    evidence = build_contract_evidence(
+        pages, file_hash, reviewed_contract, stage="reviewed_submission",
+    )
 
     # Important:
     # always recalculate renewal intelligence
@@ -1366,6 +1363,8 @@ async def save_reviewed_contract(
 
             file_hash=
                 file_hash,
+
+            source_evidence=evidence.model_dump(),
 
             character_count=
                 len(extracted_text),
@@ -1426,6 +1425,7 @@ async def save_reviewed_contract(
     # --------------------------------------------------
 
     return {
+        "source_evidence": evidence.model_dump(),
         "filename":
             file.filename,
 

@@ -175,7 +175,7 @@ class WorkspaceIsolationTests(unittest.TestCase):
                 self.assertLogs(signals.logger, logging.INFO) as captured:
             for _ in range(2):
                 self.assertEqual(client.get("/contracts", headers={"Authorization": "Bearer test"}).status_code, 200)
-            self.assertEqual(client.post("/contracts/save").status_code, 422)
+            self.assertEqual(client.post("/contracts/save").status_code, 401)
         recorded = events(captured)
         self.assertEqual(read.call_args_list[0].args, ("org-a",))
         self.assertEqual(read.call_args_list[1].args, ("org-b",))
