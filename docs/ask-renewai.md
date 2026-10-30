@@ -111,22 +111,48 @@ Implementation verification on 30 October 2026:
   The fixture initially lacked existing required contract/reminder fields;
   completing the fixture resolved those test-only render failures.
 
-No real model-quality evaluation or production smoke test is claimed. Local
-tests mock provider responses and therefore cannot measure retrieval/selection
-accuracy on real agreements. Live provider evaluation with a reviewed synthetic
-benchmark, configured-model compatibility and an authorized staging/production
-smoke test are release prerequisites. No populated AI credentials were available
-in this isolated checkout. Provider docs used for the response contract:
+The initial implementation tests mocked provider responses. A following narrow
+browser smoke test used the real configured Groq `openai/gpt-oss-20b` model and a
+three-page fictional agreement with synthetic local Auth/database records. It
+passed upload/extraction/save, three exact-page answers (notice, price cap and
+refund exception), unsupported-insurance abstention, wrong-file and foreign-tenant
+rejection, summary download and unchanged records. One provider rate-limit error
+was shown safely; a later explicit retry on the same record passed. That single
+fictional agreement is not a calibrated accuracy benchmark or production test.
+A broader reviewed synthetic benchmark and authorized real Auth/database staging
+smoke test remain release prerequisites. Provider docs used for the response contract:
 [Groq structured outputs](https://console.groq.com/docs/structured-outputs).
 
-The inherited frontend lockfile also reports six npm audit findings (five high,
-one critical, including Next.js 16.3.1; audit recommends 16.4.3). No dependencies
-were added or changed in this feature. Dependency remediation and its regression
-checks remain a separate release prerequisite; this PR does not claim they are
-resolved.
+### Dependency remediation — 30 October 2026
+
+The initial frontend lockfile reported six npm audit findings (five high, one
+critical). Next.js and its matching ESLint config are now pinned to **16.4.3**.
+Patched transitive versions include `sharp` 0.35.5 (and matching platform/libvips
+packages), `brace-expansion` 1.1.21/5.0.12, `js-yaml` 4.3.2, `source-map-js` 1.2.2
+and `zod` 4.6.7. React, React DOM and Supabase versions are unchanged. No forced
+audit fix, dependency override, application-code, auth or database changes were
+needed. See [Next.js 16.4.3](https://github.com/vercel/next.js/releases/tag/v16.4.3)
+and the [image-optimization advisory](https://github.com/advisories/GHSA-2464-fhr4-w9xw).
+
+Verification after the upgrade:
+
+- Clean `npm ci --ignore-scripts` succeeded from the committed-format lockfile;
+  full `npm audit` reports **zero known vulnerabilities**, including development
+  dependencies, as of this check. This is not a claim about undisclosed issues.
+- All 24 frontend tests, ESLint, standalone TypeScript and the optimized webpack
+  build passed. The native image library successfully resized a synthetic PNG.
+- All 61 focused backend tests for Ask, upload limits, summary export and
+  save/AI separation passed, zero skips. Backend sources/dependencies are unchanged;
+  the full 203-test run above is the earlier implementation verification.
+- The newly built frontend passed the fictional-contract browser flow: upload,
+  reviewed save, Ask source citations/abstention, injection and wrong-file
+  rejection, foreign-workspace denial, summary download, unchanged saved records
+  and desktop/390px mobile checks without page errors or horizontal overflow.
+  This dependency regression used synthetic local Auth/database/AI fixtures;
+  it did not repeat live-provider calls or use production services.
 
 No production deploy, merge, database migration, customer-data write, live model
-request or email send was performed. Before release,
+request or email send was performed for the dependency remediation. Before release,
 verify the intended backend/frontend revisions and provider configuration, run
 the synthetic upload/save → Ask → abstention → retry → original summary/history
 flow, recheck two-account access, and obtain deployment authorization.
