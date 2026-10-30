@@ -1,5 +1,6 @@
 """Bound upload work before FastAPI's multipart parser touches the body."""
 import asyncio
+import re
 
 from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
@@ -38,12 +39,15 @@ class ContractUploadGuard:
     temporary-file writes before routing/dependency resolution. Hosting ingress
     still needs its own connection/concurrency and request limits.
     """
-    def __init__(self, app, authenticate):
+    def __init__(self, app, authenticate, authorize_assistant=None):
         self.app, self.authenticate = app, authenticate
+        self.authorize_assistant = authorize_assistant
 
     async def __call__(self, scope, receive, send):
+        assistant = (re.fullmatch(r"/contracts/([^/]+)/ask/?", scope.get("path", ""))
+                     if scope["type"] == "http" else None)
         if (scope["type"] != "http" or scope["method"] != "POST"
-                or scope["path"].rstrip("/") not in {"/contracts/analyze", "/contracts/save"}):
+                or (not assistant and scope["path"].rstrip("/") not in {"/contracts/analyze", "/contracts/save"})):
             return await self.app(scope, receive, send)
 
         async def reject(status, detail):
@@ -52,6 +56,11 @@ class ContractUploadGuard:
         headers = Headers(scope=scope)
         try:
             context = await run_in_threadpool(self.authenticate, headers.get("authorization"))
+            if assistant:
+                if self.authorize_assistant is None:
+                    raise HTTPException(503, "Ask RenewAI is unavailable.")
+                contract = await run_in_threadpool(self.authorize_assistant, context, assistant[1])
+                scope.setdefault("state", {})["assistant_contract"] = contract
         except HTTPException as exc:
             return await reject(exc.status_code, exc.detail if exc.status_code < 500
                                 else "RenewAI is temporarily unavailable. Please try again.")

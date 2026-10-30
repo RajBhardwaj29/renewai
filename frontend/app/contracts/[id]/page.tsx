@@ -13,6 +13,7 @@ import { useConfirmation } from "@/components/ConfirmationDialog";
 import ProvenanceBadge, { type ProvenanceKind } from "@/components/ProvenanceBadge";
 import ContractSummaryDownload from "@/components/ContractSummaryDownload";
 import ContractEvidence from "@/components/ContractEvidence";
+import ContractAssistant from "@/components/ContractAssistant";
 
 import {
   useEffect,
@@ -2874,6 +2875,8 @@ formatTimingRisk(contract.risk_level)
 
 
           <ContractEvidence contract={contract} />
+
+          <ContractAssistant key={id} contractId={id} />
 
 
           {/* EXISTING CONTRACT ACTIONS */}
