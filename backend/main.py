@@ -36,6 +36,8 @@ from reminder_scheduler import (
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from starlette.concurrency import run_in_threadpool
+from latency_observability import latency_stage
 from contract_summary import build_contract_summary, summary_filename
 from contract_presentation import current_contract_countdowns
 
@@ -467,12 +469,12 @@ async def download_contract_summary(
     contract_id: str,
     authorization: str | None = Header(default=None),
 ):
-    context = get_authenticated_context(authorization)
+    context = await run_in_threadpool(get_authenticated_context, authorization)
     organization_id = context["organization_id"]
-    contract = get_contract_by_id(organization_id, contract_id)
+    contract = await run_in_threadpool(get_contract_by_id, organization_id, contract_id)
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found.")
-    reminders = get_contract_reminders(organization_id, contract_id)
+    reminders = await run_in_threadpool(get_contract_reminders, organization_id, contract_id)
     pdf = build_contract_summary(contract, reminders)
     return Response(content=pdf, media_type="application/pdf", headers={
         "Content-Disposition": f'attachment; filename="{summary_filename(contract)}"',
@@ -1201,14 +1203,23 @@ async def analyze_contract(
         content
     )
 
-    ensure_contract_not_duplicate(
-        organization_id,
-        file_hash,
+    await run_in_threadpool(
+        ensure_contract_not_duplicate, organization_id, file_hash,
     )
 
     with stage("pdf_text", organization_id):
         pages = extract_pdf_pages(content)
-        extracted_text = "\n".join(pages)
+
+    # Only synchronous SDK/ordinary Python work goes to the worker pool.
+    # PyMuPDF must stay on the single event-loop thread, including PDF export:
+    # https://pymupdf.readthedocs.io/en/latest/recipes-multiprocessing.html
+    return await run_in_threadpool(
+        analyze_extracted_contract, file.filename, pages, file_hash, organization_id,
+    )
+
+
+def analyze_extracted_contract(filename, pages, file_hash, organization_id):
+    extracted_text = "\n".join(pages)
 
     try:
         with stage("extraction", organization_id):
@@ -1246,7 +1257,7 @@ async def analyze_contract(
     return {
         "source_evidence": evidence.model_dump(),
         "filename":
-            file.filename,
+            filename,
 
         "character_count":
             len(extracted_text),
@@ -1302,14 +1313,21 @@ async def save_reviewed_contract(
     # The analysis and save steps are separate,
     # so another copy of the contract could
     # theoretically be saved between them.
-    ensure_contract_not_duplicate(
-        organization_id,
-        file_hash,
+    await run_in_threadpool(
+        ensure_contract_not_duplicate, organization_id, file_hash,
     )
 
     with stage("pdf_text", organization_id):
         pages = extract_pdf_pages(content)
-        extracted_text = "\n".join(pages)
+
+    return await run_in_threadpool(
+        save_reviewed_contract_data, file.filename, pages, file_hash,
+        contract_json, organization_id,
+    )
+
+
+def save_reviewed_contract_data(filename, pages, file_hash, contract_json, organization_id):
+    extracted_text = "\n".join(pages)
 
     try:
         reviewed_contract = (
@@ -1359,7 +1377,7 @@ async def save_reviewed_contract(
                 organization_id,
 
             filename=
-                file.filename,
+                filename,
 
             file_hash=
                 file_hash,
@@ -1427,7 +1445,7 @@ async def save_reviewed_contract(
     return {
         "source_evidence": evidence.model_dump(),
         "filename":
-            file.filename,
+            filename,
 
         "character_count":
             len(extracted_text),
@@ -1523,9 +1541,10 @@ def analyze_saved_contract_renewal(
                     "days_until_cancellation_deadline", "risk_level", "recommendation",
                 )
             }
-            ai_insight = generate_renewal_ai_insight(
-                reviewed_contract, renewal_intelligence,
-            )
+            with latency_stage("ai_insight"):
+                ai_insight = generate_renewal_ai_insight(
+                    reviewed_contract, renewal_intelligence,
+                )
             updated_contract = update_contract_ai_insight(
                 organization_id, contract_id, ai_insight,
             )

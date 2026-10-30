@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from reminder_rules import delivery_reason, utc_today
+from latency_observability import latency_stage
 
 
 load_dotenv()
@@ -37,6 +38,7 @@ supabase: Client = create_client(
 # =========================================================
 
 
+@latency_stage("auth_verify")
 def verify_access_token(
     access_token: str
 ):
@@ -57,13 +59,14 @@ def verify_access_token(
 # =========================================================
 
 
+@latency_stage("workspace_lookup")
 def get_user_organization(
     user_id: str
 ):
     membership_response = (
         supabase
         .table("organization_members")
-        .select("organization_id, role")
+        .select("role,organizations!inner(id,name,created_at)")
         .eq("user_id", user_id)
         .limit(1)
         .execute()
@@ -76,30 +79,11 @@ def get_user_organization(
         membership_response.data[0]
     )
 
-    organization_id = (
-        membership["organization_id"]
-    )
-
-    organization_response = (
-        supabase
-        .table("organizations")
-        .select(
-            "id, name, created_at"
-        )
-        .eq(
-            "id",
-            organization_id
-        )
-        .limit(1)
-        .execute()
-    )
-
-    if not organization_response.data:
+    # Follow the existing FK in one Data API request. Membership still comes
+    # from the verified user on every request; no authorization cache is used.
+    organization = membership.get("organizations")
+    if not organization:
         return None
-
-    organization = (
-        organization_response.data[0]
-    )
 
     return {
         "id":
@@ -121,6 +105,7 @@ def get_user_organization(
 # =========================================================
 
 
+@latency_stage("duplicate_lookup")
 def find_contract_by_hash(
     organization_id: str,
     file_hash: str,
@@ -152,6 +137,7 @@ def find_contract_by_hash(
 # =========================================================
 
 
+@latency_stage("contract_write")
 def save_contract(
     organization_id: str,
     filename: str,
@@ -399,6 +385,7 @@ def update_contract_ai_analysis_status(
 # =========================================================
 
 
+@latency_stage("portfolio_read")
 def get_contracts(
     organization_id: str
 ):
@@ -516,6 +503,7 @@ def archive_contract(
 # =========================================================
 
 
+@latency_stage("portfolio_read")
 def get_archived_contracts(
     organization_id: str
 ):
@@ -922,6 +910,7 @@ def parse_iso_date(
 # =========================================================
 
 
+@latency_stage("reminder_generation")
 def create_contract_reminders(
     organization_id: str,
     contract_id: str,

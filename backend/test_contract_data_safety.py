@@ -20,9 +20,11 @@ class Query(fixture.MemoryQuery):
         super().__init__(db, table)
         self.extra_filters = []
         self.join_contract = False
+        self.join_organization = False
 
     def select(self, columns):
         self.join_contract = 'contracts (' in columns
+        self.join_organization = 'organizations!inner(' in columns
         return self
 
     def order(self, *_args, **_kwargs):
@@ -44,6 +46,11 @@ class Query(fixture.MemoryQuery):
             for row in result.data:
                 row['contracts'] = next((deepcopy(c) for c in self.db.rows['contracts']
                                          if c['id'] == row['contract_id']), None)
+        if self.join_organization:
+            for row in result.data:
+                row['organizations'] = next((deepcopy(o) for o in self.db.rows['organizations']
+                                             if o['id'] == row['organization_id']), None)
+            result.data = [row for row in result.data if row['organizations'] is not None]
         return result
 
 
