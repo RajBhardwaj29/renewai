@@ -16,6 +16,8 @@ from fastapi import (
 from pdf_input import extract_pdf_pages, extract_pdf_text
 from contract_evidence import build_contract_evidence
 from contract_assistant import answer_question, assistant_slot, MAX_QUESTION
+from contract_chat import ChatRequest, chat_answer
+from contract_sources import get_source, attach_source
 from upload_security import (
     ContractUploadGuard, PrivateResponseHeaders, MAX_PDF_BYTES, MAX_REVIEW_JSON_BYTES,
 )
@@ -513,6 +515,65 @@ async def ask_contract(
     current = await run_in_threadpool(authorize_contract_question, fresh, contract_id)
     if not hmac.compare_digest(document_hash, str(current["file_hash"])):
         raise HTTPException(400, "Attach the original PDF saved for this contract.")
+    return {**result, "contract_id": contract_id}
+
+
+async def fresh_assistant_contract(context, contract_id, authorization):
+    fresh = await run_in_threadpool(get_authenticated_context, authorization)
+    if fresh["organization_id"] != context["organization_id"]:
+        raise HTTPException(404, "Contract not found.")
+    return await run_in_threadpool(authorize_contract_question, fresh, contract_id)
+
+
+@app.get("/contracts/{contract_id}/chat/source")
+async def contract_chat_source_status(contract_id: str, authorization: str | None = Header(default=None)):
+    context = await run_in_threadpool(get_authenticated_context, authorization)
+    contract = await run_in_threadpool(authorize_contract_question, context, contract_id)
+    pages = await run_in_threadpool(get_source, context["organization_id"], contract)
+    # Page text is server-only; lists/details/status never expose the source row.
+    return {"ready": pages is not None, "contract_id": contract_id}
+
+
+@app.post("/contracts/{contract_id}/chat/source")
+async def connect_contract_chat_source(contract_id: str, request: Request, file: UploadFile = File(...),
+                                       authorization: str | None = Header(default=None)):
+    context, contract = request.state.contract_upload_context, request.state.assistant_contract
+    content = await file.read(MAX_PDF_BYTES + 1)
+    validate_pdf_content(file, content)
+    document_hash = get_file_hash(content)
+    if not hmac.compare_digest(document_hash, contract["file_hash"]):
+        raise HTTPException(400, "Attach the original PDF saved for this contract.")
+    pages = extract_pdf_pages(content)
+    current = await fresh_assistant_contract(context, contract_id, authorization)
+    if not hmac.compare_digest(document_hash, current["file_hash"]):
+        raise HTTPException(400, "Attach the original PDF saved for this contract.")
+    await run_in_threadpool(attach_source, context["organization_id"], current, pages)
+    return {"ready": True, "contract_id": contract_id}
+
+
+def chat_with_slot(pages, question, previous_questions, document_hash, organization_id):
+    with assistant_slot(organization_id):
+        try:
+            return chat_answer(pages, question, previous_questions, document_hash)
+        except Exception:
+            raise HTTPException(503, "Ask RenewAI is temporarily unavailable. Please try again.")
+
+
+@app.post("/contracts/{contract_id}/chat")
+async def converse_with_contract(contract_id: str, request: Request, payload: ChatRequest,
+                                  authorization: str | None = Header(default=None)):
+    context, contract = request.state.contract_upload_context, request.state.assistant_contract
+    question = payload.question.strip()
+    if len(question) < 3:
+        raise HTTPException(400, "Enter a question between 3 and 1,000 characters.")
+    pages = await run_in_threadpool(get_source, context["organization_id"], contract)
+    if pages is None:
+        raise HTTPException(400, "Connect the original PDF once to start chatting.")
+    result = await run_in_threadpool(chat_with_slot, pages, question, payload.previous_questions,
+                                     contract["file_hash"], context["organization_id"])
+    current = await fresh_assistant_contract(context, contract_id, authorization)
+    if not hmac.compare_digest(contract["file_hash"], current["file_hash"]):
+        raise HTTPException(404, "Contract not found.")
     return {**result, "contract_id": contract_id}
 
 
@@ -1435,6 +1496,7 @@ def save_reviewed_contract_data(filename, pages, file_hash, contract_json, organ
                 file_hash,
 
             source_evidence=evidence.model_dump(),
+            source_pages=pages,
 
             character_count=
                 len(extracted_text),

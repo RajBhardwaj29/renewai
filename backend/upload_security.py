@@ -44,7 +44,7 @@ class ContractUploadGuard:
         self.authorize_assistant = authorize_assistant
 
     async def __call__(self, scope, receive, send):
-        assistant = (re.fullmatch(r"/contracts/([^/]+)/ask/?", scope.get("path", ""))
+        assistant = (re.fullmatch(r"/contracts/([^/]+)/(?:ask|chat|chat/source)/?", scope.get("path", ""))
                      if scope["type"] == "http" else None)
         if (scope["type"] != "http" or scope["method"] != "POST"
                 or (not assistant and scope["path"].rstrip("/") not in {"/contracts/analyze", "/contracts/save"})):
@@ -54,6 +54,8 @@ class ContractUploadGuard:
             await JSONResponse({"detail": detail}, status_code=status)(scope, receive, send)
 
         headers = Headers(scope=scope)
+        budget = 16 * 1024 if scope["path"].rstrip("/").endswith("/chat") else MAX_REQUEST_BYTES
+        budget_message = "Chat message is too large." if budget < MAX_REQUEST_BYTES else "Upload request exceeds the 12 MiB limit."
         try:
             context = await run_in_threadpool(self.authenticate, headers.get("authorization"))
             if assistant:
@@ -74,8 +76,8 @@ class ContractUploadGuard:
             if not declared.isascii() or not declared.isdecimal():
                 return await reject(400, "Invalid upload length.")
             # Bound decimal length before converting an attacker-supplied int.
-            if len(declared) > 10 or int(declared) > MAX_REQUEST_BYTES:
-                return await reject(413, "Upload request exceeds the 12 MiB limit.")
+            if len(declared) > 10 or int(declared) > budget:
+                return await reject(413, budget_message)
 
         body = bytearray()
         try:
@@ -86,8 +88,8 @@ class ContractUploadGuard:
                         if message["type"] == "http.disconnect":
                             return
                         chunk = message.get("body", b"")
-                        if len(body) + len(chunk) > MAX_REQUEST_BYTES:
-                            return await reject(413, "Upload request exceeds the 12 MiB limit.")
+                        if len(body) + len(chunk) > budget:
+                            return await reject(413, budget_message)
                         body.extend(chunk)
                         if not message.get("more_body", False):
                             break

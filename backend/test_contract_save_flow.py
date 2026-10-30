@@ -79,12 +79,42 @@ class MemoryQuery:
 
 class MemoryDatabase:
     def __init__(self):
-        self.rows = {"contracts": [], "contract_reminders": []}
+        self.rows = {"contracts": [], "contract_reminders": [], "contract_source_documents": []}
         self.calls, self.updates = [], []
         self.fail = self.empty_insert = None
 
     def table(self, name):
         return MemoryQuery(self, name)
+
+    def rpc(self, name, params):
+        def execute():
+            import hashlib
+            previous = deepcopy(self.rows)
+            try:
+                if name == "save_contract_with_source":
+                    result = self.table("contracts").insert(params["p_record"]).execute()
+                    if not result.data:
+                        return result
+                    contract = result.data[0]
+                elif name == "attach_contract_source":
+                    contract = next(c for c in self.rows["contracts"] if c["id"] == params["p_contract_id"]
+                                    and c["organization_id"] == params["p_organization_id"]
+                                    and c["file_hash"] == params["p_document_sha256"])
+                    result = SimpleNamespace(data=None)
+                else:
+                    raise RuntimeError("Unexpected fixture RPC")
+                if self.fail == ("contract_source_documents", "insert"):
+                    raise RuntimeError("Synthetic source persistence failure")
+                pages = deepcopy(params["p_pages"])
+                self.rows["contract_source_documents"] = [r for r in self.rows["contract_source_documents"] if r["contract_id"] != contract["id"]]
+                self.rows["contract_source_documents"].append({"contract_id":contract["id"],
+                    "organization_id":contract["organization_id"], "document_sha256":contract["file_hash"],
+                    "pages":pages, "text_sha256":hashlib.sha256("\n".join(pages).encode()).hexdigest()})
+                return result
+            except Exception:
+                self.rows = previous
+                raise
+        return SimpleNamespace(execute=execute)
 
 
 class ContractSaveFlowTests(unittest.TestCase):

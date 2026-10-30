@@ -78,6 +78,8 @@ class TwoWorkspaces(fixture.MemoryDatabase):
         return Query(self, name)
 
     def rpc(self, name, params):
+        if name in {"save_contract_with_source", "attach_contract_source"}:
+            return super().rpc(name, params)
         def execute():
             self.rpc_calls.append((name, deepcopy(params)))
             if self.fail == ('rpc', name):

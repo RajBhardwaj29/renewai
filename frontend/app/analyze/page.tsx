@@ -1192,6 +1192,7 @@ export default function AnalyzeContractPage() {
 
                     <p className="mt-3 text-xs leading-5 text-slate-500">
                       PDF only. Scanned image-only contracts may require OCR.
+                      {" "}Saving retains verified page text privately with your contract for Ask RenewAI.
                     </p>
 
                   </div>

@@ -146,6 +146,7 @@ def save_contract(
     contract,
     renewal_intelligence: dict,
     source_evidence: dict | None = None,
+    source_pages: list[str] | None = None,
 ):
     record = {
         "organization_id":
@@ -317,12 +318,15 @@ def save_contract(
     if source_evidence is not None:
         record["source_evidence"] = source_evidence
 
-    response = (
-        supabase
-        .table("contracts")
-        .insert(record)
-        .execute()
-    )
+    if source_pages is not None:
+        # One transaction: never confirm a saved contract without its chat source.
+        response = supabase.rpc("save_contract_with_source", {
+            "p_record": record, "p_pages": source_pages,
+        }).execute()
+        if isinstance(response.data, dict):
+            return response.data
+    else:
+        response = supabase.table("contracts").insert(record).execute()
 
     if not response.data:
         raise RuntimeError(
