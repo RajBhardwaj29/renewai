@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import JSONResponse
+from latency_observability import latency_stage
 
 MAX_PDF_BYTES = 10 * 1024 * 1024
 MAX_REQUEST_BYTES = 12 * 1024 * 1024  # Includes multipart fields and framing.
@@ -69,17 +70,18 @@ class ContractUploadGuard:
 
         body = bytearray()
         try:
-            async with asyncio.timeout(UPLOAD_TIMEOUT_SECONDS):
-                while True:
-                    message = await receive()
-                    if message["type"] == "http.disconnect":
-                        return
-                    chunk = message.get("body", b"")
-                    if len(body) + len(chunk) > MAX_REQUEST_BYTES:
-                        return await reject(413, "Upload request exceeds the 12 MiB limit.")
-                    body.extend(chunk)
-                    if not message.get("more_body", False):
-                        break
+            with latency_stage("upload_receive"):
+                async with asyncio.timeout(UPLOAD_TIMEOUT_SECONDS):
+                    while True:
+                        message = await receive()
+                        if message["type"] == "http.disconnect":
+                            return
+                        chunk = message.get("body", b"")
+                        if len(body) + len(chunk) > MAX_REQUEST_BYTES:
+                            return await reject(413, "Upload request exceeds the 12 MiB limit.")
+                        body.extend(chunk)
+                        if not message.get("more_body", False):
+                            break
         except TimeoutError:
             return await reject(408, "Upload took too long. Please try again.")
 

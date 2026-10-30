@@ -44,6 +44,10 @@ def revision():
     return value if re.fullmatch(r"[0-9a-f]{40}", value) else None
 
 
+def request_reference():
+    return (_context.get() or {}).get("request_ref")
+
+
 def _reference(kind, value):
     return hashlib.sha256(f"renewai-pilot-v1:{kind}:{value}".encode()).hexdigest()[:24]
 
