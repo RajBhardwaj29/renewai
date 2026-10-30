@@ -551,10 +551,10 @@ async def connect_contract_chat_source(contract_id: str, request: Request, file:
     return {"ready": True, "contract_id": contract_id}
 
 
-def chat_with_slot(pages, question, previous_questions, document_hash, organization_id):
+def chat_with_slot(pages, question, previous_questions, document_hash, organization_id, advisory=None):
     with assistant_slot(organization_id):
         try:
-            return chat_answer(pages, question, previous_questions, document_hash)
+            return chat_answer(pages, question, previous_questions, document_hash, advisory)
         except Exception:
             raise HTTPException(503, "Ask RenewAI is temporarily unavailable. Please try again.")
 
@@ -570,7 +570,8 @@ async def converse_with_contract(contract_id: str, request: Request, payload: Ch
     if pages is None:
         raise HTTPException(400, "Connect the original PDF once to start chatting.")
     result = await run_in_threadpool(chat_with_slot, pages, question, payload.previous_questions,
-                                     contract["file_hash"], context["organization_id"])
+                                     contract["file_hash"], context["organization_id"],
+                                     {"action": contract.get("ai_action"), "status": contract.get("ai_analysis_status")})
     current = await fresh_assistant_contract(context, contract_id, authorization)
     if not hmac.compare_digest(contract["file_hash"], current["file_hash"]):
         raise HTTPException(404, "Contract not found.")

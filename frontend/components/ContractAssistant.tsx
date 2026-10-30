@@ -9,6 +9,7 @@ type SourceState = "checking" | "ready" | "missing" | "error";
 
 export function AssistantResult({ answer }: { answer: ChatAnswer }) {
   return <div className="min-w-0 rounded-2xl rounded-tl-sm border border-slate-200 bg-white p-4 [overflow-wrap:anywhere]">
+    {answer.status === "guidance" ? <p className="mb-2 text-xs font-semibold text-blue-800">Decision guidance · Your team decides</p> : null}
     <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800">{answer.answer}</p>
     {answer.citations.map((citation) => <details key={`${citation.page}-${citation.start}`} className="mt-3 border-t border-slate-100 pt-3">
       <summary className="cursor-pointer text-xs font-semibold text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">View source · Page {citation.page}</summary>
