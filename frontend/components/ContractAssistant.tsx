@@ -9,20 +9,27 @@ export function AssistantResult({ answer }: { answer: AssistantAnswer }) {
     <div className="mt-5 min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-5 [overflow-wrap:anywhere]">
       <p className="font-bold text-slate-950">{answer.status === "answered" ? "Source-supported passages" : "Insufficient source support"}</p>
       <p className="mt-2 text-sm leading-6 text-slate-700">{answer.status === "answered"
-        ? "The PDF contains these relevant passages:"
+        ? "Open the sources below to read the exact wording."
         : "I couldn't find sufficient support in this PDF to answer that question. Try a more specific question or review the original agreement."}</p>
       {answer.citations.map((citation) => (
-        <figure key={`${citation.page}-${citation.start}`} className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-          <figcaption className="text-xs font-bold text-blue-800">Page {citation.page} · original PDF</figcaption>
+        <details key={`${citation.page}-${citation.start}`} className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">View source · Page {citation.page}</summary>
           <blockquote className="mt-3 whitespace-pre-wrap border-l-2 border-blue-200 pl-3 text-sm leading-7 text-slate-700">{citation.quote}</blockquote>
-        </figure>
+        </details>
       ))}
       <p className="mt-4 text-xs leading-5 text-slate-600">AI selects exact passages, which may omit relevant terms or amendments. Missing support does not mean a term is absent. Check the cited pages in your original PDF. Human review required; this is not legal advice.</p>
     </div>
   );
 }
 
-export default function ContractAssistant({ contractId }: { contractId: string }) {
+const suggestedQuestions = [
+  "What notice is required to prevent automatic renewal?",
+  "What price increases are allowed at renewal?",
+  "What are the termination terms?",
+];
+
+export default function ContractAssistant({ contractId, contractName }: { contractId: string; contractName: string }) {
+  const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<AssistantAnswer | null>(null);
@@ -30,7 +37,32 @@ export default function ContractAssistant({ contractId }: { contractId: string }
   const [error, setError] = useState("");
   const [running, setRunning] = useState(false);
   const active = useRef<AbortController | null>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const questionInput = useRef<HTMLTextAreaElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
   useEffect(() => () => active.current?.abort(), []);
+
+  useEffect(() => {
+    if (!open) return;
+    const panel = dialog.current;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    panel?.showModal();
+    document.body.style.overflow = "hidden";
+    closeButton.current?.focus();
+    return () => {
+      panel?.close();
+      document.body.style.overflow = previousOverflow;
+      if (trigger?.isConnected) trigger.focus();
+    };
+  }, [open]);
+
+  function close() {
+    active.current?.abort();
+    active.current = null;
+    setRunning(false);
+    setOpen(false);
+  }
 
   async function ask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,16 +96,32 @@ export default function ContractAssistant({ contractId }: { contractId: string }
     } catch {
       if (!controller.signal.aborted) setError("Ask RenewAI couldn't complete this request. Please try again.");
     } finally {
-      active.current = null;
-      if (!controller.signal.aborted) setRunning(false);
+      if (active.current === controller) {
+        active.current = null;
+        if (!controller.signal.aborted) setRunning(false);
+      }
     }
   }
 
   return (
-    <section aria-labelledby="contract-assistant-heading" className="mb-8 renewai-card min-w-0 p-6 sm:p-7">
-      <p className="renewai-eyebrow">AI Contract Assistant</p>
-      <h2 id="contract-assistant-heading" className="renewai-card-title mt-2">Ask RenewAI</h2>
-      <p id="assistant-scope" className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Ask about this contract’s terms and see exact source passages with PDF page citations. Each question is independent. Answers don’t change your saved terms, decisions or reminders.</p>
+    <>
+      <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-controls="contract-assistant-panel" className="renewai-button-primary">Ask RenewAI</button>
+      <dialog ref={dialog} id="contract-assistant-panel" aria-modal="true" aria-labelledby="contract-assistant-heading" aria-describedby="assistant-contract assistant-scope"
+        onCancel={(event) => { event.preventDefault(); close(); }}
+        className="fixed inset-0 m-0 h-dvh max-h-dvh w-full max-w-none overflow-hidden border-0 bg-white p-0 text-slate-950 shadow-2xl backdrop:bg-slate-950/40 open:flex open:flex-col sm:left-auto sm:w-[30rem] sm:max-w-[calc(100vw_-_2rem)] sm:border-l sm:border-slate-200">
+      <header className="shrink-0 border-b border-slate-200 px-5 py-5 sm:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="contract-assistant-heading" className="text-xl font-bold tracking-tight">Ask RenewAI</h2>
+          <button ref={closeButton} type="button" onClick={close} className="renewai-button-secondary">Close</button>
+        </div>
+        <p id="assistant-contract" className="mt-2 text-sm font-semibold text-slate-800 [overflow-wrap:anywhere]">{contractName}</p>
+        <p id="assistant-scope" className="mt-2 text-xs leading-5 text-slate-600">Only this contract. Each question is independent; earlier questions aren’t included. Answers don’t change your saved terms, decisions or reminders.</p>
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 sm:px-6">
+      <p className="text-sm leading-6 text-slate-600">Find exact source passages with PDF page citations.</p>
+      <div className="mt-3 flex flex-col items-start gap-2" aria-label="Suggested questions">
+        {suggestedQuestions.map((suggestion) => <button key={suggestion} type="button" disabled={running} onClick={() => { setQuestion(suggestion); questionInput.current?.focus(); }} className="min-h-11 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-left text-xs font-semibold leading-5 text-blue-800 hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50">{suggestion}</button>)}
+      </div>
       <form onSubmit={ask} className="mt-5 space-y-4" aria-describedby="assistant-scope" aria-busy={running}>
         <div>
           <label htmlFor="assistant-pdf" className="block text-sm font-bold text-slate-800">Original contract PDF</label>
@@ -84,18 +132,20 @@ export default function ContractAssistant({ contractId }: { contractId: string }
         </div>
         <div>
           <label htmlFor="assistant-question" className="block text-sm font-bold text-slate-800">Your question</label>
-          <textarea id="assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} minLength={3} maxLength={1000} required disabled={running}
+          <textarea ref={questionInput} id="assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} minLength={3} maxLength={1000} required disabled={running}
             placeholder="For example: What notice is required to prevent renewal?" rows={3}
             className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm leading-6 focus:border-blue-600 focus:outline-blue-600" />
           <p className="mt-1 text-xs text-slate-500">{question.length}/1,000 characters · text-readable PDFs only</p>
         </div>
-        <button type="submit" disabled={running || !file || question.trim().length < 3} className="renewai-button-primary disabled:cursor-not-allowed disabled:opacity-50">{running ? "Finding source passages…" : "Ask RenewAI"}</button>
+        <button type="submit" disabled={running || !file || question.trim().length < 3} className="renewai-button-primary w-full disabled:cursor-not-allowed disabled:opacity-50">{running ? "Finding source passages…" : "Find source passages"}</button>
       </form>
       <div role="status" aria-live="polite" aria-atomic="true">
         {running ? <p className="mt-4 text-sm text-slate-600">Checking this PDF for source support…</p> : null}
         {error ? <p className="mt-4 text-sm font-medium text-red-700">{error}</p> : null}
         {answer ? <><p className="mt-5 whitespace-pre-wrap text-sm font-semibold text-slate-800">Question: {answeredQuestion}</p><AssistantResult answer={answer} /></> : null}
       </div>
-    </section>
+      </div>
+      </dialog>
+    </>
   );
 }

@@ -19,6 +19,29 @@ Archived owned contracts remain readable, consistently with their detail/export
 pages. Every question is independent; refresh/navigation clears the component's
 in-memory answer and attached file.
 
+## Contract-page interface
+
+The **Ask RenewAI** button sits beside the summary download at the top of each
+contract detail page. It opens a contract-named modal side panel on desktop and
+a full-screen panel on narrow screens. Suggested questions fill the input;
+they do not submit a request. Each submission replaces the previous response,
+and the panel explicitly states that earlier questions are not included.
+
+Exact quotes are collapsed under **View source · Page N** controls. Expanding a
+source reveals the unchanged server-validated passage. Closing the panel or
+pressing Escape aborts the browser request, restores page scrolling and returns
+focus to the trigger. Cancellation does not guarantee a provider call already
+received by the backend stops. Closing preserves the attached file, question
+and completed answer in memory until navigation or refresh; nothing is persisted.
+
+Frontend verification covers the closed dialog and escaped contract name,
+collapsed citation controls, exact quotes and existing response validation.
+The isolated fictional-contract browser preview checks suggestions, successful
+and unsupported responses, error recovery, closing during a pending request,
+reopening, Escape/focus restoration and a 390 × 844 full-screen layout without
+horizontal overflow. Preview responses are simulated; this is not a new live
+Auth/provider/tenant-isolation test or a physical-device certification.
+
 ## API
 
 `POST /contracts/{contract_id}/ask` accepts authenticated multipart fields:
