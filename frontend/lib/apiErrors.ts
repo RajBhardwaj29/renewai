@@ -7,6 +7,7 @@ const VALIDATION_MESSAGES = new Set([
   "Attach the original PDF saved for this contract.",
   "The original PDF cannot be verified for this contract.",
   "Enter a question between 3 and 1,000 characters.",
+  "Connect the original PDF once to start chatting.",
   "Invalid renewal decision.",
   "Invalid renewal status.",
   "Some reviewed contract details are invalid. Review them and try again.",
@@ -14,7 +15,7 @@ const VALIDATION_MESSAGES = new Set([
 ]);
 
 export function requestFailureMessage(path: string): string {
-  if (path.endsWith("/ask")) {
+  if (path.endsWith("/ask") || path.includes("/chat")) {
     return "Ask RenewAI is temporarily unavailable. Please try again.";
   }
   if (path.endsWith("/summary.pdf")) {
@@ -64,7 +65,8 @@ export async function safeErrorResponse(path: string, response: Response): Promi
     detail = typeof data.detail === "string" && VALIDATION_MESSAGES.has(data.detail)
       ? data.detail : "Some details are missing or invalid. Review them and try again.";
   } else if (response.status === 413) {
-    detail = "This PDF is too large. Please choose a smaller file.";
+    detail = path.endsWith("/chat") ? "This conversation is too long. Start a new chat or shorten your message."
+      : "This PDF is too large. Please choose a smaller file.";
   } else if (response.status === 429) {
     detail = "RenewAI is busy. Please wait a moment and try again.";
   }

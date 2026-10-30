@@ -1,46 +1,91 @@
-# Ask RenewAI — Feature 2
+# Ask RenewAI — contract chatbot
 
-## Scope and behavior
+## Scope and user experience
 
-Saved contract pages include an independent, read-only AI Contract Assistant.
-Attach the **identical original PDF** and ask a question about its terms. The
-backend verifies the saved SHA-256 before parsing it. RenewAI does not retain
-original PDFs, so reattachment is deliberate: this feature adds no document
-store, extracted-text database, chat history, migration or backfill. Records
-without a valid saved file hash cannot use the assistant. Re-exporting or
-modifying a PDF changes its hash and is rejected even if it looks identical.
+Ask RenewAI opens a contract-scoped chat with a running conversation and a fixed
+message composer. Answers lead with short plain-English explanations. Exact
+source quotes and PDF page numbers remain available under collapsed source
+controls. Enter sends; Shift+Enter adds a line. New chat clears the conversation;
+close/reopen preserves it while the contract view stays mounted. Navigation or
+refresh clears chat messages. They are not persisted by RenewAI.
 
-The assistant uses AI to select relevant passages. Its answer is **extractive**:
-exact PDF text with one-based PDF page citations, not a generated legal opinion
-or paraphrase. It does not calculate deadlines, change saved terms, make a
-renewal decision, or send communications. Existing summary exports, reports,
-history, clause evidence, reminders and upload/save/AI-insight flows are unchanged.
-Archived owned contracts remain readable, consistently with their detail/export
-pages. Every question is independent; refresh/navigation clears the component's
-in-memory answer and attached file.
+New reviewed saves atomically retain the verified extracted page text alongside
+the contract, so questions do not need a file upload. Original PDF bytes are not
+stored. Older records need the identical original PDF attached **once**, through
+an explicit Connect PDF action; no text is reconstructed from edited terms.
+After connection, refresh and future questions reuse server-held page text.
+Records without a valid saved file hash cannot be connected automatically.
+Archive retains source text; permanent deletion cascades to it. Hosting backups
+remain subject to provider retention. The upload and privacy pages disclose this
+new retention behavior.
 
-## Contract-page interface
+## Chat endpoints and boundaries
 
-The **Ask RenewAI** button sits beside the summary download at the top of each
-contract detail page. It opens a contract-named modal side panel on desktop and
-a full-screen panel on narrow screens. Suggested questions fill the input;
-they do not submit a request. Each submission replaces the previous response,
-and the panel explicitly states that earlier questions are not included.
+- `GET /contracts/{id}/chat/source`: returns only `{ready, contract_id}`.
+- `POST /contracts/{id}/chat/source`: one-time original-PDF connection for older
+  records, with the existing file/page/text budgets and SHA-256 verification.
+- `POST /contracts/{id}/chat`: JSON `{question, previous_questions}`. The current
+  question is 3–1,000 characters, with at most six prior user questions of that
+  size and a 16 KiB request-body limit. At most two recent questions help resolve
+  follow-up references. Prior model prose is never used as contract evidence.
 
-Exact quotes are collapsed under **View source · Page N** controls. Expanding a
-source reveals the unchanged server-validated passage. Closing the panel or
-pressing Escape aborts the browser request, restores page scrolling and returns
-focus to the trigger. Cancellation does not guarantee a provider call already
-received by the backend stops. Closing preserves the attached file, question
-and completed answer in memory until navigation or refresh; nothing is persisted.
+Authentication and contract authorization run before POST body parsing, then
+again after inference. Source queries always include verified organization and
+contract IDs. Stored text/hash mismatches fail closed. Responses remain private,
+no-store and nosniff. Existing per-workspace/in-process inference slots apply
+through evidence selection, generation and support verification. Provider calls
+have bounded timeouts and no provider retries; outages return a retryable 503.
 
-Frontend verification covers the closed dialog and escaped contract name,
-collapsed citation controls, exact quotes and existing response validation.
-The isolated fictional-contract browser preview checks suggestions, successful
-and unsupported responses, error recovery, closing during a pending request,
-reopening, Escape/focus restoration and a 390 × 844 full-screen layout without
-horizontal overflow. Preview responses are simulated; this is not a new live
-Auth/provider/tenant-isolation test or a physical-device certification.
+The existing conservative retrieval and passage-ID selection remain in place.
+Only a supported selection can enter a plain-answer prompt. A separate structured
+support check must accept every claim, including material qualifications; an
+additional deterministic guard rejects notice answers that omit an explicit
+receipt requirement. Failed checks abstain without source claims. All question,
+history and document text is untrusted input; models have no tools, cross-contract
+retrieval, execution or external knowledge authorization. Answers render as
+escaped text, not HTML/Markdown. Citations remain exact server-owned spans.
+
+Plain-language generation and entailment checking are probabilistic, and context
+resolution is bounded/heuristic. This is not a proof of completeness or legal
+accuracy. Unknown terms, large contexts, ambiguous references, advice, actions,
+calculations and instruction attacks can abstain. Follow-ups do not create
+cross-document memory. The interface must not promise arbitrary agent actions.
+Existing summary/report/history/evidence/reminder and reviewed-term calculations
+are unchanged.
+
+## Migration and release gate
+
+Apply `supabase/migrations/20261030111923_contract_chat_sources.sql` before deploying
+these save/chat routes. The migration adds a private source table with RLS, no
+browser grants/policies, server-role-only invoker RPCs, scope/hash constraints,
+and cascading deletion. `save_contract_with_source` inserts both records in one
+transaction; source failure cannot leave a confirmed partial save. No existing
+contract is backfilled or changed by the migration. Do not publish the new save
+route before the migration is verified on the intended database.
+
+Test the migration on a disposable database first. Broader real Auth/database
+staging verification remains a separate step. No production migration or release
+is implied by implementing this upgrade. Source retention changes should be
+included in the release review, along with the privacy notice.
+
+## Upgrade verification
+
+Run the full backend suite, including `test_contract_chat.py` and
+`test_contract_sources_postgres.py` with the existing guarded loopback PostgreSQL
+fixture. SQL checks cover atomic rollback/defaults, Unicode text hashing, cascade
+deletion, scope/hash mismatch, browser table/RPC denial and RLS after accidental
+read grants. API checks cover one-time connection, repeated file-free questions,
+context/body limits, wrong files, stored tampering, anonymous/foreign requests and
+membership revocation during inference. Frontend checks cover plain answers,
+escaped text, scoped response validation and the chat composer. Existing benchmark
+results below concern the legacy evidence selector, not validation of generated
+plain-language answers or conversational accuracy.
+
+## Legacy passage-only endpoint and earlier evidence
+
+The following describes the retained `/ask` endpoint and its earlier tests. It
+remains compatible with clients that send the original PDF on every request.
+The chatbot uses `/chat` and the retained page source instead.
 
 ## API
 

@@ -6,6 +6,15 @@ export type AssistantAnswer = {
   citations: AssistantCitation[];
 };
 
+export type ChatAnswer = AssistantAnswer & { answer: string };
+
+export function parseChatAnswer(value: unknown, contractId: string): ChatAnswer {
+  const parsed = parseAssistantAnswer(value, contractId);
+  const answer = (value as Record<string, unknown>).answer;
+  if (typeof answer !== "string" || !answer.trim() || answer.length > 900) throw new Error("Invalid chat answer");
+  return { ...parsed, answer: answer.trim() };
+}
+
 export function parseAssistantAnswer(value: unknown, contractId: string): AssistantAnswer {
   if (!value || typeof value !== "object") throw new Error("Invalid assistant response");
   const data = value as Record<string, unknown>;

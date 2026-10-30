@@ -50,10 +50,15 @@ export default function PrivacyPage() {
               to deliver the service and is subject to their security and privacy terms.
             </p>
             <p className="mt-2">
-              Ask RenewAI processes the original PDF you reattach to a saved contract.
-              Your question and selected source passages are sent to our configured
-              AI-processing provider. This feature does not persist the PDF, question,
-              or answer in RenewAI; provider processing is subject to its own terms.
+              When you save a new contract or connect an older one to Ask RenewAI,
+              we retain its extracted page text privately with that contract so you
+              can chat without attaching the PDF again. The original PDF file is
+              not retained. Retained text is removed with permanent contract deletion;
+              archiving keeps it. Hosting backups follow the hosting provider’s retention.
+              Your question, recent questions used for follow-up context, and relevant
+              source passages are processed by our configured AI provider. Chat messages
+              are held only in the open contract view and are not saved by RenewAI.
+              Provider processing is subject to its own terms.
             </p>
           </section>
           <section>

@@ -18,6 +18,7 @@ function load(path, dependencies = {}) {
   return loaded.exports;
 }
 const parser = load('../lib/contractAssistant.ts');
+const chatResponse = () => ({...response(), answer: 'The notice period is 60 days before renewal.'});
 const components = load('../components/ContractAssistant.tsx', {
   '@/lib/contractAssistant': parser, '@/lib/authFetch': {authFetch: () => {throw new Error('Unexpected request');}},
 });
@@ -43,43 +44,43 @@ test('assistant accepts only consistent scoped answers and Unicode citation offs
   assert.throws(() => parser.parseAssistantAnswer(null, 'a'));
 });
 
-test('abstention has no citations or implied missing clause and ignores generated answer text', () => {
-  const result = parser.parseAssistantAnswer({...response(), status: 'abstained', citations: [], answer: 'Private invented answer'}, 'a');
-  const html = renderToStaticMarkup(createElement(components.AssistantResult, {answer: result}));
-  assert.match(html, /Insufficient source support/);
-  assert.match(html, /does not mean a term is absent/);
-  assert.doesNotMatch(html, /Private invented answer|<blockquote/);
+test('chat answers require bounded plain text and validated citations', () => {
+  const data = chatResponse();
+  assert.equal(parser.parseChatAnswer(data, 'a').answer, data.answer);
+  for (const answer of [null, '', ' '.repeat(3), 'x'.repeat(901), {text:'fake'}]) {
+    assert.throws(() => parser.parseChatAnswer({...data,answer}, 'a'));
+  }
+  assert.throws(() => parser.parseChatAnswer({...data,contract_id:'foreign'}, 'a'));
 });
 
-test('passages render exact quotes, page citations and escaped untrusted HTML', () => {
-  const data = response();
-  data.citations[0].quote = '<script>alert(1)</script> Renewal requires notice.';
-  data.citations[0].end = 9 + data.citations[0].quote.length;
-  const html = renderToStaticMarkup(createElement(components.AssistantResult, {answer: parser.parseAssistantAnswer(data, 'a')}));
-  assert.match(html, /<summary[^>]*>View source · Page 2<\/summary>/);
-  assert.doesNotMatch(html, /<details[^>]* open/);
+test('plain answer leads and exact sources stay collapsed and escaped', () => {
+  const data = chatResponse();
+  data.answer = '<script>bad()</script> You need 60 days notice.';
+  const html = renderToStaticMarkup(createElement(components.AssistantResult, {answer: parser.parseChatAnswer(data, 'a')}));
   assert.match(html, /&lt;script&gt;/);
-  assert.match(html, /Human review required/);
-  assert.doesNotMatch(html, /<script|<a |document_sha256/);
+  assert.match(html, /View source · Page 2/);
+  assert.match(html, /Except as amended/);
+  assert.doesNotMatch(html, /<script|<details[^>]* open|Source-supported passages|document_sha256/);
 });
 
-test('initial assistant is accessible, bounded, explicit about processing, and requires original PDF', () => {
-  const html = renderToStaticMarkup(createElement(components.default, {contractId: 'a', contractName: 'Fictional contract <A>'}));
-  assert.match(html, /Ask RenewAI/);
+test('abstention renders a friendly response without source claims', () => {
+  const data = {...chatResponse(), status:'abstained', citations:[], answer:'I couldn’t find enough support in this contract.'};
+  const html = renderToStaticMarkup(createElement(components.AssistantResult, {answer: parser.parseChatAnswer(data,'a')}));
+  assert.match(html, /couldn’t find enough support/);
+  assert.doesNotMatch(html, /<blockquote|<details/);
+});
+
+test('chat starts without a PDF picker, with scoped conversation and fixed message composer', () => {
+  const html = renderToStaticMarkup(createElement(components.default, {contractId:'a',contractName:'Fictional <A>'}));
   assert.match(html, /aria-haspopup="dialog"/);
-  assert.match(html, /<dialog[^>]*aria-modal="true"/);
   assert.doesNotMatch(html, /<dialog[^>]*\sopen(?:=|>)/);
-  assert.match(html, /Fictional contract &lt;A&gt;/);
-  assert.match(html, /earlier questions aren’t included/);
-  assert.match(html, /Suggested questions/);
+  assert.match(html, /Fictional &lt;A&gt;/);
+  assert.match(html, /Follow-up questions welcome/);
+  assert.match(html, /role="log" aria-label="Conversation"/);
   assert.match(html, /for="assistant-question"/);
-  assert.match(html, /for="assistant-pdf"/);
   assert.match(html, /maxLength="1000"/);
-  assert.match(html, /Each question is independent/);
-  assert.match(html, /configured AI provider/);
-  assert.match(html, /does not save questions or answers/);
-  assert.match(html, /aria-live="polite"/);
-  assert.match(html, /type="submit" disabled/);
+  assert.match(html, /Send message/);
+  assert.doesNotMatch(html, /type="file"|Each question is independent|Source-supported passages/);
 });
 
 test('assistant error handling preserves actionable file guidance without echoing private text', async () => {
