@@ -8,7 +8,7 @@ export default function PrivacyPage() {
           ← Back to RenewAI
         </Link>
         <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
-          Private beta · Updated 26 October 2026
+          Private beta · Updated 30 October 2026
         </p>
         <h1 className="mt-3 text-4xl font-bold tracking-tight">Privacy Notice</h1>
         <p className="mt-5 leading-7 text-slate-600">
@@ -48,6 +48,12 @@ export default function PrivacyPage() {
               RenewAI relies on hosting, authentication, database, AI-processing, and
               email-delivery providers. Information is shared with them only as needed
               to deliver the service and is subject to their security and privacy terms.
+            </p>
+            <p className="mt-2">
+              Ask RenewAI processes the original PDF you reattach to a saved contract.
+              Your question and selected source passages are sent to our configured
+              AI-processing provider. This feature does not persist the PDF, question,
+              or answer in RenewAI; provider processing is subject to its own terms.
             </p>
           </section>
           <section>

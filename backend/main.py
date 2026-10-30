@@ -15,6 +15,7 @@ from fastapi import (
 
 from pdf_input import extract_pdf_pages, extract_pdf_text
 from contract_evidence import build_contract_evidence
+from contract_assistant import answer_question, assistant_slot, MAX_QUESTION
 from upload_security import (
     ContractUploadGuard, PrivateResponseHeaders, MAX_PDF_BYTES, MAX_REVIEW_JSON_BYTES,
 )
@@ -136,6 +137,7 @@ else:
 app.add_middleware(
     ContractUploadGuard,
     authenticate=lambda authorization: get_authenticated_context(authorization),
+    authorize_assistant=lambda context, contract_id: authorize_contract_question(context, contract_id),
 )
 register_pilot_observability(app)
 
@@ -462,6 +464,56 @@ def get_single_contract(
                 f"{str(exc)}"
             ),
         )
+
+
+def authorize_contract_question(context, contract_id):
+    contract = get_contract_by_id(context["organization_id"], contract_id)
+    if not contract:
+        raise HTTPException(404, "Contract not found.")
+    file_hash = contract.get("file_hash")
+    if not isinstance(file_hash, str) or len(file_hash) != 64 or any(c not in "0123456789abcdef" for c in file_hash):
+        raise HTTPException(400, "The original PDF cannot be verified for this contract.")
+    return contract
+
+
+def ask_with_slot(pages, question, document_hash, organization_id):
+    with assistant_slot(organization_id):
+        try:
+            return answer_question(pages, question, document_hash)
+        except Exception:
+            raise HTTPException(503, "Ask RenewAI is temporarily unavailable. Please try again.")
+
+
+@app.post("/contracts/{contract_id}/ask")
+async def ask_contract(
+    contract_id: str,
+    request: Request,
+    file: UploadFile = File(...),
+    question: str = Form(..., min_length=3, max_length=MAX_QUESTION),
+    authorization: str | None = Header(default=None),
+):
+    context = request.state.contract_upload_context
+    contract = request.state.assistant_contract
+    question = question.strip()
+    if len(question) < 3:
+        raise HTTPException(400, "Enter a question between 3 and 1,000 characters.")
+    content = await file.read(MAX_PDF_BYTES + 1)
+    validate_pdf_content(file, content)
+    document_hash = get_file_hash(content)
+    if not hmac.compare_digest(document_hash, str(contract["file_hash"])):
+        raise HTTPException(400, "Attach the original PDF saved for this contract.")
+    # PyMuPDF remains on the event loop; provider I/O uses a worker, as in upload.
+    pages = extract_pdf_pages(content)
+    result = await run_in_threadpool(ask_with_slot, pages, question, document_hash, context["organization_id"])
+    # A revoked membership or deleted/moved contract during provider latency must
+    # not receive a late answer. Never reuse client-supplied tenant identifiers.
+    fresh = await run_in_threadpool(get_authenticated_context, authorization)
+    if fresh["organization_id"] != context["organization_id"]:
+        raise HTTPException(404, "Contract not found.")
+    current = await run_in_threadpool(authorize_contract_question, fresh, contract_id)
+    if not hmac.compare_digest(document_hash, str(current["file_hash"])):
+        raise HTTPException(400, "Attach the original PDF saved for this contract.")
+    return {**result, "contract_id": contract_id}
 
 
 @app.get("/contracts/{contract_id}/summary.pdf")

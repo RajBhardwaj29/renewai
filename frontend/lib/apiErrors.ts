@@ -4,6 +4,9 @@ const VALIDATION_MESSAGES = new Set([
   "Uploaded PDF is empty.",
   "The uploaded file does not appear to be a valid PDF.",
   "No readable text was found. This document may require OCR.",
+  "Attach the original PDF saved for this contract.",
+  "The original PDF cannot be verified for this contract.",
+  "Enter a question between 3 and 1,000 characters.",
   "Invalid renewal decision.",
   "Invalid renewal status.",
   "Some reviewed contract details are invalid. Review them and try again.",
@@ -11,6 +14,9 @@ const VALIDATION_MESSAGES = new Set([
 ]);
 
 export function requestFailureMessage(path: string): string {
+  if (path.endsWith("/ask")) {
+    return "Ask RenewAI is temporarily unavailable. Please try again.";
+  }
   if (path.endsWith("/summary.pdf")) {
     return "We couldn't generate this summary right now. Please try again.";
   }
