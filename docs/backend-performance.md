@@ -37,6 +37,11 @@ Other measurements:
 - Five reused-client live health probes from the developer machine: median
   **526 ms**, range **331–850 ms**. A separate initial request took **962 ms**.
   These probes did not establish a cold-start duration.
+- On 30 October, the first health response after the overnight pause took
+  **42,535 ms**, with TLS complete at **27 ms**. Five immediate warm probes
+  then took **260–350 ms**, median **269 ms**. Combined with the free-instance
+  sleep setting, this is strong evidence of idle wakeup latency. It does not
+  isolate platform wakeup from Python process startup inside that first wait.
 - Local process launch to `/health` 200, with synthetic dependencies and the
   scheduler disabled: **309, 342, 345 ms**. This excludes Render provisioning,
   instance wakeup, production network and actual credentials.
