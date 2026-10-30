@@ -56,15 +56,22 @@ test('passages render exact quotes, page citations and escaped untrusted HTML', 
   data.citations[0].quote = '<script>alert(1)</script> Renewal requires notice.';
   data.citations[0].end = 9 + data.citations[0].quote.length;
   const html = renderToStaticMarkup(createElement(components.AssistantResult, {answer: parser.parseAssistantAnswer(data, 'a')}));
-  assert.match(html, /Page 2 · original PDF/);
+  assert.match(html, /<summary[^>]*>View source · Page 2<\/summary>/);
+  assert.doesNotMatch(html, /<details[^>]* open/);
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /Human review required/);
   assert.doesNotMatch(html, /<script|<a |document_sha256/);
 });
 
 test('initial assistant is accessible, bounded, explicit about processing, and requires original PDF', () => {
-  const html = renderToStaticMarkup(createElement(components.default, {contractId: 'a'}));
+  const html = renderToStaticMarkup(createElement(components.default, {contractId: 'a', contractName: 'Fictional contract <A>'}));
   assert.match(html, /Ask RenewAI/);
+  assert.match(html, /aria-haspopup="dialog"/);
+  assert.match(html, /<dialog[^>]*aria-modal="true"/);
+  assert.doesNotMatch(html, /<dialog[^>]*\sopen(?:=|>)/);
+  assert.match(html, /Fictional contract &lt;A&gt;/);
+  assert.match(html, /earlier questions aren’t included/);
+  assert.match(html, /Suggested questions/);
   assert.match(html, /for="assistant-question"/);
   assert.match(html, /for="assistant-pdf"/);
   assert.match(html, /maxLength="1000"/);

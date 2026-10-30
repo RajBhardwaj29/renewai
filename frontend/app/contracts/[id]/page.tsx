@@ -1489,6 +1489,8 @@ export default function ContractDetailPage() {
 
             <div className="flex flex-wrap items-start gap-3">
 
+              <ContractAssistant key={id} contractId={id} contractName={contract.contract_title || contract.vendor_name || contract.filename || "This contract"} />
+
               <ContractSummaryDownload key={id} contractId={id} />
 
               <Link
@@ -2875,8 +2877,6 @@ formatTimingRisk(contract.risk_level)
 
 
           <ContractEvidence contract={contract} />
-
-          <ContractAssistant key={id} contractId={id} />
 
 
           {/* EXISTING CONTRACT ACTIONS */}
