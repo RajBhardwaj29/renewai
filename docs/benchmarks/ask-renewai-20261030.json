@@ -1,0 +1,598 @@
+{
+  "schema_version": "renewai.ask-benchmark-record.v1",
+  "date": "2026-10-30",
+  "scope": "Agent-curated fictional PDF regression fixtures; not independently legally reviewed, held-out, or a customer accuracy measurement.",
+  "base_commit": "50533d55187610601dcd3a37fa036f973c1d47eb",
+  "source_signature": "ff0e53300d43168a506d1b336d98f0d361ca404a70e512e1e35d8e80901683ab",
+  "source_sha256": {
+    "backend/contract_assistant.py": "0bed520f7247c054aa1beb839dc7551284e4c381f40b21d88702a87f45c29b99",
+    "backend/pdf_input.py": "0c716811d33cf9170397e697dcd588dc31c6442ca01727f203a965185bc861ec",
+    "backend/fixtures/ask_renewai_benchmark.json": "e898890132f7e784812906ba3b10eba9797f3f60b53198d6706f718b194686da",
+    "backend/tools/benchmark_contract_assistant.py": "d8d7551e4d34b22fa4468606e03f3c946e0c2f551ca3d4fcf96b267f31b20c45"
+  },
+  "provider": "groq",
+  "model": "openai/gpt-oss-20b",
+  "fixture_count": 26,
+  "repeats": 2,
+  "assessments": 52,
+  "passed": 52,
+  "failed": 0,
+  "provider_errors": 0,
+  "real_provider_requests": 36,
+  "assessments_resolved_by_pre_inference_guards": 16,
+  "results": [
+    {
+      "id": "notice_with_blank_page",
+      "category": "supported",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        2
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "price_and_qualification",
+      "category": "supported",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "cross_page_refund_exception",
+      "category": "cross_reference",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1,
+        2
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "distant_reference",
+      "category": "cross_reference",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1,
+        4
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "unresolved_conflict",
+      "category": "ambiguity",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "signed_amendment",
+      "category": "amendment",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        3
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "nonoperative_draft",
+      "category": "amendment",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "missing_amendment",
+      "category": "missing_context",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "explicit_precedence",
+      "category": "amendment",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1,
+        2
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "no_date_calculation",
+      "category": "unsupported",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "missing_currency",
+      "category": "unsupported",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "missing_insurance",
+      "category": "unsupported",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "partially_supported_question",
+      "category": "unsupported",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "different_contract",
+      "category": "scope",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "legal_advice",
+      "category": "scope",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "question_instruction_attack",
+      "category": "injection",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "document_instruction_attack",
+      "category": "injection",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "benign_security_clause",
+      "category": "supported",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "late_amendment_beyond_budget",
+      "category": "bounded_context",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "late_conflict_beyond_budget",
+      "category": "bounded_context",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "page_200",
+      "category": "long_document",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        200
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "breach_not_renewal",
+      "category": "supported",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "minimum_commitment",
+      "category": "supported",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "missing_numbered_reference",
+      "category": "missing_context",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "explicit_calendar_deadline",
+      "category": "supported",
+      "repeat": 1,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "action_request",
+      "category": "scope",
+      "repeat": 1,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "notice_with_blank_page",
+      "category": "supported",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        2
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "price_and_qualification",
+      "category": "supported",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "cross_page_refund_exception",
+      "category": "cross_reference",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1,
+        2
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "distant_reference",
+      "category": "cross_reference",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1,
+        4
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "unresolved_conflict",
+      "category": "ambiguity",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "signed_amendment",
+      "category": "amendment",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        3
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "nonoperative_draft",
+      "category": "amendment",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "missing_amendment",
+      "category": "missing_context",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "explicit_precedence",
+      "category": "amendment",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        2
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "no_date_calculation",
+      "category": "unsupported",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "missing_currency",
+      "category": "unsupported",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "missing_insurance",
+      "category": "unsupported",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "partially_supported_question",
+      "category": "unsupported",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "different_contract",
+      "category": "scope",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 1
+    },
+    {
+      "id": "legal_advice",
+      "category": "scope",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "question_instruction_attack",
+      "category": "injection",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "document_instruction_attack",
+      "category": "injection",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "benign_security_clause",
+      "category": "supported",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "late_amendment_beyond_budget",
+      "category": "bounded_context",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "late_conflict_beyond_budget",
+      "category": "bounded_context",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "page_200",
+      "category": "long_document",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        200
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "breach_not_renewal",
+      "category": "supported",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "minimum_commitment",
+      "category": "supported",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "missing_numbered_reference",
+      "category": "missing_context",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    },
+    {
+      "id": "explicit_calendar_deadline",
+      "category": "supported",
+      "repeat": 2,
+      "expected": "answered",
+      "actual": "answered",
+      "outcome": "passed",
+      "cited_pages": [
+        1
+      ],
+      "provider_calls": 1
+    },
+    {
+      "id": "action_request",
+      "category": "scope",
+      "repeat": 2,
+      "expected": "abstained",
+      "actual": "abstained",
+      "outcome": "passed",
+      "cited_pages": [],
+      "provider_calls": 0
+    }
+  ]
+}

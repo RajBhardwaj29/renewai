@@ -49,12 +49,25 @@ Responses, including errors, use private/no-store and nosniff headers.
 - The original file's SHA-256 must match the owned record. File names, supplied
   organization fields, saved clause edits and AI summaries cannot become sources.
 - Retrieval scans only this request's document. Page fragments are at most 1,800
-  characters with 300-character overlap; at most eight candidates reach the
-  provider. There is no shared index, cross-contract search or prior-turn context.
+  characters with 300-character overlap. Matching pages are expanded with
+  neighbouring pages, amendment/precedence context and referenced numbered
+  sections. At most eight candidates reach the provider. If this context exceeds
+  the budget or a referenced section cannot be located, the assistant abstains
+  before inference instead of silently dropping the omitted terms. There is no
+  shared index, cross-contract search or prior-turn context.
 - The system instruction treats the question and PDF as untrusted data, asks for
   abstention on conflicts, missing qualifications, advice or unsupported claims,
-  and disallows external knowledge and calculations. An additional pattern filter
-  rejects common instruction attacks and excludes suspicious passages.
+  and disallows external knowledge and calculations. Explicit signed amendments
+  or order forms may resolve conflicts only where their scope and precedence are
+  stated; a date alone is insufficient. Common instruction attacks found in the
+  PDF cause abstention for the whole request; suspicious text is not silently
+  removed while the remainder is presented as a complete answer. Ordinary API-key
+  protection clauses are treated as contract data, not automatically as attacks.
+- Explicit question guards reject advice, action and calculation requests. Exact
+  calendar-deadline requests require a literal source deadline or notice-by date
+  both in the PDF and in the selected citation. A relative notice
+  formula is insufficient. These English pattern checks are conservative
+  safeguards, not a complete natural-language intent classifier.
 - Both configured providers (Groq or Ollama) return a strict selection schema:
   `supported` and up to three passage IDs. No tools, browsing or actions are
   available. Unknown/duplicate IDs, extra answer fields and malformed output fail
@@ -77,9 +90,12 @@ Responses, including errors, use private/no-store and nosniff headers.
 
 Prompt-injection resistance is layered, not a claim that an AI can never select
 an irrelevant or misleading passage. Literal matching proves quote fidelity,
-not legal applicability or semantic completeness. Lexical retrieval can miss
-synonyms, amendments, cross-page context, tables and conflicting language outside
-the selected candidates. Human review is always required. OCR, semantic/vector
+not legal applicability or semantic completeness. Numeric section/heading and
+governing-context detection are heuristic; unfamiliar wording, unnumbered
+references, tables or external amendments can still be missed. The expanded
+context policy deliberately increases abstention on long or repetitive PDFs.
+Signature authenticity and legal effect are not verified. Human review is always
+required. OCR, semantic/vector
 retrieval, conversational memory and persistent source storage are outside scope.
 
 ## Validation and release gate
@@ -119,8 +135,8 @@ refund exception), unsupported-insurance abstention, wrong-file and foreign-tena
 rejection, summary download and unchanged records. One provider rate-limit error
 was shown safely; a later explicit retry on the same record passed. That single
 fictional agreement is not a calibrated accuracy benchmark or production test.
-A broader reviewed synthetic benchmark and authorized real Auth/database staging
-smoke test remain release prerequisites. Provider docs used for the response contract:
+The benchmark below extends that narrow check. Authorized real Auth/database
+staging verification remains a release prerequisite. Provider docs used for the response contract:
 [Groq structured outputs](https://console.groq.com/docs/structured-outputs).
 
 ### Dependency remediation — 30 October 2026
@@ -158,3 +174,68 @@ the synthetic upload/save → Ask → abstention → retry → original summary/
 flow, recheck two-account access, and obtain deployment authorization.
 Rollback removes the new UI and route; no schema rollback or retained document
 cleanup is needed.
+
+## Reproducible fictional benchmark
+
+`backend/fixtures/ask_renewai_benchmark.json` defines explicit expected outcomes
+for supported terms, amendments, order-form precedence, unresolved conflicts,
+cross-page exceptions, distant/missing numbered references, unsupported details,
+advice/actions/calculations, instruction attacks, a harmless credential policy,
+context-budget overflow and a page-200 clause. The fixture set is agent-curated,
+not independently annotated by legal reviewers. It is a development regression
+suite, not a held-out customer accuracy estimate.
+
+The runner creates each synthetic PDF in memory, uses the same bounded PDF
+extractor as uploads, and verifies exact source spans, required page/qualification
+coverage and abstention shape against the explicit expectations. No second model
+grades answers. No database/Auth client, production API, email sender or customer
+document is used. The fixed fixture path prevents accidental customer-file input.
+
+From `backend/`, inspect retrieval without any provider requests:
+
+```sh
+python tools/benchmark_contract_assistant.py --repeats 1 --output /private/tmp/ask-plan.json
+```
+
+Explicitly opt into the configured provider using fictional inputs only:
+
+```sh
+python tools/benchmark_contract_assistant.py --live --repeats 2 \
+  --interval-seconds 10 --env-file /path/to/private-ai.env \
+  --output /private/tmp/ask-live.json
+```
+
+Only AI configuration is imported from the optional environment file. Keys,
+provider exception messages and raw customer content are never written to the
+result. A provider outage/rate limit is reported separately as `provider_error`
+and fails the gate; it cannot count as a correct abstention. There is no automatic
+retry or provider fallback. `--resume` reuses completed results only for the same
+source fingerprint, model, fixture selection and repeat count, rerunning provider
+errors. `--only` marks a report as a subset; a subset is not a complete-suite pass.
+Results include a content fingerprint because the Git HEAD may still be the base
+commit while evaluating an uncommitted working tree.
+
+Recorded verification on 30 October 2026:
+
+- A six-case live retrieval baseline failed five cases: distant referenced terms,
+  document-instruction handling, a harmless credential-protection clause, and two
+  late-context cases. After expanding context, the wider run additionally found
+  that background clauses could be labelled as answers to a calendar-calculation
+  or legal-advice request. These were status/selection failures; no generated
+  legal advice or calculated date was rendered. The new context and question
+  guards address those observed failures.
+- The final configured Groq `openai/gpt-oss-20b` run matched all **26 expected
+  outcomes twice: 52 passes, zero failures and zero provider errors**. This used
+  **36 real provider requests**; **16 assessments were resolved by pre-inference
+  guards**. All selected quotes matched exact PDF page spans and met the case's
+  required page/qualification checks. Ollama was not live-benchmarked.
+- All **214 backend tests passed with zero skips**, including the 39 actual
+  disposable PostgreSQL tests and new API checks that advice/oversized-context
+  abstention preserves contracts and reminders without calling AI. All **24
+  frontend tests passed**. Frontend source/dependencies are unchanged since the
+  prior verified build; that build was not repeated for this backend-only change.
+- The [machine-readable record](benchmarks/ask-renewai-20261030.json) includes
+  fixture/source fingerprints and per-case outcomes. The full private diagnostic
+  runs remain separate from customer data. These are curated development cases,
+  not independent legal review, statistical accuracy certification or production
+  integration testing. Real Auth/database staging verification remains open.
