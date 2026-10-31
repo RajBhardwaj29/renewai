@@ -30,8 +30,17 @@ class SupportCheck(BaseModel):
 FOLLOW_UP = re.compile(r"\b(?:it|that|they|those|this|them|same|exceptions|simplify)\b|^\s*(?:and\b|why\b|what about\b|how about\b|explain\b)", re.I)
 
 
+# A short named-topic pivot is already a complete question. Carrying the old
+# topic forward can apply its unrelated safeguards to the new answer. Keep
+# referential or qualified follow-ups on the existing context path.
+TOPIC_PIVOT = re.compile(
+    r"^\s*(?:what|how)\s+about\s+(?:the\s+)?"
+    r"(?:pricing|prices?|fees?|costs?|refunds?|termination|payment(?:\s+terms)?|"
+    r"minimum\s+commitments?|notice(?:\s+period)?)\s*[?.!]*\s*$", re.I)
+
+
 def contextual_question(question, previous_questions):
-    if not FOLLOW_UP.search(question) or not previous_questions:
+    if TOPIC_PIVOT.fullmatch(question) or not FOLLOW_UP.search(question) or not previous_questions:
         return question
     return "Earlier questions (reference context only): " + " / ".join(previous_questions[-2:]) + "\nCurrent question: " + question
 
@@ -148,7 +157,10 @@ def _contract_answer(pages, question, previous_questions, document_hash, *, sour
     if result["status"] != "answered":
         result["answer"] = "I couldn’t find enough support in this contract to answer that. Try a more specific question."
         return result
-    payload = {"question": question, "previous_questions": previous_questions[-2:], "sources": result["citations"]}
+    # Only pass reference context when it was needed to resolve this question.
+    # The entire supplied history was still scanned for injection above.
+    reference_context = previous_questions[-2:] if resolved != question else []
+    payload = {"question": question, "previous_questions": reference_context, "sources": result["citations"]}
     try:
         system = PLAIN_SYSTEM
         if source_fallback:

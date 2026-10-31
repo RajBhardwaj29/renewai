@@ -345,3 +345,15 @@ the original selected citations. It never displays an unchecked draft. Selection
 outages still return a sanitized service error; semantic/validation failures retain
 the existing abstention rules. This improves intermittent failure recovery without
 claiming that provider outages or unsupported answers are eliminated.
+
+### Explicit topic follow-ups
+
+Short named-topic questions such as “What about pricing?” and “How about the
+fees?” are treated as standalone topic changes. The earlier notice question no
+longer enters their evidence query, answer prompt or notice-specific checks.
+Referential or qualified questions such as “Must that be written?” and “What
+about pricing in that case?” retain recent-question context. All supplied history
+is still scanned for injection before unused context is dropped, and selected
+quotes and generated answers still pass the existing support checks. Topic
+recognition is deliberately bounded to common short forms, not a general-purpose
+conversation resolver.
