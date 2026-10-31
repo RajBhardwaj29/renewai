@@ -23,7 +23,7 @@ class ChatGroundingTests(unittest.TestCase):
                'document_sha256':'a'*64,'requires_human_review':True}
         with patch.object(chat,'_contract_answer',return_value=facts) as model:
             result=chat.chat_answer(['Renewal terms.'],'should i renew or renegotiate the contract',[],'a'*64,
-                                    {'status':'completed','action':'investigate','summary':'PRIVATE unverified insight'})
+                                    {'status':'completed','action':'review','summary':'PRIVATE unverified insight'})
         self.assertEqual(result['status'],'guidance')
         self.assertIn('Contract facts: Renewal is for another 12 months.',result['answer'])
         self.assertIn('Saved RenewAI advisory: Review before renewal',result['answer'])
@@ -63,12 +63,58 @@ class ChatGroundingTests(unittest.TestCase):
         self.assertEqual(factual.call_args.args[1],'What about pricing?')
         self.assertNotIn('Should I',str(factual.call_args.args[2]))
 
-    def test_long_factual_answer_is_not_truncated_into_an_incomplete_claim(self):
+    def test_long_verified_facts_are_preserved_in_full(self):
         with patch.object(chat,'_contract_answer',return_value={'status':'answered','answer':'x'*900,'citations':[],
                 'document_sha256':'a'*64,'requires_human_review':True}):
-            result=chat.chat_answer(['Renewal terms.'],'Should I renew?',[],'a'*64,{'status':'completed','action':'cancel'})
-        self.assertLessEqual(len(result['answer']),900)
-        self.assertNotIn('xxx',result['answer'])
+            result=chat.chat_answer(['Renewal terms.'],'Should I renew?',[],'a'*64,{'status':'completed','action':'consider_cancellation'})
+        self.assertLessEqual(len(result['answer']),6400)
+        self.assertIn('x'*900,result['answer'])
+
+    def test_saved_advisory_uses_real_persisted_vocabulary_and_ignores_unknown_actions(self):
+        facts={'status':'abstained','answer':'unsupported','citations':[]}
+        for action,label in chat.ADVISORY_LABELS.items():
+            with patch.object(chat,'_contract_answer',return_value=facts):
+                result=chat.chat_answer(['terms'],'Should I renew?',[],'a'*64,
+                                       {'status':'completed','action':action})
+            self.assertIn('Saved RenewAI advisory: '+label,result['answer'])
+        for action in ['investigate','renew','cancel','<script>']:
+            with patch.object(chat,'_contract_answer',return_value=facts):
+                result=chat.chat_answer(['terms'],'Should I renew?',[],'a'*64,
+                                       {'status':'completed','action':action})
+            self.assertNotIn('Saved RenewAI advisory:',result['answer'])
+
+    def test_rejected_explanation_preserves_only_complete_selected_source_for_guidance(self):
+        pages=['Renewal notice must be received 60 days before renewal. Except as stated in section 2.',
+               'Section 2: notice must reach the designated contract contact.']
+        def both(_question,candidates):
+            return json.dumps({'supported':True,'passage_ids':[c['id'] for c in candidates]})
+        with patch.object(evidence,'select_evidence',side_effect=both), patch.object(chat,'structured_response',
+                side_effect=[chat.PlainAnswer(answer='Invented private claim.'),chat.SupportCheck(fully_supported=False)]):
+            result=chat.chat_answer(pages,'Should I renew?',[],'a'*64,{'action':'review','status':'completed'})
+        self.assertEqual(result['status'],'guidance')
+        self.assertNotIn('Invented private claim',result['answer'])
+        for page in pages: self.assertIn(page,result['answer'])
+        self.assertEqual([c['quote'] for c in result['citations']],pages)
+        self.assertIn('exact selected contract wording',result['answer'])
+        self.assertIn('Saved RenewAI advisory: Review before renewal',result['answer'])
+
+    def test_source_fallback_does_not_override_failed_selection(self):
+        with patch.object(evidence,'select_evidence',return_value=json.dumps({'supported':False,'passage_ids':[]})), \
+                patch.object(chat,'structured_response') as model:
+            result=chat.chat_answer(['Unrelated private text.'],'Should I renew?',[],'a'*64)
+        self.assertNotIn('Unrelated private text',result['answer'])
+        self.assertNotIn('Contract facts:',result['answer'])
+        self.assertEqual(result['citations'],[])
+        model.assert_not_called()
+
+    def test_full_three_passage_fallback_fits_guidance_budget(self):
+        quotes=[{'page':i,'start':0,'end':1800,'quote':'x'*1800} for i in range(1,4)]
+        selected={'status':'answered','citations':quotes,'answer':'Selected passages.'}
+        with patch.object(evidence,'answer_question',return_value=selected), \
+                patch.object(chat,'structured_response',side_effect=ValueError('Invalid explanation')):
+            result=chat.chat_answer(['terms'],'Should I renew?',[],'a'*64,{'action':'review','status':'completed'})
+        self.assertLessEqual(len(result['answer']),6400)
+        self.assertEqual(result['answer'].count('x'*1800),3)
 
     def test_plain_answer_requires_verified_evidence_and_support_check(self):
         pages = ["Renewal requires written notice received 60 days before renewal."]
@@ -146,16 +192,31 @@ class ChatAPITests(unittest.TestCase):
 
     def test_advisory_context_is_only_from_the_authorized_saved_contract(self):
         self.attach()
-        self.db.rows['contracts'][0].update(ai_action='investigate',ai_analysis_status='completed',ai_summary='PRIVATE stored prose')
+        self.db.rows['contracts'][0].update(ai_action='review',ai_analysis_status='completed',ai_summary='PRIVATE stored prose')
         snapshot=deepcopy(self.db.rows)
         with patch.object(main,'chat_answer',return_value={'status':'guidance','answer':'Your team decides.'}) as model:
             self.assertEqual(self.ask('Should I renew or renegotiate?').status_code,200)
-        self.assertEqual(model.call_args.args[4],{'action':'investigate','status':'completed'})
+        self.assertEqual(model.call_args.args[4],{'action':'review','status':'completed'})
         self.assertNotIn('PRIVATE',str(model.call_args))
         self.assertEqual(snapshot,self.db.rows)
         response=self.client.post('/contracts/contract-a/chat',headers=self.auth,json={'question':'Should I renew?',
                                    'advisory':{'action':'renew','status':'completed'}})
         self.assertEqual(response.status_code,422)
+
+    def test_actual_api_retains_source_and_real_review_advisory_on_rejected_summary(self):
+        self.attach()
+        self.db.rows['contracts'][0].update(ai_action='review',ai_analysis_status='completed',ai_summary='PRIVATE saved prose')
+        snapshot=deepcopy(self.db.rows)
+        with patch.object(evidence,'select_evidence',side_effect=select_first), \
+                patch.object(chat,'structured_response',side_effect=ValueError('Invalid explanation')):
+            response=self.ask('should i renew or renegotiate the contract')
+        self.assertEqual(response.status_code,200)
+        result=response.json()
+        self.assertEqual(result['status'],'guidance')
+        self.assertIn('Saved RenewAI advisory: Review before renewal',result['answer'])
+        self.assertIn(result['citations'][0]['quote'],result['answer'])
+        self.assertNotIn('PRIVATE saved prose',response.text)
+        self.assertEqual(self.db.rows,snapshot)
 
     def test_foreign_missing_anonymous_and_malformed_bodies_are_denied_before_parsing(self):
         for path in ['/contracts/contract-a/chat','/contracts/contract-a/chat/source']:

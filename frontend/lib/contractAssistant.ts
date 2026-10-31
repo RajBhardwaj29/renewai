@@ -16,7 +16,10 @@ export function parseChatAnswer(value: unknown, contractId: string): ChatAnswer 
     ? { ...raw, status: Array.isArray(raw.citations) && raw.citations.length ? "answered" : "abstained" }
     : value, contractId);
   const answer = (value as Record<string, unknown>).answer;
-  if (typeof answer !== "string" || !answer.trim() || answer.length > 900) throw new Error("Invalid chat answer");
+  // Guidance can include up to three full 1,800-character source passages when
+  // a short explanation fails verification. Ordinary chat stays capped at 900.
+  if (typeof answer !== "string" || !answer.trim() ||
+      (guidance ? Array.from(answer).length > 6400 : answer.length > 900)) throw new Error("Invalid chat answer");
   return { ...parsed, status: guidance ? "guidance" : parsed.status, answer: answer.trim() };
 }
 
