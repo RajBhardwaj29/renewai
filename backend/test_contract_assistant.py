@@ -161,7 +161,7 @@ class EvidenceTests(unittest.TestCase):
                 SimpleNamespace(message=SimpleNamespace(content=response_text))])
             self.assertEqual(assistant.select_evidence("What notice prevents renewal?", candidates), response_text)
             args = client.chat.completions.create.call_args.kwargs
-            constructor.assert_called_once_with(api_key=assistant.config.GROQ_API_KEY, timeout=30, max_retries=0)
+            constructor.assert_called_once_with(api_key=assistant.config.GROQ_API_KEY, timeout=12, max_retries=0)
             self.assertNotIn("tools", args)
             self.assertEqual(args["messages"][0]["role"], "system")
             data = json.loads(args["messages"][1]["content"])

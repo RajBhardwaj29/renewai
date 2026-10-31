@@ -12,6 +12,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 import contract_ai as config
+from chat_provider import completion
 
 MAX_QUESTION = 1000
 PASSAGE_SIZE = 1800
@@ -177,8 +178,8 @@ def select_evidence(question, candidates):
     schema = Selection.model_json_schema()
     if config.AI_PROVIDER == "groq":
         from groq import Groq
-        with Groq(api_key=config.GROQ_API_KEY, timeout=30, max_retries=0) as client:
-            response = client.chat.completions.create(
+        with Groq(api_key=config.GROQ_API_KEY, timeout=12, max_retries=0) as client:
+            response = completion(client, stage="contract_evidence_selection",
                 model=config.GROQ_MODEL, messages=messages, temperature=0,
                 max_completion_tokens=1024, reasoning_effort="low", include_reasoning=False,
                 response_format={"type": "json_schema", "json_schema": {

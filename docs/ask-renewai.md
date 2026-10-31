@@ -329,3 +329,19 @@ Recorded verification on 30 October 2026:
   runs remain separate from customer data. These are curated development cases,
   not independent legal review, statistical accuracy certification or production
   integration testing. Real Auth/database staging verification remains open.
+
+### Chat provider recovery
+
+Read-only Groq evidence selection, explanation and support checks retry once for
+connection/timeouts, HTTP 408/429/5xx, or `json_validate_failed` responses. Each
+attempt has a 12-second timeout, SDK retries are disabled, and the single retry
+waits 250 ms. Authentication and other request/configuration errors still fail.
+The log records only the fixed stage, exception class, status, attempt and whether
+recovery is allowed; never provider bodies, questions or source text.
+
+If explanation or support-check inference remains unavailable after successful
+validated evidence selection, chat presents a qualified source-only response with
+the original selected citations. It never displays an unchecked draft. Selection
+outages still return a sanitized service error; semantic/validation failures retain
+the existing abstention rules. This improves intermittent failure recovery without
+claiming that provider outages or unsupported answers are eliminated.

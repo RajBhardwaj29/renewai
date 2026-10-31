@@ -8,6 +8,7 @@ import re
 from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 import contract_assistant as evidence
+from chat_provider import ChatProviderUnavailable, completion
 
 
 class ChatRequest(BaseModel):
@@ -42,8 +43,8 @@ def structured_response(system, payload, model, name):
     config = evidence.config
     if config.AI_PROVIDER == "groq":
         from groq import Groq
-        with Groq(api_key=config.GROQ_API_KEY, timeout=30, max_retries=0) as client:
-            response = client.chat.completions.create(model=config.GROQ_MODEL, messages=messages,
+        with Groq(api_key=config.GROQ_API_KEY, timeout=12, max_retries=0) as client:
+            response = completion(client, stage=name, model=config.GROQ_MODEL, messages=messages,
                 temperature=0, max_completion_tokens=1024, reasoning_effort="low", include_reasoning=False,
                 response_format={"type":"json_schema", "json_schema":{"name":name,"strict":True,"schema":schema}})
         raw = response.choices[0].message.content
@@ -169,6 +170,10 @@ def _contract_answer(pages, question, previous_questions, document_hash, *, sour
         check = structured_response(CHECK_SYSTEM, {**payload, "proposed_answer": draft}, SupportCheck, "contract_answer_support")
         if not check.fully_supported:
             raise ValueError("Unsupported answer")
+    except ChatProviderUnavailable:
+        # Selection and scope checks have already passed. Do not substitute an
+        # unchecked draft when explanation/verification inference is unavailable.
+        return {**result, "answer": "I couldn’t generate a verified short explanation right now. Open the source quotes below to review the exact contract wording, including its conditions and exceptions."}
     except (ValidationError, ValueError):
         if source_fallback:
             # Selection already passed the existing scope/context safeguards.
