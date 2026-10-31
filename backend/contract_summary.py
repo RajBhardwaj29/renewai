@@ -80,7 +80,7 @@ def bullets(values):
             if values else f"<p>{UNKNOWN}</p>")
 
 
-def build_contract_summary(contract: dict, reminders: list[dict], *, generated_at=None) -> bytes:
+def build_contract_summary(contract: dict, reminders: list[dict], *, generated_at=None, commercial_review=None) -> bytes:
     """Render an allowlisted snapshot; never serialize the entire database row."""
     now = generated_at or datetime.now(timezone.utc)
     today = now.astimezone(timezone.utc).date()
@@ -154,7 +154,7 @@ def build_contract_summary(contract: dict, reminders: list[dict], *, generated_a
       This export does not recalculate the cycle. If the saved deadline has passed, review the current renewal position.
       A missing business-day calendar can limit deadline precision; check the notice clause.</p>
       <h2>3. Important contract terms and evidence</h2>
-      <p class="muted">Saved clause text is reproduced below. Source page and section references are not recorded separately.</p>
+      <p class="muted">Saved clause text is reproduced below. Verified PDF page citations appear in the commercial review section when available.</p>
       {paragraph('Renewal conditions', contract.get('renewal_clause'))}
       {paragraph('Termination rights and breach cure', contract.get('termination_clause'))}
       {paragraph('Payment terms and billing frequency', contract.get('payment_terms'))}
@@ -193,6 +193,16 @@ def build_contract_summary(contract: dict, reminders: list[dict], *, generated_a
         html += '</table>'
     else:
         html += '<p>No non-cancelled reminders are recorded.</p>'
+    if commercial_review:
+        html += '<div class="commercial-review"><h2>Commercial risk review — advisory</h2>'
+        html += paragraph('Review coverage', commercial_review['coverage'])
+        html += '<p>Severity not assessed. These are review prompts, not findings of legal invalidity or a complete risk assessment.</p>'
+        for item in commercial_review['items']:
+            review = item.get('review')
+            html += paragraph(item['title'], (review['status'] if review else 'Unreviewed') + ' — ' + item['explanation'])
+            for citation in item['citations']:
+                html += paragraph('PDF page ' + str(citation['page']), citation['quote'])
+        html += '<p>Internal review reasons and reviewer identities are excluded. Confirmation does not approve the agreement.</p></div>'
     html += f"""<h2>7. Source and snapshot</h2>
       {rows([
           ('Original filename', contract.get('filename')),
@@ -221,6 +231,8 @@ def build_contract_summary(contract: dict, reminders: list[dict], *, generated_a
       td { width: 280pt; font-size: 9pt; }
       .reminders th, .reminders td { width: 145pt; }
       p { orphans: 2; widows: 2; }
+      .commercial-review h3 { margin: 5pt 0 2pt; }
+      .commercial-review p { margin: 3pt 0 4pt; }
     """
     output = BytesIO()
     page = pymupdf.paper_rect("a4")

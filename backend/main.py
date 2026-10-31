@@ -578,6 +578,48 @@ async def converse_with_contract(contract_id: str, request: Request, payload: Ch
     return {**result, "contract_id": contract_id}
 
 
+def require_commercial_review():
+    if os.getenv("ENABLE_COMMERCIAL_REVIEW", "false").lower() != "true":
+        raise HTTPException(503, "Commercial review is not enabled.")
+
+
+@app.get("/contracts/{contract_id}/commercial-review")
+def commercial_review(contract_id: str, authorization: str | None = Header(default=None)):
+    from contract_risks import load_review
+    context = get_authenticated_context(authorization)
+    contract = authorize_contract_question(context, contract_id)
+    require_commercial_review()
+    return load_review(contract, context["organization_id"], get_source(context["organization_id"], contract))
+
+
+from contract_risks import RiskReview
+
+
+@app.patch("/contracts/{contract_id}/commercial-review")
+def review_commercial_finding(contract_id: str, payload: RiskReview, authorization: str | None = Header(default=None)):
+    from contract_risks import findings
+    import database
+    context = get_authenticated_context(authorization)
+    contract = authorize_contract_question(context, contract_id)
+    require_commercial_review()
+    if contract.get("archived"):
+        raise HTTPException(409, "Restore the contract before reviewing findings.")
+    items = findings(contract, get_source(context["organization_id"], contract))
+    if not any(item["fingerprint"] == payload.fingerprint and item["status"] == "review_required" for item in items):
+        raise HTTPException(409, "The source finding has changed or is unavailable. Reload the review.")
+    if not payload.rationale.strip():
+        raise HTTPException(400, "Enter a review reason.")
+    result = database.supabase.rpc("review_commercial_finding", {
+        "p_org": context["organization_id"], "p_contract": contract_id,
+        "p_actor": str(context["user"].id), "p_fingerprint": payload.fingerprint,
+        "p_status": payload.status, "p_rationale": payload.rationale.strip(),
+        "p_revision": payload.expected_revision,
+    }).execute().data
+    if not result:
+        raise HTTPException(409, "This review changed. Reload before reviewing again.")
+    return {"saved": True}
+
+
 @app.get("/contracts/{contract_id}/summary.pdf")
 async def download_contract_summary(
     contract_id: str,
@@ -589,7 +631,13 @@ async def download_contract_summary(
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found.")
     reminders = await run_in_threadpool(get_contract_reminders, organization_id, contract_id)
-    pdf = build_contract_summary(contract, reminders)
+    if os.getenv("ENABLE_COMMERCIAL_REVIEW", "false").lower() == "true":
+        from contract_risks import load_review
+        pages = await run_in_threadpool(get_source, organization_id, contract)
+        review = await run_in_threadpool(load_review, contract, organization_id, pages)
+        pdf = build_contract_summary(contract, reminders, commercial_review=review)
+    else:
+        pdf = build_contract_summary(contract, reminders)
     return Response(content=pdf, media_type="application/pdf", headers={
         "Content-Disposition": f'attachment; filename="{summary_filename(contract)}"',
         "Cache-Control": "private, no-store",
