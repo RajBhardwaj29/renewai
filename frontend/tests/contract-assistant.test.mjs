@@ -53,6 +53,19 @@ test('chat answers require bounded plain text and validated citations', () => {
   assert.throws(() => parser.parseChatAnswer({...data,contract_id:'foreign'}, 'a'));
 });
 
+test('decision guidance is distinct and keeps scoped exact-citation validation', () => {
+  for (const citations of [[], response().citations]) {
+    const data = {...chatResponse(),status:'guidance',citations};
+    const parsed = parser.parseChatAnswer(data,'a');
+    assert.equal(parsed.status,'guidance');
+    const html = renderToStaticMarkup(createElement(components.AssistantResult,{answer:parsed}));
+    assert.match(html,/Decision guidance · Your team decides/);
+    assert.throws(() => parser.parseChatAnswer({...data,contract_id:'foreign'},'a'));
+  }
+  assert.throws(() => parser.parseChatAnswer({...chatResponse(),status:'guidance',citations:[{page:0}]},'a'));
+  assert.throws(() => parser.parseChatAnswer({...chatResponse(),status:'do_anything'},'a'));
+});
+
 test('plain answer leads and exact sources stay collapsed and escaped', () => {
   const data = chatResponse();
   data.answer = '<script>bad()</script> You need 60 days notice.';

@@ -21,6 +21,17 @@ new retention behavior.
 
 ## Chat endpoints and boundaries
 
+Renewal decision questions such as “Should I renew or renegotiate?” return a
+distinct `guidance` response. It separates a verified renewal-terms explanation
+from conditional business options and asks about usage, service fit, budget and
+alternatives. Only a completed, server-owned advisory action enum may supply a
+label such as “Review before renewal”; saved AI prose is not source evidence.
+No human decision or saved recommendation is changed. If source support is
+unavailable, guidance gives a general comparison framework without invented
+contract facts or citations. Long verified summaries are omitted rather than
+truncated. Injection, foreign-workspace and legal/action restrictions remain;
+the legacy extractive selector’s advice restriction is unchanged.
+
 - `GET /contracts/{id}/chat/source`: returns only `{ready, contract_id}`.
 - `POST /contracts/{id}/chat/source`: one-time original-PDF connection for older
   records, with the existing file/page/text budgets and SHA-256 verification.

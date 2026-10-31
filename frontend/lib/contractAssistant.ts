@@ -6,13 +6,18 @@ export type AssistantAnswer = {
   citations: AssistantCitation[];
 };
 
-export type ChatAnswer = AssistantAnswer & { answer: string };
+export type ChatAnswer = Omit<AssistantAnswer, "status"> & { status: "answered" | "abstained" | "guidance"; answer: string };
 
 export function parseChatAnswer(value: unknown, contractId: string): ChatAnswer {
-  const parsed = parseAssistantAnswer(value, contractId);
+  if (!value || typeof value !== "object") throw new Error("Invalid chat answer");
+  const raw = value as Record<string, unknown>;
+  const guidance = raw.status === "guidance";
+  const parsed = parseAssistantAnswer(guidance
+    ? { ...raw, status: Array.isArray(raw.citations) && raw.citations.length ? "answered" : "abstained" }
+    : value, contractId);
   const answer = (value as Record<string, unknown>).answer;
   if (typeof answer !== "string" || !answer.trim() || answer.length > 900) throw new Error("Invalid chat answer");
-  return { ...parsed, answer: answer.trim() };
+  return { ...parsed, status: guidance ? "guidance" : parsed.status, answer: answer.trim() };
 }
 
 export function parseAssistantAnswer(value: unknown, contractId: string): AssistantAnswer {
