@@ -94,8 +94,8 @@ EXCLUDED_DECISION = re.compile(
     r"|(?:other|another)\s+(?:tenant|workspace|customer)"
     r"|^\s*(?:send|email|delete|sign|pay|execute)\b", re.I)
 ADVISORY_LABELS = {
-    "renew": "Consider renewal", "renegotiate": "Consider renegotiation",
-    "investigate": "Review before renewal", "cancel": "Consider cancellation",
+    "monitor": "Continue monitoring", "review": "Review before renewal",
+    "renegotiate": "Consider renegotiation", "consider_cancellation": "Consider cancellation",
 }
 
 
@@ -107,10 +107,11 @@ def is_decision_question(question):
 def decision_guidance(pages, document_hash, advisory):
     # Ask only a factual question of the existing evidence pipeline. The user's
     # request for a recommendation never relaxes the passage selector's rules.
-    facts = _contract_answer(pages, "What renewal and non-renewal notice terms are stated in this contract?", [], document_hash)
+    facts = _contract_answer(pages, "What renewal and non-renewal notice terms are stated in this contract?", [], document_hash,
+                             source_fallback=True)
     grounded = facts["status"] == "answered"
     parts = []
-    if grounded and len(facts["answer"]) <= 350:
+    if grounded:
         parts.append("Contract facts: " + facts["answer"])
     else:
         parts.append("I can help you weigh renewal against renegotiation. The contract alone cannot tell me which is best for your business.")
@@ -137,7 +138,7 @@ def chat_answer(pages, question, previous_questions, document_hash, advisory=Non
     return _contract_answer(pages, question, factual_context, document_hash)
 
 
-def _contract_answer(pages, question, previous_questions, document_hash):
+def _contract_answer(pages, question, previous_questions, document_hash, *, source_fallback=False):
     # Scan all context before it enters either model prompt.
     if any(evidence.INJECTION.search(q) for q in [question, *previous_questions]):
         return evidence.answer_question([], question, document_hash)
@@ -148,7 +149,10 @@ def _contract_answer(pages, question, previous_questions, document_hash):
         return result
     payload = {"question": question, "previous_questions": previous_questions[-2:], "sources": result["citations"]}
     try:
-        draft = structured_response(PLAIN_SYSTEM, payload, PlainAnswer, "contract_plain_answer").answer.strip()
+        system = PLAIN_SYSTEM
+        if source_fallback:
+            system += "\nFor this renewal overview, include the stated renewal length and first renewal start date, notice interval and its measurement anchor, receipt requirement and designated recipient when stated. Preserve the distinction between the next term's start and the expiring term's final day. You may use up to five short sentences to retain these qualifications, within 900 characters. Do not infer a recurring calendar date from a stated first renewal date."
+        draft = structured_response(system, payload, PlainAnswer, "contract_plain_answer").answer.strip()
         if not draft or evidence.INJECTION.search(draft) or re.search(r"https?://|www\.", draft):
             raise ValueError("Unsafe answer")
         # Receipt requirements are easy to weaken in a short paraphrase. Keep
@@ -166,6 +170,13 @@ def _contract_answer(pages, question, previous_questions, document_hash):
         if not check.fully_supported:
             raise ValueError("Unsupported answer")
     except (ValidationError, ValueError):
+        if source_fallback:
+            # Selection already passed the existing scope/context safeguards.
+            # A rejected paraphrase must never erase that selected evidence or
+            # become an unchecked claim. Quote every selected passage in full;
+            # do not shorten a clause and accidentally drop a qualification.
+            wording = "\n\n".join(f"Page {p['page']}:\n{p['quote']}" for p in result["citations"])
+            return {**result, "answer": "I couldn’t verify a short explanation. Here is the exact selected contract wording; check its full context below.\n\n" + wording}
         return {**result, "status":"abstained", "citations":[],
                 "answer":"I couldn’t verify a reliable answer from this contract. Please check the original wording."}
     return {**result, "answer":draft}

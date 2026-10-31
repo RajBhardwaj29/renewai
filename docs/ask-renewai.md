@@ -28,8 +28,19 @@ alternatives. Only a completed, server-owned advisory action enum may supply a
 label such as “Review before renewal”; saved AI prose is not source evidence.
 No human decision or saved recommendation is changed. If source support is
 unavailable, guidance gives a general comparison framework without invented
-contract facts or citations. Long verified summaries are omitted rather than
-truncated. Injection, foreign-workspace and legal/action restrictions remain;
+contract facts or citations. Verified explanations are preserved in full rather
+than silently dropped at 350 characters. The renewal overview prompt explicitly
+retains the first renewal date, term length and notice measurement/receipt/contact
+qualifications; the existing support verifier still has to accept it.
+If the explanation fails verification,
+guidance falls back to all of the already-selected exact passages, with page
+labels and a clear wording-only notice. It never uses the rejected explanation
+or cuts a source passage to fit. Selection/scope/context failure still abstains;
+there is no source fallback in that case. Ordinary chat remains capped at 900
+characters; guidance allows up to 6,400 for three full source passages plus
+conditional guidance. Saved labels use the actual persisted actions: `monitor`,
+`review`, `renegotiate`, `consider_cancellation`; unknown/unfinished actions are
+omitted. Injection, foreign-workspace and legal/action restrictions remain;
 the legacy extractive selector’s advice restriction is unchanged.
 
 - `GET /contracts/{id}/chat/source`: returns only `{ready, contract_id}`.

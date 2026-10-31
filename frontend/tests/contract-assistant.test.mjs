@@ -66,6 +66,16 @@ test('decision guidance is distinct and keeps scoped exact-citation validation',
   assert.throws(() => parser.parseChatAnswer({...chatResponse(),status:'do_anything'},'a'));
 });
 
+test('guidance preserves complete source fallback without expanding ordinary answer limits', () => {
+  const data = {...chatResponse(),status:'guidance',answer:'x'.repeat(6400)};
+  assert.equal(parser.parseChatAnswer(data,'a').answer.length,6400);
+  assert.equal(Array.from(parser.parseChatAnswer({...data,answer:'💼'.repeat(6400)},'a').answer).length,6400);
+  assert.throws(() => parser.parseChatAnswer({...data,answer:'x'.repeat(6401)},'a'));
+  assert.throws(() => parser.parseChatAnswer({...data,status:'answered'},'a'));
+  assert.throws(() => parser.parseChatAnswer({...data,contract_id:'foreign'},'a'));
+  assert.throws(() => parser.parseChatAnswer({...data,citations:[{page:0}]},'a'));
+});
+
 test('plain answer leads and exact sources stay collapsed and escaped', () => {
   const data = chatResponse();
   data.answer = '<script>bad()</script> You need 60 days notice.';
