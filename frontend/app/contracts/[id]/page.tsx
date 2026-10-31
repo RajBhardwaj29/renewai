@@ -12,6 +12,7 @@ import Toast from "@/components/Toast";
 import { useConfirmation } from "@/components/ConfirmationDialog";
 import ProvenanceBadge, { type ProvenanceKind } from "@/components/ProvenanceBadge";
 import ContractSummaryDownload from "@/components/ContractSummaryDownload";
+import CommercialRiskReview from "@/components/CommercialRiskReview";
 import ContractEvidence from "@/components/ContractEvidence";
 import ContractAssistant from "@/components/ContractAssistant";
 
@@ -2876,6 +2877,7 @@ formatTimingRisk(contract.risk_level)
           </section>
 
 
+          {process.env.NEXT_PUBLIC_ENABLE_COMMERCIAL_REVIEW === "true" && <CommercialRiskReview key={id} contractId={id} />}
           <ContractEvidence contract={contract} />
 
 

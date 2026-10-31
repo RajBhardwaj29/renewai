@@ -44,9 +44,9 @@ class ContractUploadGuard:
         self.authorize_assistant = authorize_assistant
 
     async def __call__(self, scope, receive, send):
-        assistant = (re.fullmatch(r"/contracts/([^/]+)/(?:ask|chat|chat/source)/?", scope.get("path", ""))
+        assistant = (re.fullmatch(r"/contracts/([^/]+)/(?:ask|chat|chat/source|commercial-review)/?", scope.get("path", ""))
                      if scope["type"] == "http" else None)
-        if (scope["type"] != "http" or scope["method"] != "POST"
+        if (scope["type"] != "http" or scope["method"] not in {"POST", "PATCH"}
                 or (not assistant and scope["path"].rstrip("/") not in {"/contracts/analyze", "/contracts/save"})):
             return await self.app(scope, receive, send)
 
@@ -54,7 +54,7 @@ class ContractUploadGuard:
             await JSONResponse({"detail": detail}, status_code=status)(scope, receive, send)
 
         headers = Headers(scope=scope)
-        budget = 16 * 1024 if scope["path"].rstrip("/").endswith("/chat") else MAX_REQUEST_BYTES
+        budget = 16 * 1024 if scope["path"].rstrip("/").endswith(("/chat", "/commercial-review")) else MAX_REQUEST_BYTES
         budget_message = "Chat message is too large." if budget < MAX_REQUEST_BYTES else "Upload request exceeds the 12 MiB limit."
         try:
             context = await run_in_threadpool(self.authenticate, headers.get("authorization"))
