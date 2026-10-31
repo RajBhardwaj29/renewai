@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Literal
 from contract_evidence import build_contract_evidence
 from contract_ai import ContractData
+from risk_policy import POLICY, rate_term
 
 RULES = {
     'pricing_clause': ('pricing', 'Renewal pricing increase', r'\b(increas\w*|uplift\w*|escalat\w*)\b', 'Check the permitted increase, cap, notice and consent conditions before agreeing renewal pricing.'),
@@ -27,6 +28,7 @@ def findings(contract, pages):
         return []
     data = ContractData.model_validate({k: contract.get(k) for k in ContractData.model_fields})
     evidence = build_contract_evidence(pages, contract['file_hash'], data, stage='reviewed_submission')
+    context_requires_review = any(re.search(r'\b(?:amendment|addendum|supersed\w*|order of precedence)\b', page, re.I) for page in pages)
     result = []
     for clause in evidence.clauses:
         if clause.field not in RULES:
@@ -34,12 +36,15 @@ def findings(contract, pages):
         category, title, pattern, action = RULES[clause.field]
         grounded = clause.status == 'grounded'
         detected = grounded and bool(re.search(pattern, clause.text or '', re.I))
-        identity = json.dumps(['commercial-review-v1', evidence.document_sha256, evidence.text_sha256,
+        identity = json.dumps(['commercial-review-v2', POLICY, evidence.document_sha256, evidence.text_sha256,
                                clause.field, clause.text], ensure_ascii=False)
+        rating = rate_term(category, clause.text, grounded)
+        if context_requires_review:
+            rating = {'severity': 'not_assessed', 'severity_reason': 'The source mentions amendments or precedence. Confirm which wording governs before applying the policy.'}
         result.append({'category': category, 'title': title,
             'fingerprint': hashlib.sha256(identity.encode()).hexdigest(),
             'status': 'review_required' if detected else 'not_assessed',
-            'severity': 'not_assessed',
+            **rating,
             'grounding': clause.status,
             'explanation': action if detected else 'No supported review signal established. This does not establish that the term is absent or acceptable.',
             'citations': [s.model_dump() for s in clause.source_spans] if grounded else [],
@@ -56,4 +61,4 @@ def load_review(contract, organization_id, pages):
         row = by_key.get(item['fingerprint'])
         if row:
             item['review'] = {key: row[key] for key in ('status', 'rationale', 'revision', 'reviewed_at')}
-    return {'version': 'commercial-review-v1', 'coverage': 'Three saved clause candidates only; other clauses, amendments and missing terms require manual review.', 'items': items}
+    return {'version': 'commercial-review-v2', 'policy': POLICY, 'coverage': 'Three saved clause candidates only; other clauses, amendments and missing terms require manual review.', 'items': items}

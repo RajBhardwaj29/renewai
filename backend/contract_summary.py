@@ -193,16 +193,25 @@ def build_contract_summary(contract: dict, reminders: list[dict], *, generated_a
         html += '</table>'
     else:
         html += '<p>No non-cancelled reminders are recorded.</p>'
+    commercial_html = ''
     if commercial_review:
-        html += '<div class="commercial-review"><h2>Commercial risk review — advisory</h2>'
-        html += paragraph('Review coverage', commercial_review['coverage'])
-        html += '<p>Severity not assessed. These are review prompts, not findings of legal invalidity or a complete risk assessment.</p>'
+        commercial_html += '<div class="commercial-review"><h2>Commercial risk review — advisory</h2>'
+        commercial_html += paragraph('Review coverage', commercial_review['coverage'])
+        policy = commercial_review.get('policy')
+        commercial_html += paragraph('Rating policy', policy['name'] if policy else 'Policy unavailable; severity not assessed.')
+        if policy:
+            commercial_html += paragraph('Policy rules', policy['summary'])
+            commercial_html += paragraph('Rating scope', policy['qualification'])
         for item in commercial_review['items']:
+            commercial_html += '<div class="risk-finding">'
             review = item.get('review')
-            html += paragraph(item['title'], (review['status'] if review else 'Unreviewed') + ' — ' + item['explanation'])
+            severity = item.get('severity', 'not_assessed').replace('_', ' ').title()
+            commercial_html += paragraph(item['title'] + ' — ' + severity, item.get('severity_reason', 'Severity not assessed.'))
+            commercial_html += paragraph('Human review', (review['status'] if review else 'Unreviewed') + ' — ' + item['explanation'])
             for citation in item['citations']:
-                html += paragraph('PDF page ' + str(citation['page']), citation['quote'])
-        html += '<p>Internal review reasons and reviewer identities are excluded. Confirmation does not approve the agreement.</p></div>'
+                commercial_html += paragraph('PDF page ' + str(citation['page']), citation['quote'])
+            commercial_html += '</div>'
+        commercial_html += '<p>Internal review reasons and reviewer identities are excluded. Confirmation does not approve the agreement.</p></div>'
     html += f"""<h2>7. Source and snapshot</h2>
       {rows([
           ('Original filename', contract.get('filename')),
@@ -212,7 +221,7 @@ def build_contract_summary(contract: dict, reminders: list[dict], *, generated_a
       <p class="muted">This summary includes the important information stored in RenewAI, not every provision
       of the original agreement. The customer name, additional obligations, amendments, or other terms may be
       absent if they were not captured. The original signed agreement and applicable amendments govern.</p>
-      </body></html>"""
+      {commercial_html}</body></html>"""
 
     css = """
       body { font-family: sans-serif; font-size: 9.5pt; line-height: 1.35; color: #172033; }
@@ -231,6 +240,8 @@ def build_contract_summary(contract: dict, reminders: list[dict], *, generated_a
       td { width: 280pt; font-size: 9pt; }
       .reminders th, .reminders td { width: 145pt; }
       p { orphans: 2; widows: 2; }
+      .risk-finding { page-break-inside: avoid; }
+      .commercial-review { page-break-before: always; }
       .commercial-review h3 { margin: 5pt 0 2pt; }
       .commercial-review p { margin: 3pt 0 4pt; }
     """
